@@ -1,0 +1,487 @@
+/* ── ambience + read-aloud (Session 11) ── */
+.ambience-modal { width: min(420px, 92vw); }
+.ambience-tracks {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: var(--space-7);
+}
+.ambience-track-btn {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-base);
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: 11px;
+  padding: var(--space-4) var(--space-5);
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.ambience-track-btn:hover { border-color: var(--accent); }
+.ambience-track-btn.active {
+  background: var(--accent-glow);
+  border-color: var(--accent);
+  color: var(--accent-deep);
+}
+.ambience-volume-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-base);
+  color: var(--ink-soft);
+  margin-bottom: var(--space-6);
+}
+.ambience-volume-row input[type="range"] { flex: 1; }
+.ambience-note {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+  color: var(--ink-faint);
+  line-height: 1.5;
+}
+
+/* Cozy pass — Settings modal. One stacked list of sections (no nav rail,
+   no live preview — deliberately scoped down, see openSettingsModal()'s
+   comment for why), reusing the ambience-track-btn/ambience-volume-row
+   patterns above for the sections that used to be their own modals. */
+.settings-modal { width: min(480px, 92vw); }
+
+/* Session pass — jump-links bar. Sticky at the very top of the modal
+   while scrolling (the modal header above it scrolls away under it — the
+   bar is opaque and z-indexed above, so the pass-under reads cleanly).
+   UX-fix pass, top: -20px — a sticky element's constraint rectangle is
+   inset by the SCROLLER'S own padding, and .modal-panel pads its top by
+   a hardcoded 20px, so top: 0 let the bar come to rest 20px below the
+   panel's visible edge, leaving a strip where scrolled sections showed
+   through above the tabs ("the top of Settings bleeds through"). -20px
+   cancels the padding so the bar pins flush with the clip edge; if the
+   .modal-panel padding-top ever changes, this number moves with it. */
+.settings-jumplinks {
+  display: flex;
+  gap: var(--space-2);
+  overflow-x: auto;
+  padding: var(--space-3) 0 var(--space-5);
+  margin-bottom: var(--space-2);
+  border-bottom: 1px solid var(--rule);
+  position: sticky;
+  top: -20px;
+  background: var(--paper);
+  z-index: 2;
+  scrollbar-width: none;
+}
+.settings-jumplinks::-webkit-scrollbar { display: none; }
+.settings-jumplink {
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  color: var(--ink-soft);
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+  padding: var(--space-2) var(--space-5);
+  cursor: pointer;
+  transition: background-color var(--motion-micro) var(--ease-cozy), border-color var(--motion-micro) var(--ease-cozy), color var(--motion-micro) var(--ease-cozy);
+}
+.settings-jumplink:hover { border-color: var(--accent); color: var(--ink); }
+.settings-jumplink.active { background: var(--accent); border-color: var(--accent); color: var(--paper); }
+
+.settings-section {
+  padding: var(--space-7) 0;
+  border-top: 1px solid var(--rule);
+  /* Anchor target for the jump-links above — scroll-margin-top keeps a
+     section's own heading from landing flush under the sticky jump-link
+     bar when scrolled to directly (the JS scrollTo() above already
+     accounts for this too; this is the fallback for browser-native anchor
+     jumps, e.g. a11y tools or a middle-click). */
+  scroll-margin-top: 56px;
+}
+.settings-section:first-of-type { border-top: none; padding-top: var(--space-1); }
+.settings-section h3 {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-xs);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: var(--space-5);
+  font-weight: 500;
+}
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-md);
+  color: var(--ink-soft);
+  margin-bottom: var(--space-4);
+}
+.settings-row:last-child { margin-bottom: 0; }
+.settings-row select {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-base);
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  color: var(--ink);
+  padding: var(--space-2) var(--space-4);
+}
+.settings-note {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+  color: var(--ink-faint);
+  line-height: 1.5;
+  margin-top: var(--space-3);
+}
+
+.theme-swatches { display: flex; gap: 8px; }
+.theme-swatch {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid var(--rule);
+  cursor: pointer;
+  padding: 0;
+}
+.theme-swatch.active { border-color: var(--accent); box-shadow: var(--shadow-focus); }
+.theme-swatch-paper { background: #F7F5F0; }
+.theme-swatch-void { background: #1A1A1E; }
+.theme-swatch-sepia { background: #EFE0C4; }
+
+.nav-style-toggle { display: flex; border: 1px solid var(--rule); border-radius: 9px; overflow: hidden; }
+.nav-style-btn {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-base);
+  background: var(--bg);
+  border: none;
+  padding: var(--space-2) var(--space-5);
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.nav-style-btn + .nav-style-btn { border-left: 1px solid var(--rule); }
+.nav-style-btn.active { background: var(--accent-glow); color: var(--accent-deep); }
+
+/* ── writing sprints (Session 20) ── */
+.sprint-modal { width: min(420px, 92vw); }
+.sprint-note {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-base);
+  color: var(--ink-soft);
+  line-height: 1.5;
+  margin-bottom: var(--space-7);
+}
+.sprint-presets {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: var(--space-4);
+}
+.sprint-preset-btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-md);
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: 11px;
+  padding: var(--space-5) var(--space-3);
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.sprint-preset-btn:hover { border-color: var(--accent); color: var(--accent-deep); }
+.sprint-open-btn, .sprint-end-btn {
+  width: 100%;
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-base);
+  background: var(--accent-glow);
+  border: 1px solid var(--accent);
+  border-radius: 11px;
+  padding: var(--space-4);
+  color: var(--accent-deep);
+  cursor: pointer;
+}
+.sprint-open-btn:hover, .sprint-end-btn:hover { background: var(--accent); color: var(--paper); }
+.sprint-end-btn { margin-top: var(--space-7); }
+.sprint-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 10px;
+}
+.sprint-summary-grid .stats-card-value { font-size: var(--text-3xl); }
+
+.readaloud-modal { width: min(460px, 92vw); }
+.readaloud-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-base);
+  color: var(--ink-soft);
+  margin-bottom: var(--space-5);
+}
+.readaloud-row select {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  padding: var(--space-2) var(--space-3);
+  color: var(--ink);
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-base);
+}
+.readaloud-row input[type="range"] { flex: 1; }
+#readaloud-rate-label { font-family: 'JetBrains Mono', monospace; font-size: var(--text-sm); width: 32px; text-align: right; }
+.readaloud-controls { display: flex; gap: 8px; margin-top: var(--space-2); }
+.readaloud-controls button:disabled { opacity: 0.4; cursor: default; }
+
+#ambience-btn.active { border-color: var(--accent); color: var(--accent-deep); background: var(--accent-glow); }
+
+/* ── search & replace (Session 14) ────────────────────────────────────── */
+.search-bar { display: flex; align-items: center; gap: 16px; margin-bottom: 18px; }
+.search-bar input[type="text"] {
+  flex: 1;
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-lg);
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  padding: 9px var(--space-5);
+  color: var(--ink);
+}
+.search-bar input[type="text"]:focus { outline: none; border-color: var(--accent); }
+.search-case-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-base);
+  color: var(--ink-soft);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.search-total {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-sm);
+  color: var(--ink-faint);
+  margin-bottom: var(--space-4);
+}
+
+/* ── quick-wins: regex error + category filter chips ── */
+.search-regex-error { color: var(--status-draft); }
+.search-regex-replace-note { margin-bottom: var(--space-5); }
+.search-category-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: var(--space-6); }
+.search-category-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-xs);
+  letter-spacing: 0.03em;
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  padding: 3px var(--space-4);
+  color: var(--ink-faint);
+  cursor: pointer;
+}
+.search-category-chip.active { border-color: var(--accent); color: var(--accent-deep); background: var(--accent-glow); }
+.search-category-chip:not(.active) .search-section-count { opacity: 0.5; }
+
+.search-section { margin-bottom: 20px; }
+.search-section h3 {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-xs);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: var(--space-3);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.search-section-count {
+  background: var(--accent-glow);
+  color: var(--accent-deep);
+  border-radius: 14px;
+  padding: 1px 7px;
+  font-size: var(--text-xs);
+}
+
+.search-result-row {
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  padding: var(--space-4) var(--space-5);
+  margin-bottom: var(--space-2);
+  cursor: pointer;
+}
+.search-result-row:hover { border-color: var(--accent); background: var(--accent-glow); }
+.search-result-main { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: var(--space-1); }
+.search-result-main strong { font-family: 'Fraunces', serif; font-weight: 400; font-size: var(--text-md); }
+.search-result-count { font-family: 'JetBrains Mono', monospace; font-size: var(--text-xs); color: var(--ink-faint); white-space: nowrap; }
+.search-snippet { font-size: var(--text-base); color: var(--ink-soft); line-height: 1.5; }
+.search-snippet mark { background: var(--accent-glow); color: var(--accent-deep); border-radius: 6px; padding: 0 1px; }
+
+.search-replace-panel {
+  margin-top: var(--space-3);
+  padding-top: 18px;
+  border-top: 1px solid var(--rule);
+}
+.search-replace-panel h3 {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-xs);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: var(--space-4);
+}
+.search-replace-row { display: flex; gap: 10px; }
+.search-replace-row input {
+  flex: 1;
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-md);
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  padding: var(--space-3) var(--space-5);
+  color: var(--ink);
+}
+#search-replace-btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-sm);
+  background: var(--accent-glow);
+  border: 1px solid transparent;
+  border-radius: 9px;
+  padding: var(--space-3) var(--space-6);
+  color: var(--accent-deep);
+  cursor: pointer;
+  white-space: nowrap;
+}
+#search-replace-btn:hover { border-color: var(--accent); }
+#search-replace-btn:disabled { opacity: 0.4; cursor: default; }
+
+/* Used for the snippet/timeline jump targets — search results land on an
+   item in a list rather than a dedicated detail panel, so a brief flash is
+   the only way to say "this one" after the scroll settles. */
+.flash-highlight { animation: flash-highlight 1.6s ease-out; }
+@keyframes flash-highlight {
+  0% { background: var(--accent-glow); border-color: var(--accent); }
+  100% { background: transparent; }
+}
+
+/* ── command palette (Session 16) ─────────────────────────────────────── */
+/* Anchored near the top rather than dead-center, like most Ctrl/Cmd+K
+   palettes — center placement fights with the eye already being near the
+   top of the screen (nav bar, title bar) when the shortcut is used. */
+.palette-backdrop { align-items: flex-start !important; padding-top: 12vh; }
+.palette-modal { width: min(560px, 92vw); padding: 0; overflow: hidden; }
+
+.palette-input {
+  width: 100%;
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-xl);
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--rule);
+  padding: var(--space-7) 20px;
+  color: var(--ink);
+}
+.palette-input:focus { outline: none; }
+
+.palette-results { max-height: 50vh; overflow-y: auto; padding: var(--space-3); }
+.palette-empty { padding: var(--space-6) var(--space-5); }
+
+.palette-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px var(--space-5);
+  border-radius: 9px;
+  cursor: pointer;
+}
+.palette-row.active { background: var(--accent-glow); }
+.palette-kind {
+  flex-shrink: 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-2xs);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--accent-deep);
+  background: var(--accent-glow);
+  border-radius: 9px;
+  padding: 2px var(--space-2);
+  width: 58px;
+  text-align: center;
+}
+.palette-label { font-family: 'Fraunces', serif; font-weight: 400; font-size: var(--text-md); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.palette-sublabel { font-family: 'JetBrains Mono', monospace; font-size: var(--text-xs); color: var(--ink-faint); flex-shrink: 0; }
+
+#palette-btn { font-family: 'JetBrains Mono', monospace; letter-spacing: .04em; }
+
+/* ── format layer (Session 17) ────────────────────────────────────────── */
+.hidden { display: none !important; }
+
+.format-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: var(--space-2) 0;
+  /* 0.2.5 UX batch — this row sat full-width and left-aligned while every
+     other element in the write view (chapter heading, manuscript paper,
+     footer) is the same centered 720px column, so its four buttons floated
+     in the empty gutter left of the paper, reading as misplaced icons at
+     the chapter-start height. Same column as the paper + footer now, so B
+     / I / highlight / quote sit on the manuscript's own top edge. */
+  max-width: 720px;
+  width: 100%;
+  margin: 0 auto var(--space-1);
+  border-bottom: 1px solid var(--rule);
+}
+.format-btn {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  color: var(--ink-soft);
+  font-size: var(--text-md);
+  width: 28px;
+  height: 26px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.format-btn:hover { border-color: var(--rule); background: var(--accent-glow); color: var(--accent-deep); }
+
+.format-color-group { position: relative; }
+.format-color-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 20;
+  display: flex;
+  gap: 6px;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 11px;
+  padding: var(--space-3);
+  box-shadow: var(--shadow-md);
+}
+.format-swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--rule);
+  cursor: pointer;
+}
+.format-swatch:hover { border-color: var(--accent); transform: scale(1.08); }
+.format-swatch.fmt-color-red { background: var(--fmt-red); }
+.format-swatch.fmt-color-amber { background: var(--fmt-amber); }
+.format-swatch.fmt-color-green { background: var(--fmt-green); }
+.format-swatch.fmt-color-blue { background: var(--fmt-blue); }
+.format-swatch.fmt-color-purple { background: var(--fmt-purple); }
+
+/* Rendered-output classes — what renderFormattedHtml() actually produces
+   (Book mode, Session 19; also usable anywhere else HTML output of chapter
+   text is needed). Kept next to the toolbar swatch colors above so the two
+   never drift apart. */
+.fmt-color-red { background: var(--fmt-red); border-radius: 6px; padding: 0 2px; }
+.fmt-color-amber { background: var(--fmt-amber); border-radius: 6px; padding: 0 2px; }
+.fmt-color-green { background: var(--fmt-green); border-radius: 6px; padding: 0 2px; }
+.fmt-color-blue { background: var(--fmt-blue); border-radius: 6px; padding: 0 2px; }
+.fmt-color-purple { background: var(--fmt-purple); border-radius: 6px; padding: 0 2px; }
+

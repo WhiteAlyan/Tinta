@@ -1,0 +1,786 @@
+/* ── corkboard view ── */
+.corkboard-header h2, .outline-header h2 {
+  font-family: 'Fraunces', serif;
+  font-weight: 400;
+  font-size: var(--text-3xl);
+}
+.corkboard-header p, .outline-header p {
+  font-size: var(--text-md);
+  color: var(--ink-faint);
+  margin-top: var(--space-1);
+}
+.corkboard-group { margin-top: 24px; }
+.corkboard-group-header { display: flex; align-items: center; gap: 8px; margin-bottom: var(--space-4); }
+.corkboard-group-header h3 { font-family: 'Fraunces', serif; font-weight: 400; font-size: var(--text-xl); flex: 1; }
+.add-scene-btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-xs);
+  color: var(--accent-deep);
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  padding: var(--space-1) var(--space-3);
+  cursor: pointer;
+}
+.add-scene-btn:hover { border-color: var(--accent); }
+
+.scene-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+  min-height: 40px; /* keeps an empty chapter's swimlane droppable */
+}
+.scene-card {
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  padding: var(--space-5) var(--space-5) var(--space-5) 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: relative;
+  /* P1-12 fix — longhand instead of `transition: opacity .15s ease`.
+     The shorthand REPLACES the entire transition list (per CSS spec),
+     so it killed the 6-property cozy transition from base.css:243
+     (background-color, border-color, color, box-shadow, transform,
+     opacity). Without transform/box-shadow transitions, the hover-lift
+     at base.css:258-263 snapped instead of settling. Longhand only
+     sets/overrides the named property, so base.css's other 5 transitions
+     survive. Same fix applied to .outline-item below. */
+  transition-property: opacity;
+  transition-duration: .15s;
+  transition-timing-function: ease;
+}
+.scene-card.dragging { opacity: .35; }
+.scene-drag-handle {
+  position: absolute;
+  top: 8px;
+  left: 6px;
+  bottom: 8px;
+  width: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-faint);
+  font-size: var(--text-md);
+  letter-spacing: -1px;
+  cursor: grab;
+  user-select: none;
+  border-radius: 4px;
+}
+.scene-drag-handle:hover { color: var(--accent-deep); background: var(--bg); }
+.scene-drag-handle:active { cursor: grabbing; }
+.scene-title {
+  font-family: 'Fraunces', serif;
+  font-size: var(--text-lg);
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: var(--space-1);
+  color: var(--ink);
+}
+.scene-card label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-2xs);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--ink-faint);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.scene-field {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-base);
+  color: var(--ink-soft);
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 5px var(--space-2);
+  resize: vertical;
+}
+.scene-delete {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: none;
+  border: none;
+  color: var(--ink-faint);
+  cursor: pointer;
+  font-size: var(--text-sm);
+}
+.scene-delete:hover { color: var(--status-draft); }
+
+/* P2-16 fix — `.empty-state-sm` declared here used to conflict with
+   the version in dashboards.css:212. dashboards.css loads later (6th
+   vs views.css 4th), equal specificity, dashboards won, and the
+   font-size: var(--text-base) / padding: var(--space-4) 2px declared
+   here were dead. Removed the conflicting declarations from here and
+   let dashboards.css own the canonical look; left only `line-height:
+   1.6` here (dashboards doesn't redeclare it, so this survives). */
+.empty-state-sm { line-height: 1.6; }
+
+/* ── outline view ── */
+.outline-list { list-style: none; margin-top: 18px; display: flex; flex-direction: column; gap: 2px; max-width: 720px; }
+.outline-item {
+  padding: var(--space-5) var(--space-6);
+  border: 1px solid transparent;
+  border-radius: 9px;
+  cursor: pointer;
+  /* P1-12 fix — longhand instead of `transition: background .15s`.
+     See .scene-card above for the full explanation — shorthand killed
+     the 5 other cozy transitions inherited from base.css. */
+  transition-property: background;
+  transition-duration: .15s;
+}
+.outline-item:hover { background: var(--accent-glow); }
+.outline-item-head { display: flex; align-items: center; gap: 8px; }
+.outline-wc { margin-left: auto; font-family: 'JetBrains Mono', monospace; font-size: var(--text-xs); color: var(--ink-faint); }
+.outline-synopsis { font-size: var(--text-base); color: var(--ink-faint); margin-top: var(--space-1); margin-left: var(--space-6); }
+
+.empty-state { color: var(--ink-faint); font-size: var(--text-md); padding: 40px; text-align: center; }
+/* P2-16 — duplicate declaration removed; see line 114. The color and
+   .empty-state-sm code selectors below stay here (they don't conflict
+   with dashboards.css). */
+.empty-state-sm code { font-family: 'JetBrains Mono', monospace; font-size: var(--text-sm); }
+
+/* ── notes view ── */
+.notes-layout { display: grid; grid-template-columns: 220px 1fr; gap: 24px; flex: 1; min-height: 0; }
+
+.notes-sidebar { display: flex; flex-direction: column; gap: 14px; overflow-y: auto; }
+
+.notes-add { display: flex; flex-direction: column; gap: 6px; }
+.notes-add-name {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-base);
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  color: var(--ink);
+  padding: var(--space-2) var(--space-3);
+}
+.notes-add #new-entity-type { width: 100%; }
+.notes-add #new-entity-btn { width: 100%; text-align: center; }
+
+.notes-group h4 {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-2xs);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: var(--space-1);
+}
+.notes-entity-list { list-style: none; display: flex; flex-direction: column; gap: 1px; margin-bottom: var(--space-6); }
+.notes-entity-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-md);
+  color: var(--ink-soft);
+  padding: var(--space-2) var(--space-3);
+  border-radius: 9px;
+  cursor: pointer;
+  overflow: hidden;
+}
+.notes-entity-item:hover, .notes-entity-item.active { background: var(--accent-glow); color: var(--accent-deep); }
+.notes-entity-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Follow-up to the earlier fix — laid out as a normal flex child at the
+   end of the row (not position:absolute) so it can never again drift off
+   to some other element's corner the way .scene-delete originally did;
+   its position is simply wherever this row is, always. Always visible
+   rather than hover-only — a Settings-modal-style small icon button, not
+   a discovery-through-hovering affordance, so it doesn't disappear the
+   moment a keyboard/touch user can't hover it. */
+.notes-entity-delete {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: var(--ink-faint);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  padding: 2px var(--space-1);
+  border-radius: 6px;
+}
+.notes-entity-delete:hover { color: var(--status-draft); }
+.notes-entity-avatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  overflow: hidden;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.notes-entity-avatar.is-dot { background: none; }
+.notes-entity-avatar.is-dot::after { content: ''; width: 8px; height: 8px; border-radius: 50%; }
+.notes-entity-avatar.is-dot.canvas-dot-character::after { background: var(--entity-character); }
+.notes-entity-avatar.is-dot.canvas-dot-location::after { background: var(--entity-location); }
+.notes-entity-avatar.is-dot.canvas-dot-item::after { background: var(--entity-item); }
+.notes-entity-avatar.is-dot.canvas-dot-concept::after { background: var(--entity-concept); }
+/* Worldbuilding pass — custom entity types. Unlike the 4 builtins above,
+   a custom type (Deity, Species, whatever the project needs) has no
+   theme-aware --entity-* var, since there's no way to generate a
+   paper/void/sepia triad for a color a person picked freely. Instead the
+   flat hex they chose comes in as an inline --type-color custom property
+   (set per-element in app.js), with --ink-faint as a safety fallback so
+   an entity whose type lost its color somehow still renders a dot instead
+   of nothing. */
+.notes-entity-avatar.is-dot.canvas-dot-custom::after { background: var(--type-color, var(--ink-faint)); }
+.entity-avatar-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.notes-detail { display: flex; flex-direction: column; gap: 14px; min-width: 0; overflow-y: auto; }
+.notes-detail-header { display: flex; align-items: center; gap: 10px; }
+.entity-portrait {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  overflow: hidden;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.entity-portrait.is-dot { background: none; border: 2px solid var(--rule); }
+.entity-portrait.is-dot::after { content: ''; width: 16px; height: 16px; border-radius: 50%; }
+.entity-portrait.is-dot.canvas-dot-character::after { background: var(--entity-character); }
+.entity-portrait.is-dot.canvas-dot-location::after { background: var(--entity-location); }
+.entity-portrait.is-dot.canvas-dot-item::after { background: var(--entity-item); }
+.entity-portrait.is-dot.canvas-dot-concept::after { background: var(--entity-concept); }
+.entity-portrait.is-dot.canvas-dot-custom::after { background: var(--type-color, var(--ink-faint)); }
+.entity-name-input {
+  font-family: 'Fraunces', serif;
+  font-size: 20px;
+  font-weight: 400;
+  background: none;
+  border: none;
+  color: var(--ink);
+  flex: 1;
+  min-width: 0;
+}
+.entity-name-input:focus { outline: none; }
+
+.entity-description {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-lg);
+  line-height: 1.6;
+  color: var(--ink);
+  background: var(--editor-bg);
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  padding: var(--space-5);
+  min-height: 140px;
+  resize: vertical;
+}
+.entity-description:focus { outline: none; border-color: var(--accent); }
+
+.entity-gallery { display: flex; flex-direction: column; gap: 8px; }
+.entity-gallery-header { display: flex; align-items: center; justify-content: space-between; }
+.entity-gallery-header h4 {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-2xs);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.entity-gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 10px; }
+.entity-gallery-thumb {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 9px;
+  overflow: hidden;
+  border: 2px solid transparent;
+  background: var(--bg);
+}
+.entity-gallery-thumb.is-primary { border-color: var(--accent); }
+.entity-gallery-thumb-img { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+.entity-gallery-thumb-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.entity-gallery-thumb-row {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  padding: var(--space-1);
+  background: linear-gradient(to top, rgba(0, 0, 0, .45), transparent);
+  opacity: 0;
+  transition: opacity .15s ease;
+}
+.entity-gallery-thumb:hover .entity-gallery-thumb-row { opacity: 1; }
+.entity-gallery-star, .entity-gallery-remove {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: var(--text-md);
+  cursor: pointer;
+  line-height: 1;
+  padding: 2px var(--space-1);
+}
+
+.notes-backlinks h4 {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-2xs);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: var(--space-3);
+}
+.backlink-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.backlink-item {
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  padding: var(--space-3) var(--space-4);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.backlink-item:hover { border-color: var(--accent); background: var(--accent-glow); }
+.backlink-loc {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-xs);
+  color: var(--accent-deep);
+}
+.backlink-snippet { font-size: var(--text-base); color: var(--ink-soft); line-height: 1.5; }
+
+@media (max-width: 800px) {
+  .notes-layout { grid-template-columns: 1fr; }
+}
+
+/* ── [[mentions]] — read-only rendering (Outline synopsis) ── */
+.mention {
+  font-style: normal;
+  border-bottom: 1px dotted var(--accent);
+  color: var(--accent-deep);
+}
+.mention-unresolved { border-bottom-color: var(--ink-faint); color: var(--ink-faint); }
+
+/* ── mention autocomplete popup (editor.js) ── */
+.mention-popup {
+  position: fixed;
+  z-index: 50;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 11px;
+  box-shadow: var(--shadow-md);
+  min-width: 160px;
+  max-width: 260px;
+  overflow: hidden;
+}
+.mention-popup-item {
+  font-size: var(--text-md);
+  color: var(--ink-soft);
+  padding: var(--space-2) var(--space-4);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mention-popup-item.active { background: var(--accent-glow); color: var(--accent-deep); }
+
+/* ── relationship canvas view (Session 4) ── */
+.canvas-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: var(--space-4); }
+.canvas-toolbar h2 { font-family: 'Fraunces', serif; font-weight: 400; font-size: var(--text-3xl); }
+.canvas-toolbar-right { display: flex; align-items: center; gap: 12px; }
+.canvas-hint {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+#canvas-link-btn.active { border-color: var(--accent); color: var(--accent-deep); background: var(--accent-glow); }
+
+.canvas-legend { display: flex; gap: 16px; margin-bottom: var(--space-6); flex-wrap: wrap; }
+.canvas-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-xs);
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  background: none;
+  border: none;
+  padding: 2px 4px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: opacity 0.15s;
+}
+.canvas-legend-item:hover { background: var(--bg); }
+.canvas-legend-item.hidden-type { opacity: 0.35; }
+.canvas-legend-item.hidden-type .canvas-dot { filter: grayscale(1); }
+#canvas-status-filter {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-xs);
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  padding: var(--space-1) var(--space-3);
+  color: var(--ink-soft);
+}
+/* Tier 2 pass — graph presets. Reuses #canvas-status-filter's look for
+   the preset picker so the toolbar reads as one family of controls. */
+#canvas-preset-select {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-xs);
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  padding: var(--space-1) var(--space-3);
+  color: var(--ink-soft);
+  max-width: 160px;
+}
+#canvas-preset-delete-btn:disabled { opacity: 0.35; cursor: default; }
+#canvas-preset-delete-btn:disabled:hover { border-color: var(--rule); color: var(--ink-soft); }
+
+.canvas-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.canvas-dot-character { background: var(--entity-character); }
+.canvas-dot-location { background: var(--entity-location); }
+.canvas-dot-item { background: var(--entity-item); }
+.canvas-dot-concept { background: var(--entity-concept); }
+.canvas-dot-custom { background: var(--type-color, var(--ink-faint)); }
+
+.canvas-stage {
+  flex: 1;
+  min-height: 320px;
+  border: 1px solid var(--rule);
+  border-radius: 11px;
+  background: var(--paper);
+  overflow: hidden;
+}
+.canvas-svg { width: 100%; height: 100%; display: block; touch-action: none; }
+
+.canvas-node { cursor: grab; }
+.canvas-node:active { cursor: grabbing; }
+.canvas-node-circle { stroke: var(--paper); stroke-width: 2; transition: stroke .15s, stroke-width .15s; }
+.canvas-node-character { fill: var(--entity-character); }
+.canvas-node-location { fill: var(--entity-location); }
+.canvas-node-item { fill: var(--entity-item); }
+.canvas-node-concept { fill: var(--entity-concept); }
+.canvas-node-custom { fill: var(--type-color, var(--ink-faint)); }
+.canvas-node-selected { stroke: var(--accent-deep); stroke-width: 3; }
+.canvas-node-label { font-family: 'Inter', sans-serif; font-size: var(--text-base); fill: var(--ink-soft); pointer-events: none; }
+
+/* Per-node delete button — hidden by default, revealed on node hover.
+   The button is a small ✕ in the top-right of the node, sitting just
+   outside the circle. Stops propagation on click so it doesn't also
+   trigger the node's drag/click handler. */
+.canvas-node-delete { opacity: 0; pointer-events: none; transition: opacity var(--motion-micro) var(--ease-cozy); cursor: pointer; }
+.canvas-node:hover .canvas-node-delete { opacity: 1; pointer-events: auto; }
+.canvas-node-delete-bg { fill: var(--status-draft); stroke: var(--paper); stroke-width: 1.5; }
+.canvas-node-delete-x {
+  font-family: 'Inter', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  fill: var(--paper);
+  pointer-events: none;
+  user-select: none;
+}
+.canvas-node-delete:hover .canvas-node-delete-bg { fill: var(--accent-deep); }
+
+.canvas-edge { fill: none; stroke: var(--ink-faint); stroke-width: 1.4; cursor: pointer; }
+.canvas-edge:hover { stroke: var(--accent); stroke-width: 2; }
+.canvas-edge-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-xs);
+  fill: var(--ink-faint);
+  cursor: pointer;
+  paint-order: stroke;
+  stroke: var(--paper);
+  stroke-width: 3;
+}
+
+/* ── sketchpad (Session 5) ── */
+.sketch-layout { display: flex; gap: 32px; flex: 1; min-height: 0; }
+.sketch-list-col { width: 220px; flex-shrink: 0; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; }
+.sketch-list { display: flex; flex-direction: column; gap: 2px; }
+
+.sketch-main-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+
+/* ── sketch↔entity linking (Craft-tools pass) ── */
+.sketch-links-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.sketch-links-label { font-family: 'JetBrains Mono', monospace; font-size: var(--text-xs); color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.04em; }
+.sketch-links-chips { display: flex; flex-wrap: wrap; gap: 6px; flex: 1; }
+.sketch-link-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--accent-glow);
+  color: var(--accent-deep);
+  border-radius: 999px;
+  padding: 2px var(--space-3);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+.sketch-link-remove { background: none; border: none; color: inherit; opacity: 0.6; cursor: pointer; line-height: 1; }
+.sketch-link-remove:hover { opacity: 1; }
+#sketch-link-add {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-sm);
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  padding: var(--space-2) var(--space-3);
+  color: var(--ink-soft);
+}
+
+.sketch-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.sketch-toolbar .entity-name-input { flex: 1; min-width: 120px; }
+.sketch-toolbar select {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-sm);
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  padding: var(--space-2) var(--space-3);
+  color: var(--ink-soft);
+}
+.sketch-toolbar button {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-sm);
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  padding: var(--space-2) var(--space-4);
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.sketch-toolbar button:hover { border-color: var(--accent); color: var(--accent-deep); }
+#sketch-delete:hover { border-color: var(--status-draft); color: var(--status-draft); }
+
+.sketch-colors { display: flex; align-items: center; gap: 5px; }
+.sketch-color-swatch {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--rule);
+  cursor: pointer;
+  padding: 0;
+}
+.sketch-color-swatch.active { border-color: var(--accent); }
+
+.sketch-color-wheel {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 2px solid var(--rule);
+  border-radius: 50%;
+  cursor: pointer;
+  background: none;
+  overflow: hidden;
+}
+.sketch-color-wheel::-webkit-color-swatch-wrapper { padding: 0; border-radius: 50%; }
+.sketch-color-wheel::-webkit-color-swatch { border: none; border-radius: 50%; }
+.sketch-color-wheel::-moz-color-swatch { border: none; border-radius: 50%; }
+
+.sketch-canvas-wrap {
+  flex: 1;
+  min-height: 0;
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  background: var(--paper);
+  overflow: hidden;
+}
+#sketch-canvas { width: 100%; height: 100%; display: block; touch-action: none; cursor: crosshair; }
+
+/* Shared list-column header — Sketch and Map's list panels both use this
+   ("Sketches" / "+ New", "Maps" / "+ New") but it was left unstyled by
+   whichever pass introduced Sketch's version first; falls back to bare
+   default h2/button stacking without this. Fixed here rather than in a
+   Sketch-specific pass since Map's list panel needs it too and there's no
+   reason for two copies of the same three rules. */
+.notes-view-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.notes-view-header h2 { font-family: 'Fraunces', serif; font-size: var(--text-lg); font-weight: 400; margin: 0; }
+.notes-view-header button {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 5px var(--space-3);
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.notes-view-header button:hover { border-color: var(--accent); color: var(--accent-deep); }
+
+/* ── geography / map system (Tier 4 pass, §11) ──────────────────────────────
+   List/detail shell reuses .sketch-layout/.sketch-list-col/.sketch-main-col/
+   .sketch-toolbar wholesale (see above) — only what's genuinely new to Map
+   gets its own rules below: the image-with-pins stage, the pins
+   themselves, and the marker editor panel that appears under it. */
+.map-list { display: flex; flex-direction: column; gap: 2px; }
+
+.map-canvas-wrap {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  background: var(--paper);
+}
+.map-no-image {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--space-6);
+  color: var(--ink-faint);
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-base);
+  line-height: 1.6;
+}
+
+/* The stage sizes to the image's own natural dimensions (inline-block +
+   the img itself, not stretched to fill) so pins placed at a normalized
+   0..1 coordinate land in the same visual spot regardless of zoom/scroll —
+   .map-canvas-wrap scrolls around this rather than the image resizing to
+   fit the panel. */
+.map-image-stage {
+  position: relative;
+  display: inline-block;
+  margin: auto;
+}
+.map-image-stage img {
+  display: block;
+  max-width: none; /* natural size — see comment above */
+  user-select: none;
+}
+
+.map-pin {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-size: 22px;
+  line-height: 1;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.map-pin:hover, .map-pin.is-selected { filter: drop-shadow(0 1px 3px var(--accent-deep)); }
+.map-pin-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-2xs);
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  border-radius: 5px;
+  padding: 1px 5px;
+  margin-top: 2px;
+  white-space: nowrap;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.map-pin.is-selected .map-pin-label { border-color: var(--accent); color: var(--accent-deep); }
+
+/* Sits below .map-canvas-wrap in normal flow (appended as a sibling in
+   #map-main, not an overlay) — a selected marker's fields shouldn't cover
+   any part of the map itself, since the whole point of clicking a pin is
+   to see where it is while editing it. */
+.map-marker-editor {
+  margin-top: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  background: var(--paper);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.map-marker-editor-row { display: flex; gap: var(--space-3); align-items: center; }
+.map-marker-editor-row input[type="text"],
+.map-marker-editor-row select {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 6px var(--space-3);
+  color: var(--ink);
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+}
+.map-marker-note {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: var(--space-2) var(--space-3);
+  color: var(--ink);
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+  resize: vertical;
+}
+.map-marker-delete-btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-xs);
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 5px var(--space-3);
+  color: var(--status-draft);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.map-marker-delete-btn:hover { border-color: var(--status-draft); background: var(--accent-glow); }
+
+
+/* ── references / research vault (Tier 4 pass, §14) ──────────────────────────
+   List/detail shell reuses .sketch-layout/.sketch-list-col/.sketch-main-col/
+   .sketch-toolbar/.map-list/.notes-view-header/.entity-meta-row/
+   .grammar-field-label wholesale (see their definitions above and in
+   modals.css/polish.css) — only what's genuinely new to References is
+   below: the small type-tag chip on each list row, and the image preview
+   box for Image/Screenshot-type references. */
+.reference-type-tag {
+  display: inline-block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-2xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--paper);
+  color: var(--ink-soft);
+  border: 1px solid var(--rule);
+  border-radius: 5px;
+  padding: 1px 5px;
+  margin-right: var(--space-2);
+}
+.reference-image-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+.reference-image-preview {
+  width: 96px;
+  height: 96px;
+  border-radius: 9px;
+  border: 1px solid var(--rule);
+  background: var(--paper);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.reference-image-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }

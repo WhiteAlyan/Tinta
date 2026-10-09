@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="paper" data-font="literata">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Tinta</title>
+<meta name="theme-color" content="#F7F5F0" />
+<link rel="manifest" href="manifest.json" />
+
+<!-- Canvas-and-trio pass — fonts are self-hosted now (css/fonts.css +
+     fonts/*.woff2), replacing the fonts.googleapis.com stylesheet link.
+     Same five families, same latin subsets; the files ship with the shell
+     and precache with everything else, so the app is fully offline. See
+     scripts/selfhost_fonts.py for the generator. -->
+<link rel="stylesheet" href="css/fonts.css" />
+
+<!-- app.js-refactor pass — split out of one 3,103-line style.css into
+     9 concern-based files (see ROADMAP.md's v0.1 QA flag). Order here
+     matters and must match the old file's original top-to-bottom order:
+     browsers apply linked stylesheets in document order, same as one
+     concatenated file, so re-ordering these tags would silently change
+     which rule wins wherever two rules share specificity. -->
+<link rel="stylesheet" href="css/base.css" />
+<link rel="stylesheet" href="css/shell.css" />
+<link rel="stylesheet" href="css/editor-view.css" />
+<link rel="stylesheet" href="css/views.css" />
+<link rel="stylesheet" href="css/modals.css" />
+<link rel="stylesheet" href="css/dashboards.css" />
+<link rel="stylesheet" href="css/tools.css" />
+<link rel="stylesheet" href="css/media.css" />
+<link rel="stylesheet" href="css/polish.css" />
+</head>
+<body>
+
+<div id="app-shell">
+  <aside class="sidebar">
+    <div class="project-header">
+      <input id="project-title" class="project-title-input" type="text" value="My Novel" />
+      <button id="project-switcher-btn" class="project-switcher-btn" title="Library: switch, create, or manage novels">‹ Library</button>
+    </div>
+
+    <div class="sb-label">
+      <span>Chapters</span>
+      <button id="new-chapter-btn">+ New</button>
+      <button id="new-from-template-btn" title="New chapter or scene from a template">Template</button>
+    </div>
+    <div class="arc-filter-bar" id="arc-filter-bar" style="display:none">
+      <select id="arc-filter-select" class="arc-filter-select" title="Filter chapters by arc">
+        <option value="">All arcs</option>
+      </select>
+    </div>
+    <ul id="chapter-list" class="chapter-list"></ul>
+
+    <div class="sidebar-footer">
+      <button id="sprint-btn" title="Writing sprint timer"><span class="sb-icon">⏱</span><span class="sb-label-text">Sprint</span></button>
+      <button id="images-btn" title="Image library"><span class="sb-icon">🖼</span><span class="sb-label-text">Images</span></button>
+      <button id="organize-btn" title="Folders, favorites, recents, collections, archive, trash"><span class="sb-icon">🗂</span><span class="sb-label-text">Organize</span></button>
+      <button id="settings-btn" title="Settings"><span class="sb-icon">⚙</span><span class="sb-label-text">Settings</span></button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <nav class="view-tabs" id="view-tabs">
+      <div class="nav-tabs-groups" id="nav-tabs-groups"></div>
+      <button id="palette-btn" class="view-tab" title="Quick switcher (Ctrl/Cmd+K)">⌘K</button>
+    </nav>
+
+    <section class="view-panel active" data-view="write"></section>
+    <section class="view-panel" data-view="corkboard"></section>
+    <section class="view-panel" data-view="outline"></section>
+    <section class="view-panel" data-view="notes"></section>
+    <section class="view-panel" data-view="canvas"></section>
+    <section class="view-panel" data-view="map"></section>
+    <section class="view-panel" data-view="sketch"></section>
+    <section class="view-panel" data-view="references"></section>
+    <section class="view-panel" data-view="systems"></section>
+    <section class="view-panel" data-view="snippets"></section>
+    <section class="view-panel" data-view="timeline"></section>
+    <section class="view-panel" data-view="questions"></section>
+    <section class="view-panel" data-view="search"></section>
+    <section class="view-panel" data-view="health"></section>
+    <section class="view-panel" data-view="checklist"></section>
+    <section class="view-panel" data-view="annotations"></section>
+    <section class="view-panel" data-view="decisions"></section>
+    <section class="view-panel" data-view="resume"></section>
+    <section class="view-panel" data-view="book"></section>
+    <section class="view-panel" data-view="stats"></section>
+  </main>
+</div>
+
+<div id="storage-warning-root"></div>
+<div id="celebration-toast-root"></div>
+<div id="modal-root"></div>
+<!-- Contextual drawer/inspector pass — separate root from modal-root on
+     purpose: modals dim/block the manuscript behind them, this shouldn't.
+     See js/drawer.js. -->
+<div id="drawer-root"></div>
+
+<script type="module" src="js/app.js"></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    });
+  }
+</script>
+</body>
+</html>

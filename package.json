@@ -1,0 +1,18 @@
+{
+  "name": "tinta-dev-tooling",
+  "private": true,
+  "type": "module",
+  "description": "Dev-only tooling for Tinta. The app itself ships with zero dependencies and no build step (see docs/ROADMAP.md) — this package.json exists solely so `npx playwright test` has something to install against for the browser-level smoke specs in tests/. Nothing here is loaded by index.html. \"type\": \"module\" is needed for playwright.config.js's ESM import syntax and also quiets Node's reparse warning on the js/*.smoketest.mjs files.",
+  "scripts": {
+    "test": "playwright test",
+    "smoketest": "for f in js/*.smoketest.mjs; do node \"$f\" || exit 1; done",
+    "lint": "eslint js/ tests/"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.10.0",
+    "@playwright/test": "^1.62.1",
+    "eslint": "^9.10.0",
+    "eslint-plugin-import": "^2.30.0",
+    "fake-indexeddb": "^6.2.5"
+  }
+}

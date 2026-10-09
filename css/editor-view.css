@@ -1,0 +1,507 @@
+/* ── write view ── */
+.write-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: var(--space-1);
+  /* UX-fix pass — span the full view width instead of centering a 720px
+     column over the page. The old centering put the icon cluster's left
+     edge almost exactly at the page column's midpoint, so the icons read
+     as floating at the center of the chapter-start header (dimmed, no
+     anchor, nowhere in particular) instead of pinned to a corner. Full
+     width plus the nav bar's own 28px side inset parks the cluster at the
+     view's top-right edge, vertically aligned with ⌘K above it — same
+     corner, same logic. */
+  max-width: none;
+  padding: 0 28px;
+  width: 100%;
+}
+.write-toolbar-spacer { flex: 1; }
+
+/* Cozy pass — chapter heading. Previously the title input sat inline with
+   the toolbar's action buttons (left-aligned, competing for the same
+   row); it now gets its own centered block above the manuscript, with a
+   small ornamental rule-icon-rule divider underneath — the "this is a
+   chapter starting" moment, echoing a printed book's chapter opener
+   rather than reading as a form field. */
+.chapter-heading {
+  max-width: 720px;
+  margin: 0 auto 20px;
+  width: 100%;
+  text-align: center;
+}
+.chapter-number-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-xs);
+  letter-spacing: .16em;
+  color: var(--ink-faint);
+  opacity: .65;
+  margin-bottom: var(--space-2);
+  min-height: 1em; /* holds its place even when empty, so the title doesn't jump */
+}
+.chapter-title-input {
+  font-family: 'Fraunces', serif;
+  font-size: 26px;
+  font-weight: 400;
+  background: none;
+  border: none;
+  color: var(--ink);
+  text-align: center;
+  width: 100%;
+}
+.chapter-title-input:focus { outline: none; }
+.chapter-title-input::placeholder { color: var(--ink-faint); }
+
+.chapter-heading-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: var(--space-4);
+  color: var(--accent);
+  opacity: .75;
+}
+.chapter-heading-divider span { width: 42px; height: 1px; background: var(--rule); }
+.chapter-heading-divider i { font-style: normal; font-size: var(--text-sm); }
+
+.write-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  /* Cozy pass — resting state is dimmed rather than hidden (still findable
+     by scanning, not a mystery), and sharpens on approach. :has() catches
+     "a popover opened from one of these buttons is still open" so the
+     icons don't fade out from under an open Details/More panel; :hover and
+     :focus-within cover mouse and keyboard approach respectively. */
+  opacity: .35;
+  transition: opacity .15s ease;
+}
+.write-toolbar:hover .write-toolbar-right,
+.write-toolbar-right:focus-within,
+.write-toolbar-right:has(.wt-popover:not(.hidden)) {
+  opacity: 1;
+}
+.status-select, .pov-input {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-sm);
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  color: var(--ink-soft);
+  padding: var(--space-2) var(--space-3);
+}
+.pov-input { width: 130px; }
+
+/* Cozy pass — write-toolbar consolidation. Status/POV/Arc (metadata) and
+   Word Check/Names/Read Aloud/Import (less-frequent tools) used to sit as
+   ten permanently-visible controls in one row; they now live behind two
+   small popovers so the toolbar reads as "a few icons," not "a control
+   panel." History/Grammar/Export stay as one-click icons since those get
+   used most sessions. */
+.toolbar-btn-icon {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  font-size: var(--text-xl);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  color: var(--ink-faint);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.toolbar-btn-icon:hover { border-color: var(--accent); color: var(--accent-deep); background: var(--accent-glow); }
+.toolbar-btn-icon:active { transform: translateY(1px); }
+/* Quick-wins pass — bookmark star (active = currently bookmarked) and the
+   small unread-count badge shared by the bookmarks and annotations
+   buttons. */
+.toolbar-btn-icon.active { color: var(--accent-deep); border-color: var(--accent); background: var(--accent-glow); }
+.toolbar-btn-icon { position: relative; }
+.toolbar-btn-badge {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--paper);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  line-height: 15px;
+  text-align: center;
+}
+
+.wt-popover-group { position: relative; }
+
+.wt-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 20;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  box-shadow: var(--shadow-md);
+  padding: var(--space-5);
+  min-width: 210px;
+}
+
+/* Details popover — Status / POV / Arc, stacked as labeled fields instead
+   of three bare inputs racing each other for width in the toolbar row. */
+.wt-popover-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-2xs);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.wt-popover-field + .wt-popover-field { margin-top: var(--space-4); }
+.wt-popover-field .status-select,
+.wt-popover-field .pov-input,
+.wt-popover-field .arc-input {
+  width: 100%;
+  border-bottom: 1px solid var(--rule);
+  border-radius: 6px;
+}
+.wt-popover-field .arc-input { border: 1px solid var(--rule); padding: var(--space-2) var(--space-3); }
+/* Tier 7 pass — the Systems view reuses .wt-popover-field's stacked
+   label layout for a system's framing fields and a node's ~10 fields,
+   neither of which use the status-select/pov-input/arc-input classes
+   above (those are specific to the Write-toolbar Details popover this
+   class was originally built for). Bare inputs/non-multi selects get the
+   same full-border treatment as .arc-input; text-transform/letter-spacing
+   are reset since those are meant for the (already-uppercase) label text,
+   not for a person's typed skill name or system source description. */
+.wt-popover-field input[type="text"]:not(.arc-input):not(.pov-input):not(.chapter-title-input),
+.wt-popover-field select:not([multiple]) {
+  width: 100%;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: var(--space-2) var(--space-3);
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+/* More menu — a flat list of buttons instead of a fields popover. */
+.wt-menu { padding: var(--space-2); display: flex; flex-direction: column; gap: 2px; min-width: 190px; }
+.wt-menu-item {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-md);
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  color: var(--ink-soft);
+  padding: 9px var(--space-4);
+  cursor: pointer;
+}
+.wt-menu-item:hover { background: var(--accent-glow); color: var(--accent-deep); }
+
+/* ── bookmarks popover (Quick-wins pass) ── */
+#bookmarks-popover { min-width: 240px; max-width: 320px; max-height: 320px; overflow-y: auto; padding: var(--space-3); }
+.bookmark-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: 8px;
+  font-size: var(--text-sm);
+  color: var(--ink);
+  cursor: pointer;
+}
+.bookmark-row:hover { background: var(--accent-glow); color: var(--accent-deep); }
+.bookmark-remove-btn { background: none; border: none; color: var(--ink-faint); cursor: pointer; flex-shrink: 0; }
+.bookmark-remove-btn:hover { color: var(--status-draft); }
+
+.editor-stack {
+  position: relative;
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+/* Quick-wins pass — chapter transition. app.js's isChapterSwitch guard
+   (renderWriteView) only adds this class when the chapter actually
+   changed and the writer hasn't turned chapterTransitions off, so it
+   won't replay on autosave, a status edit, or any other re-render.
+   Applied to both .chapter-heading and .editor-stack so the title and
+   the manuscript enter together as one page-turn, not two separately-
+   timed fades. Duration scales with --motion-chapter-scale (set by
+   Settings > Appearance > Motion speed); reduced-motion is already
+   handled globally in base.css and wins over this. */
+@keyframes chapter-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.chapter-heading.chapter-enter,
+.editor-stack.chapter-enter {
+  animation: chapter-enter calc(var(--motion-normal) * var(--motion-chapter-scale)) var(--ease-cozy);
+}
+
+.chapter-editor {
+  flex: 1;
+  max-width: 720px;
+  margin: 0 auto;
+  width: 100%;
+  background: var(--editor-bg);
+  /* v0.3 — textarea text always transparent + caret always visible.
+     The always-on .focus-dim-overlay sitting on top is the only
+     visible copy. The caret stays visible so the writer still sees
+     where they're typing. */
+  color: transparent;
+  caret-color: var(--ink);
+  border: none;
+  resize: none;
+  font-size: var(--text-2xl);
+  line-height: 1.75;
+  padding: var(--space-3) var(--space-1) 40px;
+}
+.chapter-editor:focus { outline: none; }
+
+/* ── per-paragraph focus dimming (Session 21) ──
+   The overlay is a non-interactive twin of the textarea, box-for-box —
+   same max-width/margin/padding/font metrics — sitting on top of it.
+   v0.3 — the overlay is now ALWAYS visible (not just in Focus mode),
+   showing formatted HTML for non-current paragraphs and raw escaped
+   text for the current paragraph (Typora-style). The textarea's own
+   text is always transparent (caret-color kept, so you still see where
+   you're typing); the overlay is the only visible copy. Focus mode
+   (zen/typewriter) layers its dimming on top: current paragraph full
+   opacity, others at 0.3 — same visual as before, just now on top of
+   formatted rendering instead of raw text. */
+.focus-dim-overlay {
+  display: block;
+  position: absolute;
+  inset: 0;
+  max-width: 720px;
+  margin: 0 auto;
+  width: 100%;
+  padding: var(--space-3) var(--space-1) 40px;
+  font-size: var(--text-2xl);
+  line-height: 1.75;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow: hidden;
+  pointer-events: none;
+  box-sizing: border-box;
+  color: var(--ink);
+}
+.focus-dim-overlay .fd-paragraph {
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}
+.focus-dim-overlay .fd-paragraph.dimmed { opacity: 0.3; }
+
+/* Focus/Zen tiers pass — narrower column + slightly smaller font for
+   the deeper tiers (zen/typewriter); the light 'focus' tier doesn't
+   touch the manuscript's own rendering at all, just what's around it. */
+[data-focus-level="zen"] .focus-dim-overlay,
+[data-focus-level="typewriter"] .focus-dim-overlay {
+  max-width: 660px;
+  font-size: 19px;
+}
+
+/* v0.3 — mention chips rendered in the always-on overlay. The chip
+   wraps the full [[name]] region; the .mention-bracket children are
+   transparent (color: transparent) so they occupy the same width as
+   in the textarea, preserving caret-position alignment between the
+   overlay and the textarea. The .mention-chip-name is the visible
+   styled part (background, padding). Click on the chip area lands in
+   the textarea (overlay has pointer-events: none) and the existing
+   click handler detects the mention via caret position. */
+.focus-dim-overlay .mention-chip {
+  display: inline;
+  white-space: pre-wrap;
+  cursor: pointer;
+}
+.focus-dim-overlay .mention-bracket {
+  color: transparent;
+  text-decoration: none;
+}
+.focus-dim-overlay .mention-chip-name {
+  background: rgba(122, 90, 58, 0.14);
+  border: 1px solid rgba(122, 90, 58, 0.28);
+  border-radius: 3px;
+  padding: 0 3px;
+  font-weight: 500;
+}
+.focus-dim-overlay .mention-chip-resolved .mention-chip-name {
+  background: rgba(122, 90, 58, 0.14);
+  border-color: rgba(122, 90, 58, 0.28);
+  color: var(--ink);
+}
+.focus-dim-overlay .mention-chip-unresolved .mention-chip-name {
+  background: transparent;
+  border: 1px dashed rgba(155, 107, 47, 0.45);
+  color: var(--ink-faint);
+}
+
+/* v0.3 — inline images in the overlay. Smaller than Book mode's
+   .fmt-image because the editor's overlay has to coexist with the
+   textarea's text flow (which doesn't reserve space for images).
+   Inline images will cause the overlay's content height to exceed
+   the textarea's for paragraphs that contain them — scroll sync
+   stays approximate (dimOverlay.scrollTop = textarea.scrollTop) but
+   for the typical case (image in a non-current paragraph the writer
+   is reading, not editing) the small drift is acceptable. */
+.focus-dim-overlay .fmt-image {
+  display: block;
+  margin: 8px auto;
+  max-width: 100%;
+  max-height: 320px;
+  border-radius: 4px;
+}
+.focus-dim-overlay .fmt-image img {
+  display: block;
+  max-width: 100%;
+  max-height: 320px;
+  border-radius: 4px;
+}
+.focus-dim-overlay .fmt-image figcaption {
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+  text-align: center;
+  margin-top: 4px;
+  font-style: italic;
+}
+.focus-dim-overlay .fmt-image-left  { float: left;  margin: 4px 16px 4px 0; }
+.focus-dim-overlay .fmt-image-right { float: right; margin: 4px 0 4px 16px; }
+.focus-dim-overlay .fmt-image-missing {
+  display: inline-block;
+  padding: 2px 6px;
+  background: rgba(155, 59, 59, 0.08);
+  border: 1px dashed rgba(155, 59, 59, 0.35);
+  border-radius: 3px;
+  color: var(--status-draft);
+  font-size: var(--text-xs);
+  font-style: italic;
+}
+
+/* v0.3 — formatted spans inside the overlay. Color swatches use the
+   existing fmt-color-* classes from elsewhere; they're defined in
+   views.css/tools.css. Strong/em/u render via the browser's default
+   styling, but make sure they inherit the overlay's font metrics. */
+.focus-dim-overlay strong,
+.focus-dim-overlay em,
+.focus-dim-overlay u {
+  font-weight: inherit;
+  font-style: inherit;
+  text-decoration: inherit;
+}
+.focus-dim-overlay strong { font-weight: 700; }
+.focus-dim-overlay em { font-style: italic; }
+.focus-dim-overlay u { text-decoration: underline; text-underline-offset: 2px; text-decoration-thickness: 1px; }
+
+.write-footer {
+  max-width: 720px;
+  margin: 0 auto;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--rule);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+}
+.save-status.is-editing { color: var(--accent-deep); }
+/* Truthful-save pass — the footer now has a third state. 'Not saved' means
+   Store.save() reported the write did not land (cross-tab staleness, quota,
+   localStorage unreachable); Store's own retry keeps trying and its banner
+   explains why. --status-draft is the same "attention, not catastrophe"
+   ochre the storage-warning banner and danger confirm button already use,
+   so this reads as part of the same warning language rather than a new
+   colour. font-weight lifts it above the footer's quiet --ink-faint
+   baseline, since this is the one footer state a writer must not miss. */
+.save-status.is-save-error { color: var(--status-draft); font-weight: 600; }
+
+/* Cozy pass — mirrored Focus control in the footer (right-aligned, next to
+   word count), styled to match the reader-mockup's quiet "Focus ⛶" text
+   link rather than the bordered icon-button treatment used in the top
+   toolbar — this one sits in the manuscript's own quiet footer, so it
+   stays just as quiet. */
+.focus-toggle-footer {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-xs);
+  letter-spacing: .04em;
+  background: none;
+  border: none;
+  color: var(--ink-faint);
+  cursor: pointer;
+  padding: 0;
+}
+.focus-toggle-footer:hover, .focus-toggle-footer.active { color: var(--accent-deep); }
+
+/* ── focus mode — Focus/Zen/Typewriter tiers ──
+   Four levels via [data-focus-level] on #app-shell instead of the old
+   single on/off .focus-mode class (see editor.js's setFocusLevel/
+   cycleFocusMode). 'focus' is the light first step: just the sidebar and
+   nav tabs gone, toolbars/footer stay so tools are still one click away.
+   'zen' and 'typewriter' share every rule below (typewriter's only actual
+   difference is the JS-driven scroll behavior in editor.js, nothing
+   visual) — grouped as one comma-separated selector list per rule rather
+   than a second near-duplicate block.
+
+   The Focus toggle used to also live as a second button in the top nav
+   bar (#focus-toggle), which needed real care here: hide every *other*
+   nav tab at the deeper tiers but leave that one specific button and its
+   own bit of chrome standing, or the one way back out would vanish along
+   with everything else. That button's gone now (redundant with the
+   footer one below — see app.js), so .view-tabs can just hide outright
+   like everything else in this list; the footer's own Focus button
+   inherits that same "must stay reachable" requirement instead, handled
+   just below. */
+[data-focus-level="focus"] .sidebar,
+[data-focus-level="zen"] .sidebar,
+[data-focus-level="typewriter"] .sidebar,
+[data-focus-level="focus"] .view-tabs,
+[data-focus-level="zen"] .view-tabs,
+[data-focus-level="typewriter"] .view-tabs {
+  display: none;
+}
+[data-focus-level="zen"] .write-toolbar,
+[data-focus-level="typewriter"] .write-toolbar,
+[data-focus-level="zen"] .format-toolbar,
+[data-focus-level="typewriter"] .format-toolbar {
+  display: none;
+}
+/* .write-footer itself stays (unlike write-toolbar/format-toolbar above)
+   specifically so its Focus button — the one remaining way out of Zen/
+   Typewriter besides Escape or the keyboard shortcut — never disappears;
+   save-status and word-count are hidden individually instead, since
+   those two are exactly the kind of status-dashboard chrome Zen mode is
+   meant to get out of the way of. */
+[data-focus-level="zen"] .write-footer #save-status,
+[data-focus-level="typewriter"] .write-footer #save-status,
+[data-focus-level="zen"] .write-footer #word-count,
+[data-focus-level="typewriter"] .write-footer #word-count {
+  display: none;
+}
+[data-focus-level="zen"] .write-footer,
+[data-focus-level="typewriter"] .write-footer {
+  border-top: none;
+  justify-content: flex-end;
+}
+[data-focus-level="zen"] .main,
+[data-focus-level="typewriter"] .main {
+  padding-top: 6vh;
+}
+[data-focus-level="zen"] .chapter-editor,
+[data-focus-level="typewriter"] .chapter-editor {
+  font-size: 19px;
+  max-width: 660px;
+}
+

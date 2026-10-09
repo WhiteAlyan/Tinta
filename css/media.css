@@ -1,0 +1,216 @@
+/* ── image library (Session 18) ───────────────────────────────────────── */
+.image-library-modal { width: min(680px, 92vw); }
+
+.image-upload-drop {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--rule);
+  border-radius: 11px;
+  padding: 22px;
+  margin-bottom: var(--space-7);
+  cursor: pointer;
+  font-size: var(--text-base);
+  color: var(--ink-faint);
+  transition: border-color .15s, background .15s;
+}
+.image-upload-drop:hover, .image-upload-drop.drag-over { border-color: var(--accent); background: var(--accent-glow); color: var(--accent-deep); }
+
+.image-library-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 14px;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.image-card { border: 1px solid var(--rule); border-radius: 11px; padding: var(--space-3); display: flex; flex-direction: column; gap: 6px; }
+.image-thumb-wrap {
+  aspect-ratio: 4 / 3;
+  background: var(--bg);
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.image-thumb { width: 100%; height: 100%; object-fit: cover; }
+.image-thumb-loading, .image-thumb-missing { font-size: var(--text-xs); color: var(--ink-faint); text-align: center; padding: 0 var(--space-3); }
+
+.image-caption-input {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  padding: 5px 7px;
+  color: var(--ink);
+}
+
+.image-card-row { display: flex; align-items: center; gap: 4px; }
+.image-align-select {
+  flex: 1;
+  min-width: 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-xs);
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  padding: var(--space-1);
+  color: var(--ink-soft);
+}
+.image-insert-btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-xs);
+  background: var(--accent-glow);
+  border: 1px solid transparent;
+  border-radius: 9px;
+  padding: 5px var(--space-3);
+  color: var(--accent-deep);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.image-insert-btn:hover { border-color: var(--accent); }
+
+/* Cozy pass — cover-picker mode reuses the Image Library modal wholesale;
+   this button is the "Set as Cover" equivalent of .image-insert-btn, kept
+   as its own class rather than sharing one so insert-mode markup/behavior
+   couldn't accidentally get pulled along with it. */
+.image-cover-btn {
+  flex: 1;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-xs);
+  background: var(--accent-glow);
+  border: 1px solid transparent;
+  border-radius: 9px;
+  padding: 5px var(--space-3);
+  color: var(--accent-deep);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.image-cover-btn:hover { border-color: var(--accent); }
+.image-card.is-current-cover { border-color: var(--accent); }
+.image-card.is-current-cover .image-cover-btn { background: var(--accent); color: var(--paper); cursor: default; }
+
+.image-delete-btn {
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  width: 24px;
+  height: 24px;
+  color: var(--ink-faint);
+  cursor: pointer;
+}
+.image-delete-btn:hover { border-color: var(--status-draft); color: var(--status-draft); }
+
+
+/* Rendered-output classes for {{img:...}} — what renderFormattedHtml()
+   actually produces (Book mode, Session 19; usable anywhere else chapter
+   HTML output is needed). */
+.fmt-image { margin: var(--space-5) 0; max-width: 100%; }
+.fmt-image img { max-width: 100%; border-radius: 9px; display: block; }
+.fmt-image figcaption { font-size: var(--text-sm); color: var(--ink-faint); margin-top: var(--space-1); font-style: italic; }
+.fmt-image-left { float: left; margin-right: var(--space-7); max-width: 45%; }
+.fmt-image-right { float: right; margin-left: var(--space-7); max-width: 45%; }
+.fmt-image-center { margin-left: auto; margin-right: auto; text-align: center; }
+.fmt-image-missing {
+  display: inline-block;
+  font-size: var(--text-sm);
+  color: var(--ink-faint);
+  background: var(--bg);
+  border: 1px dashed var(--rule);
+  border-radius: 9px;
+  padding: var(--space-1) var(--space-3);
+}
+
+/* ── book / read mode (Session 19) ────────────────────────────────────── */
+.view-panel[data-view="book"] { padding: 20px 28px; }
+
+.book-toolbar {
+  display: grid;
+  /* Quick-wins pass — was a flex row with the title at flex:1 sandwiched
+     between one button on the left and four elements (chapter-next, page
+     indicator, two page buttons) on the right. text-align:center centered
+     the title *within its own slot*, but that slot's boundaries were
+     themselves lopsided — starting right after 1 element, ending right
+     before 4 — so the visible text sat left of true center. A 1fr/auto/1fr
+     grid fixes this the standard way: both side columns get equal width
+     regardless of how much content is actually in them, so the middle
+     column centers against the whole bar's width, not against whatever's
+     left over between two unequal neighbors. */
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  padding-bottom: var(--space-6);
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--rule);
+}
+.book-toolbar-side {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+.book-toolbar-left { justify-content: flex-start; }
+.book-toolbar-right { justify-content: flex-end; }
+.book-chapter-title {
+  font-family: 'Fraunces', serif;
+  font-weight: 400;
+  font-size: 16px;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.book-page-indicator {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-sm);
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+.book-spread-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto; /* fallback for narrow viewports — see setupBookPagination()'s comment on fixed column sizing */
+}
+
+/* BOOK_COLUMN_WIDTH/GAP in app.js must match the values below — they're
+   duplicated (CSS can't be read by the pagination math otherwise) rather
+   than computed, so a change to one without the other will silently break
+   page-turn navigation. */
+.book-spread {
+  /* box-sizing: content-box overrides the project-wide border-box reset
+     deliberately — width:900px must mean the multi-column content area
+     itself (430px column + 40px gap + 430px column, matching
+     BOOK_COLUMN_WIDTH/GAP exactly), not content+padding. Under
+     border-box, the 80px of horizontal padding below would eat into the
+     900px, leaving only ~820px for the columns to lay out in — not
+     enough room for two 430px columns, so the browser collapses to one
+     oversized column instead. The pagination math in setupBookPagination()
+     assumes real 430px columns and scrolls by fixed pixel steps, so with
+     the collapsed single column the scroll position lands mid-column
+     instead of on a page boundary — text gets cut off mid-word and the
+     next column's text bleeds in from the edge. */
+  box-sizing: content-box;
+  width: 900px;
+  height: 620px;
+  column-width: 430px;
+  column-gap: 40px;
+  column-fill: auto;
+  overflow: hidden;
+  padding: 44px 40px;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 11px;
+  box-shadow: var(--shadow-lg);
+  line-height: 1.85;
+  font-size: var(--text-xl);
+  color: var(--ink);
+  flex-shrink: 0;
+}
+.book-spread strong, .book-spread em { color: inherit; }
+

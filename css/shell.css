@@ -1,0 +1,475 @@
+/* ── layout shell ── */
+#app-shell {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  height: 100vh;
+  height: 100dvh; /* overrides on browsers that support it — fixes the iOS Safari address-bar show/hide jump */
+}
+@media (max-width: 800px) {
+  #app-shell { grid-template-columns: 1fr; }
+  /* .sidebar's mobile treatment used to live here and was silently dead:
+     the base .sidebar rule below sets display:flex at equal specificity,
+     and later source order wins, so the sidebar stayed visible at narrow
+     widths and swallowed the editor. It now lives AFTER the base rule —
+     same fix, same reasoning, as the .main grid-column override further
+     down this file. */
+}
+
+/* ── sidebar ── */
+.sidebar {
+  border-right: 1px solid var(--rule);
+  padding: 20px var(--space-7);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+}
+
+/* ── mobile sidebar ── */
+/* The ≤800px sidebar treatment deliberately does NOT live here. css/polish.css
+   loads after this file and owns the burger-sidebar concern — it re-declares
+   .sidebar (position/overflow/transition) and the whole #app-shell.sidebar-collapsed
+   rail at equal-or-higher specificity, so any mobile override written here
+   would be silently overridden the same way the original top-of-file
+   `.sidebar { display: none }` was. See "v0.2.9 Burger sidebar" in polish.css. */
+
+/* Session 12 — project switcher lives next to the title input rather than
+   replacing it, so renaming the active project (existing behavior) and
+   switching/creating/deleting projects (new) stay as separate, obvious
+   actions instead of overloading one control.
+   Cozy pass — restacked vertically with the title given real visual
+   weight (it's the book, not just another field) and Library demoted to
+   a small text link beneath it rather than competing pill buttons. */
+.project-header { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; }
+
+.project-title-input {
+  font-family: 'Fraunces', serif;
+  font-weight: 400;
+  font-size: 21px;
+  background: none;
+  border: none;
+  color: var(--ink);
+  width: 100%;
+  border-bottom: 1px solid transparent;
+  padding-bottom: 2px;
+}
+.project-title-input:focus { outline: none; border-bottom-color: var(--accent); }
+
+.project-switcher-btn {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: var(--ink-faint);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-xs);
+  letter-spacing: .04em;
+  padding: 0;
+  cursor: pointer;
+}
+.project-switcher-btn:hover { color: var(--accent-deep); }
+
+.sb-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-2xs);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+#new-chapter-btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-sm);
+  color: var(--accent-deep);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+#new-chapter-btn:hover { color: var(--accent); }
+
+/* UX-fix pass — the Template button sat in this row completely unstyled,
+   so it rendered as a raw UA button: a white pill (emoji, black text, UA
+   chrome) glaring out of the dark sidebar next to the quiet + New link.
+   Same family as its sibling, one step quieter — it's the rarer of the
+   two actions — with the accent surfacing on hover like the rest of the
+   sidebar's controls. */
+#new-from-template-btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-sm);
+  color: var(--ink-faint);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+#new-from-template-btn:hover { color: var(--accent); }
+
+.chapter-list { list-style: none; display: flex; flex-direction: column; gap: 2px; flex: 1; overflow-y: auto; }
+
+/* Book-tree sidebar pass — .sb-chapter (the <li>) is now just a plain
+   container for .sb-chapter-row plus an optional nested .sb-scene-list;
+   the flex row / padding / hover / click-target styling that used to live
+   directly on .sb-chapter moved onto .sb-chapter-row, since that's the
+   element that's actually clickable now (the <li> itself also has to hold
+   the scene sub-list underneath it, which shouldn't inherit the row's
+   hover background). */
+.sb-chapter { font-size: var(--text-md); color: var(--ink-soft); }
+.sb-chapter-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px var(--space-3);
+  border-radius: 9px;
+  cursor: pointer;
+  transition: background var(--motion-micro), color var(--motion-micro);
+}
+.sb-chapter.active > .sb-chapter-row,
+.sb-chapter-row:hover { background: var(--accent-glow); color: var(--accent-deep); }
+
+.sb-chapter-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sb-chapter-wc { font-family: 'JetBrains Mono', monospace; font-size: var(--text-xs); color: var(--ink-faint); }
+
+.sb-chapter-delete {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: var(--ink-faint);
+  font-size: var(--text-xs);
+  padding: 2px var(--space-1);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity .1s;
+}
+.sb-chapter-row:hover .sb-chapter-delete { opacity: 1; }
+.sb-chapter-delete:hover { color: var(--status-draft); }
+
+/* Organization pass — favorite/pin toggles. Hover-revealed like delete
+   above when off (so an unstarred/unpinned row stays quiet), but the
+   .active state stays visible without hovering — an unfilled star that
+   only shows on hover is discoverable; a *filled* one that only shows on
+   hover would make the state itself invisible most of the time, which
+   defeats the point of marking something as a favorite. */
+.sb-chapter-favorite,
+.sb-chapter-pin {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  font-size: var(--text-xs);
+  line-height: 1;
+  padding: 2px var(--space-1);
+  cursor: pointer;
+  opacity: 0;
+  color: var(--ink-faint);
+  transition: opacity .1s, color .1s;
+}
+.sb-chapter-row:hover .sb-chapter-favorite,
+.sb-chapter-row:hover .sb-chapter-pin,
+.sb-chapter-favorite.active,
+.sb-chapter-pin.active { opacity: 1; }
+.sb-chapter-favorite:hover { color: var(--accent); }
+.sb-chapter-favorite.active { color: var(--accent); }
+.sb-chapter-pin:hover { color: var(--accent-deep); }
+.sb-chapter-pin.active { color: var(--accent-deep); }
+
+/* Book-tree sidebar pass — Act groups and nested scenes. */
+.sb-act { list-style: none; }
+.sb-act-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: var(--space-2) var(--space-3);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-2xs);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  cursor: pointer;
+  text-align: left;
+}
+.sb-act-header:hover { color: var(--ink-soft); }
+.sb-act-caret {
+  display: inline-block;
+  font-size: 9px;
+  transition: transform var(--motion-micro) var(--ease-cozy);
+}
+.sb-act-caret.open { transform: rotate(90deg); }
+.sb-act-chapters { list-style: none; display: flex; flex-direction: column; gap: 2px; }
+
+.sb-scene-caret {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: var(--ink-faint);
+  font-size: 9px;
+  padding: 2px var(--space-1);
+  cursor: pointer;
+  transition: transform var(--motion-micro) var(--ease-cozy), color var(--motion-micro);
+}
+.sb-scene-caret.open { transform: rotate(90deg); }
+.sb-scene-caret:hover { color: var(--accent-deep); }
+.sb-scene-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin: 2px 0 4px var(--space-6);
+  border-left: 1px solid var(--rule);
+}
+.sb-scene {
+  padding: 4px var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--ink-faint);
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-radius: 0 6px 6px 0;
+}
+.sb-scene:hover { background: var(--accent-glow); color: var(--accent-deep); }
+
+/* Session 22 — arc pill on sidebar chapter rows */
+.arc-pill {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-2xs);
+  padding: 1px 5px;
+  border-radius: 12px;
+  background: var(--accent-glow);
+  color: var(--accent-deep);
+  border: 1px solid var(--accent);
+  white-space: nowrap;
+  overflow: hidden;
+  max-width: 60px;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
+  line-height: 1.6;
+}
+
+/* Session 22 — arc filter bar above chapter list */
+.arc-filter-bar {
+  padding: var(--space-1) 0 2px;
+}
+.arc-filter-select {
+  width: 100%;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-xs);
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  color: var(--ink-soft);
+  padding: 3px var(--space-2);
+  cursor: pointer;
+}
+.arc-filter-select:focus { outline: none; border-color: var(--accent); }
+
+/* Session 22 — arc input in the write toolbar (sits beside pov-input) */
+.arc-input {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-sm);
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--rule);
+  color: var(--ink);
+  padding: 2px var(--space-1);
+  width: 90px;
+}
+.arc-input::placeholder { color: var(--ink-faint); }
+.arc-input:focus { outline: none; border-bottom-color: var(--accent); }
+
+.status-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.dot-draft { background: var(--status-draft); }
+.dot-revised { background: var(--status-revised); }
+.dot-final { background: var(--status-final); }
+
+.sidebar-footer { display: flex; flex-direction: column; gap: 8px; padding-top: var(--space-5); border-top: 1px solid var(--rule); }
+.sidebar-footer button, .sidebar-footer select {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-sm);
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  color: var(--ink-soft);
+  padding: var(--space-2) var(--space-4);
+  cursor: pointer;
+  text-align: left;
+}
+.sidebar-footer button:hover, .sidebar-footer button.active { border-color: var(--accent); color: var(--accent-deep); }
+
+/* ── main content ── */
+.main {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  /* Pinned to the grid's second column explicitly — #app-shell's
+     grid-template-columns (260px 1fr) places children by document order,
+     and display:none removes an element from grid placement entirely
+     (not just visually). Without this, hiding .sidebar in Focus mode
+     makes .main the *first* grid item, so auto-placement drops it into
+     the 260px sidebar track instead of the 1fr content track — the
+     editor collapses into a narrow left column instead of filling the
+     page. Explicit grid-column keeps .main in column 2 regardless of
+     whether .sidebar is present in the grid flow. */
+  grid-column: 2;
+}
+/* At the ≤800px breakpoint above, #app-shell collapses to a single
+   1fr track — this override must come after the base .main rule
+   (equal specificity, source order decides) or the grid-column: 2 above
+   would win at narrow widths too, creating an implicit empty second
+   column and stranding .main in it. */
+@media (max-width: 800px) {
+  .main { grid-column: 1; }
+}
+
+.view-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: var(--space-6) 28px 0;
+  border-bottom: 1px solid var(--rule);
+  /* Nav flyout stacking fix — backdrop-filter (below) makes the whole bar
+     an atomic stacking context, but position:static paints that context in
+     ordinary tree order, BEFORE the view panels that follow it in the DOM.
+     The compact flyout's own z-index only counts inside the bar, so any
+     in-flow panel content that happened to sit under the overhang (a
+     timeline event card, the first lines of a dashboard) painted over the
+     open flyout. position:relative + a low z-index lifts the bar (and the
+     flyout with it) above ordinary panel content while staying under every
+     deliberate overlay in the app (popovers/menus are z-20+, modals higher). */
+  position: relative;
+  z-index: 2;
+  /* Nav bar background-match pass — .view-tabs (like .sidebar) paints no
+     background of its own, so it already sits directly on body's --bg or
+     custom background/gradient/image underneath. That's fine on a plain
+     theme (same color either side), but a busy custom image left the tab
+     labels floating with nothing grounding them. A frosted tint — the
+     current theme's own --bg color at low alpha, blurred — grounds the
+     bar against *any* background (solid theme, gradient, or photo) without
+     hiding it, same glass treatment style.css already uses for the sprint
+     timer bar and the toolbar dropdowns below. Harmless no-op visually
+     under the three plain themes, since the tint color and what's behind
+     it are the same. */
+  background: rgba(var(--bg-rgb), 0.55);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+/* Grouped-fit pass — the groups container wraps instead of overflowing:
+   .nav-group rows break onto a second line when the window is narrower
+   than the whole bar (see nav.js's groupedOverflows, which now measures
+   wrapped row count rather than horizontal spill). flex:1 + min-width:0
+   keeps the ⌘K palette button beside the block on the right; groups
+   themselves never shrink or split mid-cluster (flex-shrink: 0 on
+   .nav-group), so a wrap point is always a cluster boundary. */
+.nav-tabs-groups {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+}
+.nav-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding-right: var(--space-4);
+  margin-right: var(--space-3);
+  border-right: 1px solid var(--rule);
+  flex-shrink: 0;
+}
+.nav-group-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-2xs);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  opacity: .55;
+  padding: 0 var(--space-2) 0 2px;
+  user-select: none;
+}
+
+/* ── compact nav style — each group collapses into one button that opens
+   a flyout of its views. Toggled from Settings; see Store.getNavStyle(). ── */
+.nav-group-compact {
+  position: relative;
+  padding-right: 0;
+}
+.nav-group-toggle {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-sm);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  background: none;
+  border: none;
+  color: var(--ink-faint);
+  padding: var(--space-4) var(--space-6);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border-bottom: 2px solid transparent;
+  transition: color .15s, border-color .15s;
+}
+.nav-group-toggle:hover { color: var(--accent-deep); }
+/* Active-state legibility — the group itself stays visibly "on" whenever
+   the current view lives inside it, even while its flyout is collapsed,
+   so collapsing the nav doesn't cost you your sense of where you are. */
+.nav-group-compact.active-group .nav-group-toggle { color: var(--accent-deep); border-bottom-color: var(--accent); }
+.nav-group-caret { font-size: 8px; opacity: .6; transition: transform .15s ease; }
+.nav-group-toggle.open .nav-group-caret { transform: rotate(180deg); }
+
+.nav-flyout {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 20;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  box-shadow: var(--shadow-md);
+  padding: var(--space-1);
+  min-width: 150px;
+  display: flex;
+  flex-direction: column;
+}
+.nav-flyout.hidden { display: none; }
+.nav-flyout-item {
+  text-align: left;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-sm);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  color: var(--ink-soft);
+  padding: 9px var(--space-4);
+  cursor: pointer;
+}
+.nav-flyout-item:hover, .nav-flyout-item:focus-visible { color: var(--accent-deep); background: var(--accent-glow); outline: none; }
+.nav-flyout-item.active { color: var(--accent-deep); font-weight: 500; }
+
+.view-tab {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-sm);
+  /* Grouped-fit pass — 10px side padding + .03em tracking (was 14px/.05em):
+     the four clusters pack into two wrapped rows from ~1366px windows up
+     instead of three, which is what lets the wrapped bar actually replace
+     the old always-fallback-to-compact behavior on ordinary laptops. */
+  letter-spacing: .03em;
+  text-transform: uppercase;
+  background: none;
+  border: none;
+  color: var(--ink-faint);
+  padding: var(--space-4) var(--space-4);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color .15s, border-color .15s;
+}
+.view-tab:hover { color: var(--accent-deep); }
+.view-tab.active { color: var(--accent-deep); border-bottom-color: var(--accent); }
+
+.view-panel { display: none; flex: 1; overflow-y: auto; padding: 28px; }
+.view-panel.active { display: flex; flex-direction: column; }
+

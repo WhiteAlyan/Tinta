@@ -1,0 +1,830 @@
+/* ── timeline (Session 9) ── */
+.timeline-header { margin-bottom: 20px; }
+.timeline-header button {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-sm);
+  background: var(--accent-glow);
+  border: 1px solid transparent;
+  border-radius: 9px;
+  padding: 7px var(--space-5);
+  color: var(--accent-deep);
+  cursor: pointer;
+}
+.timeline-header button:hover { border-color: var(--accent); }
+
+.timeline-track {
+  position: relative;
+  max-width: 640px;
+  padding-left: 22px;
+  border-left: 2px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.timeline-event { position: relative; }
+.timeline-dot {
+  position: absolute;
+  left: -28px;
+  top: 6px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--paper);
+}
+.timeline-event-card {
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 11px;
+  padding: var(--space-6) var(--space-7);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.timeline-event-head { display: flex; align-items: center; gap: 8px; }
+.timeline-date-input {
+  flex: 1;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-sm);
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  padding: var(--space-2) 9px;
+  color: var(--ink-soft);
+}
+.timeline-reorder { display: flex; gap: 3px; }
+.timeline-reorder button {
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  width: 22px;
+  height: 22px;
+  font-size: var(--text-xs);
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.timeline-reorder button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent-deep); }
+.timeline-reorder button:disabled { opacity: 0.3; cursor: default; }
+.timeline-delete-btn { background: none; border: none; color: var(--ink-faint); cursor: pointer; font-size: var(--text-base); }
+.timeline-delete-btn:hover { color: var(--status-draft); }
+.timeline-title-input {
+  font-family: 'Fraunces', serif;
+  font-size: 16px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid transparent;
+  padding: 2px 0;
+  color: var(--ink);
+}
+.timeline-title-input:focus { outline: none; border-bottom-color: var(--accent); }
+.timeline-chapter-select {
+  align-self: flex-start;
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  padding: 5px var(--space-3);
+  color: var(--ink-soft);
+}
+.timeline-open-chapter-btn {
+  align-self: flex-start;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-xs);
+  background: none;
+  border: none;
+  color: var(--accent-deep);
+  cursor: pointer;
+  padding: 2px 0;
+}
+.timeline-open-chapter-btn:hover { text-decoration: underline; }
+.timeline-description {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-md);
+  line-height: 1.6;
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  padding: var(--space-3) var(--space-4);
+  color: var(--ink);
+  resize: vertical;
+}
+
+/* ── stats dashboard (Session 10) ── */
+.stats-headline-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  margin-bottom: 28px;
+}
+.stats-card {
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 11px;
+  padding: var(--space-7) 18px;
+}
+.stats-card-value {
+  font-family: 'Fraunces', serif;
+  font-size: 28px;
+  color: var(--ink);
+  line-height: 1.1;
+}
+.stats-card-label {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+  margin-top: var(--space-1);
+}
+.stats-goal-bar {
+  margin-top: var(--space-4);
+  height: 5px;
+  border-radius: 9px;
+  background: var(--accent-glow);
+  overflow: hidden;
+}
+.stats-goal-fill { height: 100%; background: var(--accent); }
+.stats-goal-note {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+  margin-top: var(--space-2);
+}
+
+.stats-chart-section {
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 11px;
+  padding: 18px 20px;
+  margin-bottom: 28px;
+}
+.stats-chart-title {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-base);
+  color: var(--ink-soft);
+  margin-bottom: var(--space-6);
+}
+.stats-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 90px;
+}
+.stats-bar-col {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+}
+.stats-bar {
+  width: 100%;
+  min-height: 1px;
+  background: var(--accent);
+  border-radius: 2px 2px 0 0;
+  opacity: 0.85;
+}
+.stats-bar-col:hover .stats-bar { opacity: 1; background: var(--accent-deep); }
+.stats-chart-labels {
+  display: flex;
+  justify-content: space-between;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+  margin-top: var(--space-3);
+}
+
+/* ── craft analytics (Craft-tools pass) ── */
+/* Three read-only report cards next to each other on wide screens,
+   stacking on narrow ones — same auto-fit approach as .stats-headline-grid
+   above, since these panels vary a lot in natural height (a bar chart vs.
+   a single ratio bar vs. a POV list) and a fixed column count would leave
+   awkward gaps. */
+.craft-analytics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+  margin-bottom: 28px;
+  align-items: start;
+}
+.craft-analytics-grid .stats-chart-section { margin-bottom: 0; }
+
+.empty-state-sm {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+  color: var(--ink-faint);
+  padding: var(--space-4) 0;
+}
+
+.dialogue-ratio-bar {
+  height: 14px;
+  border-radius: 9px;
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  overflow: hidden;
+  margin-top: var(--space-2);
+}
+.dialogue-ratio-fill { height: 100%; background: var(--accent); }
+.dialogue-ratio-legend {
+  display: flex;
+  gap: 16px;
+  margin-top: var(--space-3);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-xs);
+  color: var(--ink-soft);
+}
+.dialogue-ratio-legend span { display: flex; align-items: center; gap: 6px; }
+.dialogue-swatch { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
+.dialogue-swatch-dialogue { background: var(--accent); }
+.dialogue-swatch-narration { background: var(--entity-location, var(--rule)); }
+
+.pov-dist-list { display: flex; flex-direction: column; gap: 10px; }
+.pov-dist-row { display: flex; align-items: center; gap: 10px; }
+.pov-dist-label {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+  width: 88px;
+  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pov-dist-bar-track {
+  flex: 1;
+  height: 8px;
+  border-radius: 9px;
+  background: var(--accent-glow);
+  overflow: hidden;
+}
+.pov-dist-bar-fill { height: 100%; background: var(--accent); border-radius: 9px; }
+.pov-dist-count {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+  width: 20px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.stats-chapter-table {
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 11px;
+  overflow: hidden;
+}
+.stats-chapter-row {
+  display: grid;
+  /* Quick-wins pass — 6 columns now (added Time). Chapter title keeps the
+     lion's share (2fr); the five data columns share the rest equally. */
+  grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr;
+  gap: 10px;
+  padding: var(--space-4) var(--space-7);
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-base);
+  color: var(--ink-soft);
+  border-bottom: 1px solid var(--rule);
+  align-items: center;
+}
+.stats-chapter-row:last-child { border-bottom: none; }
+.stats-chapter-head {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+  background: var(--bg);
+}
+.stats-status-badge {
+  display: inline-block;
+  width: fit-content;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-xs);
+  padding: 2px var(--space-3);
+  border-radius: 14px;
+  text-transform: capitalize;
+}
+.stats-status-draft { background: rgba(155, 107, 47, 0.12); color: var(--status-draft); }
+.stats-status-revised { background: rgba(74, 124, 89, 0.12); color: var(--status-revised); }
+.stats-status-final { background: rgba(176, 141, 87, 0.12); color: var(--status-final); }
+
+/* Quick-wins pass — Target column input. Matches the row's plain-text
+   feel at rest (no visible border/background) rather than looking like a
+   form field dropped into a data table, but gets a normal input's affordances
+   back on focus/hover so it doesn't just look broken or read-only. */
+.stats-target-input {
+  width: 100%;
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-base);
+  color: var(--ink-soft);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 2px var(--space-2);
+}
+.stats-target-input:hover { border-color: var(--rule); }
+.stats-target-input:focus { outline: none; border-color: var(--accent); background: var(--bg); }
+.stats-target-input::placeholder { color: var(--ink-faint); }
+
+/* ── story questions / foreshadowing tracker (Craft-tools pass) ── */
+.questions-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; }
+.questions-header h2 { font-family: 'Fraunces', serif; font-weight: 400; font-size: var(--text-3xl); }
+.questions-capture { display: flex; gap: 8px; }
+.questions-capture input {
+  width: 320px;
+  max-width: 60vw;
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  padding: var(--space-2) var(--space-4);
+  color: var(--ink);
+}
+.questions-capture button {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-sm);
+  background: var(--accent-glow);
+  border: 1px solid transparent;
+  border-radius: 9px;
+  padding: var(--space-2) var(--space-5);
+  color: var(--accent-deep);
+  cursor: pointer;
+}
+.questions-capture button:hover { border-color: var(--accent); }
+
+.questions-section { margin-bottom: 28px; }
+.questions-section h3 {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-faint);
+  margin-bottom: var(--space-4);
+}
+.questions-list { display: flex; flex-direction: column; gap: 12px; }
+.question-card {
+  position: relative;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 11px;
+  padding: var(--space-5) var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.question-resolve-row { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; padding-right: 26px; }
+.question-resolve-row input { margin-top: 4px; }
+.question-text { font-size: var(--text-md); color: var(--ink); line-height: 1.5; }
+.question-card:has(.question-resolve-check:checked) .question-text { color: var(--ink-faint); text-decoration: line-through; }
+.question-scene-row { display: flex; gap: 12px; flex-wrap: wrap; }
+.question-scene-row label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+  flex: 1;
+  min-width: 160px;
+}
+.question-scene-row select {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: var(--space-1) var(--space-2);
+  color: var(--ink-soft);
+}
+.question-notes {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  padding: var(--space-2) var(--space-3);
+  color: var(--ink);
+  resize: vertical;
+}
+.question-delete-btn { position: absolute; top: var(--space-5); right: var(--space-5); background: none; border: none; color: var(--ink-faint); cursor: pointer; }
+.question-delete-btn:hover { color: var(--status-draft); }
+
+/* ── project health / orphan detection (Craft-tools pass) ── */
+.health-header { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; }
+.health-header h2 { font-family: 'Fraunces', serif; font-weight: 400; font-size: var(--text-3xl); }
+.health-total-note { font-family: 'JetBrains Mono', monospace; font-size: var(--text-sm); color: var(--ink-faint); }
+.health-section {
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 11px;
+  padding: var(--space-6) var(--space-7);
+  margin-bottom: 18px;
+}
+.health-section h3 { font-family: 'Inter', sans-serif; font-size: var(--text-md); color: var(--ink); margin-bottom: var(--space-2); }
+.health-list { display: flex; flex-direction: column; gap: 2px; margin-top: var(--space-3); }
+.health-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--ink);
+  cursor: pointer;
+}
+.health-row:hover { background: var(--accent-glow); color: var(--accent-deep); }
+.health-row-sub { font-family: 'JetBrains Mono', monospace; font-size: var(--text-xs); color: var(--ink-faint); }
+.health-row:hover .health-row-sub { color: var(--accent-deep); }
+.health-row em { font-style: normal; color: var(--ink-faint); font-family: 'JetBrains Mono', monospace; font-size: var(--text-xs); }
+.health-row:hover em { color: var(--accent-deep); }
+
+/* ── "what's changed" report (Tier 2 pass) ── */
+.health-changes-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: var(--space-2); }
+.health-range-toggle { display: flex; gap: 4px; }
+.health-range-btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-xs);
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  padding: 4px var(--space-3);
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.health-range-btn:hover { border-color: var(--accent); color: var(--accent-deep); }
+.health-range-btn.active { background: var(--accent-glow); border-color: var(--accent); color: var(--accent-deep); }
+
+/* ── project-wide annotations dashboard (Annotations dashboard pass) ── */
+.annotations-dash-filters {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: var(--space-4);
+}
+.annotations-dash-status-toggle { display: flex; gap: 4px; }
+.annotations-dash-filters select {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-sm);
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  color: var(--ink-soft);
+  padding: 4px var(--space-3);
+}
+.annotations-dash-chapter-group + .annotations-dash-chapter-group { margin-top: var(--space-5); }
+.annotations-dash-chapter-head {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--rule);
+  padding: var(--space-2) 0;
+  margin-bottom: var(--space-2);
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-md);
+  color: var(--ink);
+  cursor: pointer;
+}
+.annotations-dash-chapter-head:hover { color: var(--accent-deep); }
+/* Reuses .annotations-list/.annotation-row from modals.css as-is — same
+   visual language as the chapter-scoped modal and the drawer's scene
+   section, just grouped under a chapter heading instead of pre-filtered
+   to one chapter. */
+
+/* ── Rule-System views (Tier 7 pass) ── */
+.systems-row .health-row-sub { white-space: nowrap; }
+.system-framing-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: var(--space-4);
+}
+.systems-name-input {
+  text-align: left;
+  font-size: 22px;
+  flex: 1;
+}
+.system-framing-fields { margin-bottom: var(--space-5); }
+.systems-add-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-4);
+}
+.systems-back-btn {
+  padding: 4px var(--space-3);
+  margin: 0;
+}
+.system-node-label { flex: 1; min-width: 0; }
+.health-changes-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: var(--space-4);
+}
+.health-changes-item {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+  color: var(--ink);
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg);
+  border-radius: 8px;
+}
+.health-changes-item strong { color: var(--accent-deep); font-family: 'JetBrains Mono', monospace; }
+.health-changes-item .health-row-sub { display: block; margin-top: 2px; }
+
+/* ── completion checklist (Tier 3 pass) ── */
+.checklist-banner {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-md);
+  padding: var(--space-5) var(--space-6);
+  border-radius: 11px;
+  margin-bottom: 20px;
+}
+.checklist-banner-ready { background: rgba(74, 124, 89, 0.12); color: var(--status-revised); }
+.checklist-banner-notready { background: rgba(155, 107, 47, 0.12); color: var(--status-draft); }
+
+.checklist-list { display: flex; flex-direction: column; gap: 8px; margin-top: var(--space-3); }
+.checklist-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  padding: var(--space-3) var(--space-4);
+}
+.checklist-item.is-pass { opacity: 0.6; }
+.checklist-item-icon {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-base);
+  color: var(--ink-faint);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.checklist-item.is-pass .checklist-item-icon { color: var(--status-revised); }
+.checklist-item-body { flex: 1; min-width: 0; }
+.checklist-item-label { font-family: 'Inter', sans-serif; font-size: var(--text-md); color: var(--ink); }
+.checklist-item-detail { font-family: 'Inter', sans-serif; font-size: var(--text-sm); color: var(--ink-faint); margin-top: 2px; }
+.checklist-item-chapters { display: flex; flex-wrap: wrap; gap: 5px; margin-top: var(--space-2); }
+.checklist-chip {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-xs);
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  padding: 2px var(--space-3);
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.checklist-chip:hover { border-color: var(--accent); color: var(--accent-deep); }
+.checklist-item-jump {
+  flex-shrink: 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-xs);
+  background: none;
+  border: none;
+  color: var(--accent-deep);
+  cursor: pointer;
+  padding: 2px 0;
+}
+.checklist-item-jump:hover { text-decoration: underline; }
+
+/* ── custom calendar (Tier 4 pass) ──
+   Entirely opt-in layer on top of the Session 9 timeline styles above —
+   the warning banner reuses the same non-blocking-nudge treatment as
+   .checklist-banner-notready (a heads-up, not an error), and the per-
+   event date row matches the existing timeline-event-card's field
+   styling rather than introducing a new visual language for one section
+   of one card. */
+.timeline-cal-warning {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-md);
+  padding: var(--space-5) var(--space-6);
+  border-radius: 11px;
+  margin-bottom: 20px;
+  background: rgba(155, 107, 47, 0.12);
+  color: var(--status-draft);
+  max-width: 640px;
+  line-height: 1.5;
+}
+.timeline-calendar-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.timeline-calendar-row select,
+.timeline-calendar-row input[type="number"] {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-sm);
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  padding: var(--space-2) 9px;
+  color: var(--ink-soft);
+}
+.timeline-cal-day, .timeline-cal-year { width: 64px; }
+.timeline-cal-formatted {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+}
+.timeline-cal-clear-btn {
+  background: none;
+  border: none;
+  color: var(--ink-faint);
+  cursor: pointer;
+  font-size: var(--text-base);
+}
+.timeline-cal-clear-btn:hover { color: var(--status-draft); }
+.timeline-cal-set-btn {
+  align-self: flex-start;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-xs);
+  background: none;
+  border: 1px dashed var(--rule);
+  border-radius: 9px;
+  padding: 4px var(--space-3);
+  color: var(--ink-faint);
+  cursor: pointer;
+}
+.timeline-cal-set-btn:hover { border-color: var(--accent); color: var(--accent-deep); }
+
+/* ── resume dashboard (Resume pass) ── */
+/* Same warm-paper aesthetic as the rest of the dashboards: white-on-cream
+   cards with bronze accents, generous spacing, large type for the
+   hero "where you left off" card so it reads first. The whole page is
+   one scrollable column; no split panes, no tabs — Resume is a single
+   glance, then click through to a focused view. */
+
+.resume-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: var(--space-6);
+}
+.resume-header h2 {
+  margin: 0;
+  font-size: var(--text-xl);
+}
+.resume-eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-xs);
+  letter-spacing: .04em;
+  color: var(--ink-faint);
+}
+
+.resume-card {
+  background: var(--paper);
+  border-radius: 12px;
+  padding: var(--space-6);
+  margin-bottom: var(--space-5);
+  box-shadow: var(--shadow-sm);
+}
+.resume-card-hero {
+  cursor: pointer;
+  border: 1px solid var(--rule);
+  transition: border-color .15s, box-shadow .15s, transform .15s;
+}
+.resume-card-hero:hover {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+.resume-card-empty {
+  border: 1px dashed var(--rule);
+  background: transparent;
+  box-shadow: none;
+}
+.resume-card-eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-2xs);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: var(--space-2);
+}
+.resume-card-title {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-xl);
+  color: var(--ink);
+}
+.resume-card-sub {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+}
+.resume-card-cta {
+  font-size: var(--text-sm);
+  color: var(--accent-deep);
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: .03em;
+}
+
+.resume-section {
+  margin-bottom: var(--space-6);
+}
+.resume-section-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-md);
+  color: var(--ink-soft);
+  font-weight: 500;
+}
+.resume-section-count {
+  display: inline-block;
+  min-width: 22px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--accent-glow);
+  color: var(--accent-deep);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-xs);
+  text-align: center;
+}
+
+.resume-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.resume-list-item {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--paper);
+  border-radius: 9px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+  flex-wrap: wrap;
+}
+.resume-list-item:hover {
+  border-color: var(--accent);
+  background: var(--accent-glow);
+}
+.resume-list-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: var(--text-sm);
+  color: var(--ink);
+  word-break: break-word;
+}
+.resume-list-meta {
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: .04em;
+}
+.resume-list-more {
+  margin: var(--space-3) 0 0;
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.resume-empty-note {
+  font-size: var(--text-sm);
+  color: var(--ink-faint);
+  font-style: italic;
+  margin: 0;
+  padding: var(--space-3);
+  background: var(--paper);
+  border-radius: 9px;
+  border: 1px dashed var(--rule);
+}
+
+.resume-health-line {
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+  margin: 0;
+}
+.resume-link-button {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: inherit;
+  color: var(--accent-deep);
+  cursor: pointer;
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+}
+.resume-link-button:hover { color: var(--accent); }

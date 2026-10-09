@@ -1,0 +1,433 @@
+/* Scriptorium — visual shell.
+   Same design language as Archeshic Records / portfolio: warm paper base,
+   near-black ink, single bronze accent. Void mode reuses the same accent on
+   a dark ground. Sepia is a third, writing-specific "focus" surface not
+   present in the reference files — added because long typing sessions
+   benefit from an e-reader-style warm surface distinct from both extremes.
+*/
+
+/* UX-fix pass — tell the browser which of its own control renderings to
+   use. Every dropdown's "fall-out" option list, the date/time pickers,
+   checkboxes, range sliders, and scrollbars are drawn by the BROWSER, not
+   by this stylesheet — without color-scheme they render OS-light even in
+   Void, which is where the white dropdown boxes (Settings font picker,
+   Organize's folder/part selects) came from. Declaring it once per theme
+   here covers every native control in the app, including ones added
+   later; individual rules below keep overriding the paintable parts. */
+:root,
+[data-theme="paper"] {
+  color-scheme: light;
+  --bg: #F7F5F0;
+  --bg-rgb: 247, 245, 240;
+  --paper: #FFFFFF;
+  --ink: #191825;
+  --ink-soft: #4A4756;
+  --ink-faint: #8B8680;
+  --accent: #B08D57;
+  --accent-deep: #8A6B3D;
+  --accent-glow: rgba(176, 141, 87, 0.10);
+  --rule: #DDD8CC;
+  --editor-bg: #FFFFFF;
+  --sketch-grid: rgba(25, 24, 37, 0.16);
+  --status-draft: #9B6B2F;
+  --status-revised: #4A7C59;
+  --status-final: #B08D57;
+  --entity-character: #A6435B;
+  --entity-location: #3F7D6B;
+  --entity-item: #B08D57;
+  --entity-concept: #5B6FA6;
+  /* Session 17 — format-layer highlight swatches. Background tints (like a
+     highlighter), not text colors, so readability against --ink doesn't
+     depend on the swatch chosen. */
+  --fmt-red: rgba(196, 58, 58, 0.18);
+  --fmt-amber: rgba(212, 148, 33, 0.22);
+  --fmt-green: rgba(63, 125, 88, 0.18);
+  --fmt-blue: rgba(70, 100, 190, 0.16);
+  --fmt-purple: rgba(140, 82, 184, 0.16);
+  /* Cozy pass — warm-tinted shadows (bronze, not flat black) so cards and
+     modals feel like they're resting on the paper rather than cut out of
+     it. Three weights covering small controls, cards, and modals. */
+  --shadow-sm: 0 2px 8px rgba(139, 107, 61, 0.10);
+  --shadow-md: 0 8px 24px rgba(139, 107, 61, 0.14);
+  --shadow-lg: 0 16px 44px rgba(122, 92, 51, 0.20);
+  --shadow-focus: 0 0 0 3px var(--accent-glow);
+}
+
+[data-theme="void"] {
+  color-scheme: dark;
+  --bg: #0a0910;
+  --bg-rgb: 10, 9, 16;
+  --paper: #111020;
+  --ink: #EDE9E0;
+  --ink-soft: #B8B4C4;
+  --ink-faint: #6B6780;
+  --accent: #C9A46E;
+  --accent-deep: #E0BE8A;
+  --accent-glow: rgba(201, 164, 110, 0.14);
+  --rule: rgba(255, 255, 255, 0.08);
+  --editor-bg: #111020;
+  --sketch-grid: rgba(237, 233, 224, 0.18);
+  --status-draft: #C99A5E;
+  --status-revised: #6FA57F;
+  --status-final: #C9A46E;
+  --entity-character: #D97E93;
+  --entity-location: #6FBBA0;
+  --entity-item: #C9A46E;
+  --entity-concept: #8B9BD9;
+  /* Session 17 — slightly higher opacity than paper/sepia so the same
+     hues still register against a dark background. */
+  --fmt-red: rgba(224, 100, 100, 0.28);
+  --fmt-amber: rgba(230, 180, 80, 0.28);
+  --fmt-green: rgba(110, 180, 140, 0.24);
+  --fmt-blue: rgba(120, 150, 230, 0.26);
+  --fmt-purple: rgba(180, 140, 220, 0.26);
+  --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.28);
+  --shadow-md: 0 10px 30px rgba(0, 0, 0, 0.38);
+  --shadow-lg: 0 20px 54px rgba(0, 0, 0, 0.48);
+  --shadow-focus: 0 0 0 3px var(--accent-glow);
+}
+
+[data-theme="sepia"] {
+  color-scheme: light;
+  --bg: #EFE6D4;
+  --bg-rgb: 239, 230, 212;
+  --paper: #F7EFDF;
+  --ink: #2E2417;
+  --ink-soft: #55442C;
+  --ink-faint: #8A7856;
+  --accent: #966B3D;
+  --accent-deep: #74512A;
+  --accent-glow: rgba(150, 107, 61, 0.12);
+  --rule: #DCCCA9;
+  --editor-bg: #F7EFDF;
+  --sketch-grid: rgba(46, 36, 23, 0.16);
+  --status-draft: #8A5A2A;
+  --status-revised: #4F6E45;
+  --status-final: #966B3D;
+  --entity-character: #8A4A52;
+  --entity-location: #4F6E45;
+  --entity-item: #966B3D;
+  --entity-concept: #5A5A8A;
+  --fmt-red: rgba(184, 62, 62, 0.20);
+  --fmt-amber: rgba(196, 138, 40, 0.24);
+  --fmt-green: rgba(79, 110, 69, 0.20);
+  --fmt-blue: rgba(90, 90, 138, 0.18);
+  --fmt-purple: rgba(138, 90, 168, 0.18);
+  --shadow-sm: 0 2px 8px rgba(116, 81, 42, 0.14);
+  --shadow-md: 0 8px 24px rgba(116, 81, 42, 0.18);
+  --shadow-lg: 0 16px 44px rgba(101, 70, 35, 0.26);
+  --shadow-focus: 0 0 0 3px var(--accent-glow);
+}
+
+* , *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* UX-fix pass — a themed FALLBACK for bare form fields, at zero
+   specificity so any real rule anywhere wins over it. Every field in the
+   app gets its look from per-component rules; the ones a pass forgot to
+   style rendered as raw UA chrome — white boxes, black text, gray UA
+   borders — which is how the Decisions view's three capture inputs and
+   Organize's Part select ended up staring out of the dark theme. This
+   gives orphans the standard field treatment automatically instead of
+   relying on each future pass remembering to style every field it adds.
+   Text-like types only: checkbox/radio are drawn by the themed rules
+   directly below, range gets accent-color, and color/file stay native
+   (color-scheme above handles their light/dark rendering). */
+:where(input[type="text"], input:not([type]), input[type="search"],
+       input[type="email"], input[type="password"], input[type="url"],
+       input[type="number"], input[type="date"], input[type="time"],
+       input[type="datetime-local"], select, textarea) {
+  font-family: inherit;
+  font-size: inherit;
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  padding: 6px 10px;
+}
+
+/* 0.2.5 UX batch — checkboxes and radios are DRAWN here, not left to the
+   browser. The :where fallback above deliberately excludes them ("native
+   controls; color-scheme handles their rendering"), but color-scheme only
+   influences the UA's paint — it demonstrably still ships a bright white
+   unchecked box in real dark-theme sessions (user report + reproduced),
+   glaring out of Void next to themed labels. Drawing the box ourselves
+   removes the UA from the loop entirely: same themed fill/border/idle
+   treatment as every other control, an --accent checked state, the cozy
+   settle easing on the tick, and a focus ring matching the rest of the
+   app. Sizes stay overridable per-component (the grammar toggle's 15px
+   etc.) — only the paint is pinned here. */
+input[type="checkbox"], input[type="radio"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  flex-shrink: 0;
+  display: inline-grid;
+  place-content: center;
+  vertical-align: text-bottom;
+  background: var(--paper);
+  border: 1px solid var(--ink-faint);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color var(--motion-micro) var(--ease-cozy),
+              border-color var(--motion-micro) var(--ease-cozy),
+              box-shadow var(--motion-micro) var(--ease-cozy);
+}
+input[type="radio"] { border-radius: 50%; }
+input[type="checkbox"]::before, input[type="radio"]::before {
+  content: "";
+  width: 60%;
+  height: 60%;
+  transform: scale(0);
+  transition: transform var(--motion-micro) var(--ease-cozy);
+}
+input[type="checkbox"]::before {
+  background: var(--paper);
+  clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+}
+input[type="radio"]::before { background: var(--paper); border-radius: 50%; }
+input[type="checkbox"]:checked, input[type="radio"]:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+input[type="checkbox"]:checked::before, input[type="radio"]:checked::before { transform: scale(1); }
+input[type="checkbox"]:hover, input[type="radio"]:hover { border-color: var(--accent); }
+input[type="checkbox"]:focus-visible, input[type="radio"]:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+input[type="checkbox"]:disabled, input[type="radio"]:disabled { opacity: .4; cursor: not-allowed; }
+
+/* Same batch — range sliders (and any native progress) tinted with the
+   theme accent instead of the UA default blue: one line, and the Settings
+   volume sliders stop being the only blue thing in the room. */
+input[type="range"] { accent-color: var(--accent); }
+
+/* Same batch — selects get the same "off the UA's hands" treatment as the
+   checkboxes above. Chromium's select widget paint kept flipping between
+   the themed face and a raw light-face widget depending on render order
+   (reproduced twice in headless; the same flake family that shipped white
+   checkboxes to real dark-theme sessions), so appearance: none takes the
+   face away from the UA entirely: themed background/border/text already
+   come from the per-component rules, and the only thing this adds is a
+   small currentColor chevron (follows each theme's ink) with guaranteed
+   room on the right. The four background longhands and the padding are
+   !important on purpose: per-component rules legitimately restyle the
+   select face with `background:`/`padding:` SHORTHANDS, which would
+   otherwise wipe the chevron — this is the one place the cascade needs an
+   anchor that survives them. Popups (the dropdown list itself) stay
+   native, painted per color-scheme at the top of this file. */
+select:not([multiple]):not([size]) {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 20px !important;
+  background-image:
+    linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%) !important;
+  background-position:
+    calc(100% - 10px) calc(50% + 1px),
+    calc(100% - 6px) calc(50% + 1px) !important;
+  background-size: 4px 4px, 4px 4px !important;
+  background-repeat: no-repeat, no-repeat !important;
+}
+
+/* Cozy pass — a shared, gentle default transition for anything interactive
+   that didn't already declare its own timing. Most of the app's hover/
+   active states below only change color or border-color with no
+   transition at all, which reads as an instant snap; this makes every one
+   of those changes ease in instead, without having to touch each rule.
+   Anything with a bespoke transition (declared elsewhere in this file)
+   simply overrides this by winning on specificity or source order. */
+button, select, input, textarea,
+.sb-chapter, .scene-card, .outline-item, .backlink-item,
+.notes-entity-item, .palette-row, .image-card, .mention-popup-item,
+a, .status-dot, .arc-pill {
+  transition: background-color var(--motion-normal) var(--ease-cozy),
+              border-color var(--motion-normal) var(--ease-cozy),
+              color var(--motion-normal) var(--ease-cozy),
+              box-shadow var(--motion-normal) var(--ease-cozy),
+              transform var(--motion-normal) var(--ease-cozy),
+              opacity var(--motion-normal) var(--ease-cozy);
+}
+
+/* Cozy pass — a soft lift on hover for anything card-shaped, so browsing
+   scenes/chapters/entities/results feels tactile rather than flat color
+   swaps. Kept small (1-2px) and paired with a shadow that already exists
+   at rest or var(--shadow-sm) on hover, not a dramatic pop. */
+.scene-card:hover, .image-card:hover, .backlink-item:hover,
+.outline-item:hover, .sb-chapter:hover, .notes-entity-item:hover,
+.palette-row:hover {
+  transform: translateY(-2px);
+}
+.scene-card:hover, .image-card:hover { box-shadow: var(--shadow-sm); }
+
+/* Cozy pass — one shared "settle" easing used anywhere something moves,
+   instead of default linear/ease. Slight overshoot-then-settle reads as
+   soft/organic rather than mechanical; used for hover lifts, modal
+   entrances, and toast/badge motion throughout this file. */
+:root { --ease-cozy: cubic-bezier(0.22, 1, 0.36, 1); }
+
+/* ── motion tokens ────────────────────────────────────────────────────────
+   Quick-wins pass — named duration tiers so future transitions/animations
+   pick a tier instead of inventing another one-off millisecond value (the
+   file already had six slightly-different durations — .15s/.18s/.2s/.25s/
+   .26s/.28s — doing roughly the same "settle in" job before this). Existing
+   call sites below are swapped to the nearest tier rather than rewritten
+   wholesale, so nothing changes visually — the resulting durations round to
+   what was already there.
+   --motion-chapter-scale multiplies these three for the chapter-transition
+   feature specifically (see editor-view.css and app.js's Motion settings),
+   set inline on <html> from the writer's Settings > Appearance > Motion
+   speed choice (Subtle/Normal/Relaxed) — kept as a separate multiplier
+   rather than three more tokens so "Relaxed" scales every stage of that one
+   transition together instead of needing three coordinated overrides. */
+:root {
+  --motion-micro: .15s;
+  --motion-normal: .2s;
+  --motion-large: .28s;
+  --motion-chapter-scale: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  /* Accessibility floor, not a preference to override — unlike the Motion
+     speed setting above (which only ever slows or speeds up the optional
+     chapter-fade), this collapses *all* CSS transitions/animations
+     app-wide to effectively instant. The modal-specific reduced-motion
+     rule that used to live in modals.css is now redundant with this (kept
+     there too, harmlessly, since being explicit at the component level
+     costs nothing) — this is the general case it was a preview of. */
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ── type scale ──────────────────────────────────────────────────────────
+   Quick-wins pass (typography/whitespace centralization) — same
+   nearest-tier-not-a-redesign reasoning as the motion tokens above. Before
+   this, the app had accumulated 22 distinct font-size values (9px/9.5px/
+   10px/10.5px/11px/11.5px/12px/12.5px/13px/13.5px/14px/14.5px/15px/15.5px/
+   16px/18px/19px/20px/21px/22px/26px/28px) — mostly half-pixel drift
+   between components doing the same job, not intentional steps. Only
+   sizes that actually recurred 3+ times across the app got folded into a
+   tier below, each valued at the more common of the pair it replaces, so
+   existing call sites land within half a pixel of what was already there
+   — imperceptible, same tolerance the motion pass already established.
+   Sizes that appear once or twice, or belong to one self-contained
+   component (an icon glyph, a single modal's header), are deliberately
+   left as literal px: nothing to centralize against yet, and snapping a
+   singleton to a nearby tier would be a silent redesign, not cleanup. */
+:root {
+  --text-2xs: 9.5px;   /* was 9px / 9.5px — smallest mono/uppercase labels */
+  --text-xs: 10px;     /* was 10px / 10.5px — eyebrow labels, tiny meta */
+  --text-sm: 11px;     /* was 11px / 11.5px — secondary meta, notes */
+  --text-base: 12px;   /* was 12px / 12.5px — the app's most common body-ish size */
+  --text-md: 13px;     /* was 13px / 13.5px — primary UI/body text */
+  --text-lg: 14px;     /* was 14px / 14.5px — small sub-headings, modal chrome */
+  --text-xl: 15px;     /* was 15px / 15.5px — group/section headers */
+  --text-2xl: 18px;    /* view/modal titles */
+  --text-3xl: 22px;    /* top-level view headers */
+}
+
+/* ── spacing scale ───────────────────────────────────────────────────────
+   Same treatment for margin/padding. An even 4/6/8/10/12/14/16px
+   progression already covered the bulk of actual usage (dozens of call
+   sites each), so it's tokenized as-is rather than remapped onto a
+   different grid. Rarer values (1px/2px/3px/5px/7px/9px and anything
+   above 16px) are one-off sizing tied to a specific layout — an icon's
+   dimensions, a modal's max-width, a single card's padding — not a
+   repeated rhythm, so they stay literal. */
+:root {
+  --space-1: 4px;
+  --space-2: 6px;
+  --space-3: 8px;
+  --space-4: 10px;
+  --space-5: 12px;
+  --space-6: 14px;
+  --space-7: 16px;
+}
+
+html { scroll-behavior: smooth; }
+
+/* ── scrollbars ──────────────────────────────────────────────────────────
+   Themed thin scrollbars everywhere, replacing the browser/OS default —
+   a blocky gray bar with arrow buttons that clashes with the paper/void/
+   sepia surfaces (and especially with a custom background image, where it
+   reads as a leftover system chrome floating on top). Uses each theme's
+   own --ink-faint/--accent, so it re-themes automatically on theme
+   switch, nav background pass, everything.
+   Two separate mechanisms, since there's no single cross-browser scrollbar
+   API yet: Firefox reads scrollbar-width/scrollbar-color, which — unlike
+   the WebKit pseudo-elements below — actually inherits, so setting it once
+   on html covers every scrollable element in the app for free. WebKit/
+   Chromium/Edge don't support that property; they need the ::-webkit-
+   scrollbar pseudo-elements instead, which *don't* inherit, hence the
+   universal selector, so a scrollbar showing up inside a modal, a flyout,
+   or a future view nobody's thought of yet is themed without having to
+   hand-list every scrollable container by class. */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--ink-faint) transparent;
+}
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background-color: var(--ink-faint);
+  border-radius: 20px;
+  /* Transparent border + padding-box clip is the standard trick for a
+     scrollbar that reads as a slim rounded pill with a bit of track
+     breathing room on each side, rather than a full-width slab. */
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover { background-color: var(--accent); }
+*::-webkit-scrollbar-corner { background: transparent; }
+
+body {
+  /* Faint warm vignette in the corner instead of a flat fill — the kind
+     of thing you don't consciously notice but reads as "lit" rather than
+     "rendered." Sits under --bg, so it's subtle on Paper/Sepia and nearly
+     invisible on Void by design (that theme wants to stay a still, dark
+     surface, not a glow). */
+  background:
+    radial-gradient(ellipse 900px 600px at 100% 0%, var(--accent-glow), transparent 60%),
+    var(--bg);
+  color: var(--ink);
+  font-family: 'Inter', sans-serif;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  height: 100vh;
+  height: 100dvh; /* overrides on browsers that support it — fixes the iOS Safari address-bar show/hide jump */
+  overflow: hidden;
+  transition: background .4s var(--ease-cozy), color var(--motion-normal) ease;
+}
+
+/* Local music & backgrounds pass — a custom gradient or image, painted in
+   behind the vignette above rather than replacing --bg itself. It shows
+   through anywhere the layout doesn't paint its own solid surface (the
+   sidebar, the gaps around the editor's paper card) without ever sitting
+   directly under body text — .sidebar's own controls and the editor's
+   --editor-bg-filled card stay exactly as legible as before. Gradient
+   mode trusts the writer's own two colors as-is; image mode always draws
+   a --bg-tinted scrim under the image (strength set by --custom-bg-dim)
+   so a busy photo doesn't fight with sidebar labels sitting on top of it. */
+body[data-bg-mode="gradient"] { background: var(--custom-bg); }
+body[data-bg-mode="image"] {
+  background:
+    linear-gradient(rgba(var(--bg-rgb), var(--custom-bg-dim)), rgba(var(--bg-rgb), var(--custom-bg-dim))),
+    var(--custom-bg) center / cover no-repeat fixed;
+}
+
+/* ── manuscript font selection ── */
+[data-font="literata"] .chapter-editor, [data-font="literata"] .book-spread, [data-font="literata"] .focus-dim-overlay { font-family: 'Literata', serif; }
+[data-font="hyperlegible"] .chapter-editor, [data-font="hyperlegible"] .book-spread, [data-font="hyperlegible"] .focus-dim-overlay { font-family: 'Atkinson Hyperlegible', sans-serif; }
+[data-font="mono"] .chapter-editor, [data-font="mono"] .book-spread, [data-font="mono"] .focus-dim-overlay { font-family: 'JetBrains Mono', monospace; }
+/* Custom fonts pass — --custom-font-family is set at runtime by
+   theme.js's registerCustomFont() once the picked font file actually
+   loads; falls back to Literata if nothing's registered yet (e.g. a
+   fresh page load where the FontFace re-registration is still in
+   flight) so text never goes fully unstyled while it catches up. */
+[data-font="custom"] .chapter-editor, [data-font="custom"] .book-spread, [data-font="custom"] .focus-dim-overlay { font-family: var(--custom-font-family, 'Literata'), serif; }
+

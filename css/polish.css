@@ -1,0 +1,1162 @@
+/* ── cozy pass — global finishing touches ─────────────────────────────── */
+
+/* A soft warm glow ring on focus for every text-entry control in the app,
+   layered on top of whatever border-color change each rule above this one
+   already does on :focus. Source order puts this last, so it always
+   applies without having to touch every individual :focus rule. Buttons
+   and selects are excluded — a glow reads right on "I'm typing here," not
+   on "I'm a button that's focused." */
+input[type="text"]:focus,
+input[type="color"]:focus,
+input:not([type]):focus,
+textarea:focus,
+.entity-description:focus,
+.scene-field:focus,
+.chapter-editor:focus,
+.chapter-title-input:focus,
+.project-title-input:focus,
+.entity-name-input:focus,
+.notes-add-name:focus,
+.arc-input:focus,
+.pov-input:focus,
+.history-save-row input:focus {
+  box-shadow: var(--shadow-focus);
+  border-radius: 4px;
+}
+
+/* Format-layer color swatches, sidebar switcher, and other small circular
+   controls get a gentle scale on hover to match the card-lift treatment
+   added earlier, so the "everything is a little alive" feeling is
+   consistent whether the control is card-shaped or a small round swatch. */
+/* P1-13 fix — drop `.format-swatch:hover` from this selector list.
+   `tools.css:471` already styles `.format-swatch:hover { transform: scale(1.08) }`,
+   and polish.css loads last, so the previous version silently overrode
+   the tools.css author's intended scale with 1.12. The sketch-color
+   selectors here are the ones the comment was actually about
+   ("gentle scale on hover to match the card-lift treatment") — those
+   two stay because no other file styles them. */
+.sketch-color-swatch:hover,
+.sketch-color-wheel:hover {
+  transform: scale(1.12);
+  transition: transform .18s var(--ease-cozy), border-color .18s var(--ease-cozy);
+}
+
+/* Primary/CTA-weight buttons (accent-glow background, e.g. Export/Save/
+   Insert actions) get a touch of lift + deepened glow on hover instead of
+   just a border-color change, so the one or two actions per view meant to
+   stand out actually feel a little more responsive than a plain toolbar
+   button. */
+
+/* ── Library (cozy pass) ────────────────────────────────────────────────────
+   Replaces the old flat project-switcher list with a shelf of novel cards.
+   Docked left instead of centered — "glance at the shelf, then get back to
+   writing" rather than a blocking dialog you have to dismiss to keep going.
+   Reuses .modal-backdrop/.modal-panel/.modal-header/.modal-close wholesale
+   (see openLibrary() in app.js) and only overrides positioning/sizing here. */
+
+.library-backdrop { justify-content: flex-start; }
+
+@keyframes library-drawer-in {
+  from { opacity: 0; transform: translateX(-16px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.library-drawer {
+  width: min(880px, 94vw);
+  height: 100%;
+  max-height: 100%;
+  border-radius: 0 16px 16px 0;
+  animation: library-drawer-in .26s var(--ease-cozy);
+}
+@media (prefers-reduced-motion: reduce) {
+  .library-drawer { animation: none; }
+}
+
+.library-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 18px;
+}
+
+.library-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform .18s var(--ease-cozy), box-shadow .18s var(--ease-cozy), border-color .18s var(--ease-cozy);
+}
+.library-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-sm); border-color: var(--accent); }
+.library-card.is-active { border-color: var(--accent); box-shadow: var(--shadow-focus); }
+
+/* Book-like proportions (2:3, roughly a paperback cover) rather than a
+   photo-grid 1:1/4:3 — cover art or the fallback both read as "this is
+   what the novel would look like as a physical book," per the author's
+   own framing of what this feature is for. */
+.library-cover {
+  aspect-ratio: 2 / 3;
+  width: 100%;
+  background: linear-gradient(155deg, var(--accent-glow), var(--bg));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6);
+  text-align: center;
+}
+.library-cover-img { width: 100%; height: 100%; object-fit: cover; }
+.library-cover-fallback-title {
+  font-family: 'Fraunces', serif;
+  font-weight: 400;
+  font-size: var(--text-xl);
+  line-height: 1.3;
+  color: var(--accent-deep);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+}
+.library-cover-loading {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--accent-glow);
+  border-top-color: var(--accent);
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.library-card-body { display: flex; flex-direction: column; gap: 6px; padding: var(--space-4) var(--space-5) var(--space-5); }
+.library-card-title {
+  font-family: 'Fraunces', serif;
+  font-weight: 400;
+  font-size: var(--text-lg);
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.library-card-meta {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+  display: flex;
+  gap: 5px;
+}
+.library-goal-bar {
+  height: 4px;
+  border-radius: 4px;
+  background: var(--bg);
+  overflow: hidden;
+}
+.library-goal-fill { height: 100%; background: var(--accent); border-radius: 4px; }
+
+.library-card-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 2px;
+}
+.library-status-mix {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-2xs);
+  color: var(--ink-faint);
+}
+.library-status-mix .status-dot { margin-left: var(--space-1); }
+.library-status-mix .status-dot:first-child { margin-left: 0; }
+.library-last-edited { font-family: 'JetBrains Mono', monospace; font-size: var(--text-2xs); color: var(--ink-faint); }
+
+.library-current-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: var(--accent);
+  color: var(--paper);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-2xs);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  padding: 3px 7px;
+  border-radius: 999px;
+}
+
+/* ⋯ menu — anchored top-right over the cover, same open/close pattern as
+   .wt-popover-group elsewhere (position: relative wrapper + absolute
+   popover), just living on a card instead of in the toolbar. */
+.library-card-menu-wrap { position: absolute; top: 8px; right: 8px; z-index: 5; }
+.library-card-menu-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.5);
+  background: rgba(20, 16, 10, 0.35);
+  backdrop-filter: blur(2px);
+  color: #fff;
+  cursor: pointer;
+  line-height: 1;
+}
+.library-card-menu-btn:hover { background: rgba(20, 16, 10, 0.55); }
+.library-card-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  box-shadow: var(--shadow-md);
+  padding: var(--space-2);
+  min-width: 170px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.library-menu-item {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-md);
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  color: var(--ink-soft);
+  padding: var(--space-3) 9px;
+  cursor: pointer;
+}
+.library-menu-item:hover { background: var(--accent-glow); color: var(--accent-deep); }
+.library-menu-item.library-menu-danger:hover { background: rgba(155, 107, 47, 0.12); color: var(--status-draft); }
+
+.library-new-card {
+  aspect-ratio: 2 / 3.6; /* cover + body's rough combined height, so it lines up with real cards */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: none;
+  border: 1.5px dashed var(--rule);
+  border-radius: 12px;
+  color: var(--ink-faint);
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-base);
+  cursor: pointer;
+  transition: border-color .18s var(--ease-cozy), color .18s var(--ease-cozy);
+}
+.library-new-card:hover { border-color: var(--accent); color: var(--accent-deep); }
+.library-new-plus { font-family: 'Fraunces', serif; font-size: 26px; line-height: 1; }
+
+/* Library metadata pass — story type/genre/language line on each card, and the
+   filter row + Details editor that read/write those same three fields
+   plus blurb. Filter chips are deliberately plainer than the card tags
+   above (no dot-separated inline reading), since these are buttons to
+   press, not a fact to read. */
+.library-card-tags {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-xs);
+  font-style: italic;
+  color: var(--ink-faint);
+  display: flex;
+  gap: 5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Series pass — small badge line for a card belonging to a series,
+   same spot/sizing family as .library-card-tags just above but its own
+   rule since it's a fact about the shelf (not the book's own metadata)
+   and shouldn't visually merge with storyType/genre/language. */
+.library-card-series {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-xs);
+  color: var(--accent);
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Series pass — the Notes sidebar's "Shared" group heading (renderNotesView
+   in app.js) had no rule of its own before this and was falling back to
+   bare <h4> UA styling, inconsistent with the type-group headings right
+   above it in the same list. Same family as .notes-group h4, plus the
+   accent color to echo .library-card-series' "this is a series fact"
+   treatment. */
+.notes-shared-heading {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  margin: var(--space-6) 0 var(--space-3);
+}
+
+/* Series pass — promote/demote row in the entity detail panel. Sits
+   between the type select and the description textarea; same visual
+   weight as .entity-meta-row just below it so the share status doesn't
+   read as more/less important than Parent/Aliases. */
+.entity-share-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background: var(--accent-glow);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-xs);
+}
+.entity-share-status {
+  color: var(--ink-faint);
+}
+
+.library-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  margin-bottom: var(--space-7);
+  padding-bottom: var(--space-6);
+  border-bottom: 1px solid var(--rule);
+}
+.library-filter-group { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+.library-filter-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-2xs);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--ink-faint);
+  margin-right: 2px;
+}
+.library-filter-chip {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  padding: var(--space-1) var(--space-4);
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: border-color .15s var(--ease-cozy), color .15s var(--ease-cozy), background .15s var(--ease-cozy);
+}
+.library-filter-chip:hover { border-color: var(--accent); color: var(--accent-deep); }
+.library-filter-chip.is-active { background: var(--accent-glow); border-color: var(--accent); color: var(--accent-deep); }
+.library-filter-clear {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-xs);
+  background: none;
+  border: none;
+  color: var(--ink-faint);
+  text-decoration: underline;
+  cursor: pointer;
+  padding: var(--space-1) 2px;
+}
+.library-filter-clear:hover { color: var(--status-draft); }
+
+.library-empty-state {
+  grid-column: 1 / -1;
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-md);
+  color: var(--ink-faint);
+  text-align: center;
+  padding: 30px var(--space-4);
+}
+
+/* Worldbuilding pass — entity type manager + the custom-field/parent/
+   alias additions on the entity detail panel. Reuses .grammar-field-label
+   and .library-filter-chip/-bar wholesale (same "label above input" and
+   "tap a chip to filter" shapes already established above) rather than a
+   parallel set of classes. */
+.entity-type-manager-modal { width: min(520px, 92vw); }
+.entity-type-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--rule);
+}
+.entity-type-row:last-child { border-bottom: none; }
+.entity-type-color-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 1px solid var(--rule);
+}
+.entity-type-row-label { flex: 1; font-family: 'Inter', sans-serif; font-size: var(--text-md); }
+.entity-type-row-label .is-builtin { color: var(--ink-faint); font-size: var(--text-xs); margin-left: 6px; }
+.entity-type-new-row {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  margin-top: var(--space-5);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--rule);
+}
+.entity-type-new-row input[type="text"] {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  padding: var(--space-2) var(--space-3);
+  color: var(--ink);
+}
+.entity-type-new-row input[type="color"] { width: 32px; height: 32px; padding: 0; border: none; background: none; cursor: pointer; }
+
+/* Tier 7 pass — worldbuilding starter templates. */
+.entity-type-templates { margin-top: var(--space-4); }
+.entity-type-template-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: var(--space-2); }
+.entity-type-template-btn { border: 1px solid var(--rule); border-radius: 9px; }
+.entity-type-template-btn:hover { border-color: var(--accent); }
+
+.entity-custom-fields { display: flex; flex-direction: column; gap: var(--space-4); margin-top: var(--space-5); }
+.entity-custom-field-row label { display: block; }
+.entity-custom-field-row input {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  padding: var(--space-2) var(--space-3);
+  color: var(--ink);
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-base);
+}
+
+/* ── entity status timeline (Tier 3 pass) ── */
+.entity-status-section { margin-top: var(--space-6); }
+.entity-status-header { display: flex; align-items: baseline; gap: 10px; margin-bottom: var(--space-3); }
+.entity-status-header h4 {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-faint);
+}
+.entity-status-hint {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+  cursor: help;
+}
+.entity-status-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: var(--space-3); }
+.entity-status-item {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  padding: var(--space-2) var(--space-3);
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+}
+.entity-status-item-label { color: var(--ink); font-weight: 500; }
+.entity-status-item-anchor { color: var(--ink-faint); font-size: var(--text-xs); }
+.entity-status-item-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-xs);
+  background: var(--accent-glow);
+  color: var(--accent-deep);
+  border-radius: 14px;
+  padding: 1px var(--space-3);
+}
+.entity-status-item-delete { margin-left: auto; background: none; border: none; color: var(--ink-faint); cursor: pointer; }
+.entity-status-item-delete:hover { color: var(--status-draft); }
+.entity-status-add-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.entity-status-add-row input[type="text"] {
+  flex: 1;
+  min-width: 180px;
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  padding: var(--space-2) var(--space-3);
+  color: var(--ink);
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+}
+.entity-status-add-row select {
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  padding: var(--space-2) var(--space-3);
+  color: var(--ink-soft);
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+  max-width: 220px;
+}
+.entity-status-blocks-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-xs);
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+.entity-meta-row { display: flex; gap: var(--space-4); margin-top: var(--space-4); }
+.entity-meta-row > label { flex: 1; }
+.entity-meta-row select, .entity-meta-row input {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  padding: var(--space-2) var(--space-3);
+  color: var(--ink);
+}
+
+.library-details-modal { width: min(480px, 92vw); }
+.library-details-modal textarea {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-base);
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  padding: var(--space-3) var(--space-4);
+  color: var(--ink);
+  resize: vertical;
+  line-height: 1.5;
+}
+
+
+/* ── v0.2.9 Welcome screen ─────────────────────────────────────────────── */
+.welcome-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 300ms var(--ease-cozy);
+  pointer-events: none !important; /* never block — the overlay is purely visual, first keystroke dismisses it */
+}
+.welcome-screen.visible {
+  opacity: 1;
+}
+.welcome-content {
+  text-align: center;
+  max-width: 480px;
+  padding: 40px;
+}
+.welcome-greeting {
+  font-family: 'Fraunces', serif;
+  font-weight: 300;
+  font-size: 2.2rem;
+  color: var(--ink);
+  margin: 0 0 8px;
+}
+.welcome-streak {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+  color: var(--ink-faint);
+  margin: 0 0 24px;
+}
+.streak-heatmap {
+  display: grid;
+  grid-template-columns: repeat(30, 1fr);
+  gap: 2px;
+  margin: 0 0 24px;
+  height: 24px;
+}
+.streak-cell {
+  background: var(--accent);
+  border-radius: 2px;
+  min-width: 0;
+}
+.welcome-quote {
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+.welcome-quote-text {
+  font-family: 'Fraunces', serif;
+  font-weight: 300;
+  font-size: 1.05rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  font-style: italic;
+  margin: 0 0 8px;
+}
+.welcome-quote-source {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+  font-style: normal;
+}
+
+/* ── v0.2.9 Onboarding flow ──────────────────────────────────────────── */
+.onboarding-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.onboarding-card {
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  padding: 40px;
+  max-width: 480px;
+  width: calc(100% - 48px);
+  box-shadow: var(--shadow-lg);
+}
+.onboarding-step {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 8px;
+}
+.onboarding-title {
+  font-family: 'Fraunces', serif;
+  font-weight: 300;
+  font-size: 1.8rem;
+  color: var(--ink);
+  margin: 0 0 16px;
+}
+.onboarding-subtitle {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-base);
+  color: var(--ink-soft);
+  line-height: 1.5;
+  margin: 0 0 24px;
+}
+.onboarding-input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-base);
+  color: var(--ink);
+  background: var(--paper);
+  margin: 0 0 24px;
+  box-sizing: border-box;
+}
+.onboarding-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.onboarding-chips {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 24px;
+}
+/* These are real <button type="button"> elements now, not <div>s — they
+   were previously keyboard-unreachable, which made the onboarding choices
+   the only controls in Tinta a keyboard-only writer couldn't operate. The
+   resets below (font/color/text-align/width) keep the button element from
+   inheriting the UA's centred, system-font look; everything visual is
+   otherwise unchanged from the div version. */
+.onboarding-chip {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color var(--motion-micro) var(--ease-cozy), background var(--motion-micro) var(--ease-cozy);
+  background: var(--paper);
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+.onboarding-chip:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: var(--shadow-focus);
+}
+.onboarding-chip:hover {
+  border-color: var(--accent);
+}
+.onboarding-chip.selected {
+  border-color: var(--accent);
+  background: var(--accent-glow);
+}
+.onboarding-chip-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--rule);
+  margin-top: 2px;
+  flex-shrink: 0;
+  transition: border-color var(--motion-micro) var(--ease-cozy);
+}
+.onboarding-chip.selected .onboarding-chip-dot {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+.onboarding-chip-text {
+  flex: 1;
+}
+.onboarding-chip-label {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-base);
+  font-weight: 500;
+  color: var(--ink);
+  margin: 0 0 2px;
+}
+.onboarding-chip-desc {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+  color: var(--ink-faint);
+  margin: 0;
+  line-height: 1.4;
+}
+.onboarding-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.onboarding-skip {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+  color: var(--ink-faint);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px 12px;
+}
+.onboarding-skip:hover {
+  color: var(--ink-soft);
+}
+
+/* ── v0.2.9 "What changed since" banner ─────────────────────────────── */
+.whats-new-banner {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 10px 16px;
+  box-shadow: var(--shadow-sm);
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  opacity: 0;
+  transition: opacity 200ms var(--ease-cozy);
+  pointer-events: none;
+  max-width: 480px;
+}
+.whats-new-banner.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+.whats-new-banner-dismiss {
+  background: none;
+  border: none;
+  color: var(--ink-faint);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 0 0 0 4px;
+  line-height: 1;
+}
+.whats-new-banner-dismiss:hover {
+  color: var(--ink);
+}
+
+/* ── v0.2.9 Burger sidebar ──────────────────────────────────────────── */
+/* P1-11 fix — scope to the collapsed state. The unconditional version
+   killed shell.css's .sidebar { overflow-y: auto }, so the sidebar's
+   non-chapter-list content (recent-chapters header, arc-filter-bar,
+   sidebar-footer) couldn't scroll when it exceeded the viewport. The
+   width transition + position:relative are safe to keep unscoped (they
+   don't conflict with shell.css), so they stay here as-is. */
+.sidebar {
+  transition: width var(--motion-normal) var(--ease-cozy);
+  position: relative;
+}
+#app-shell.sidebar-collapsed .sidebar {
+  overflow: hidden;
+}
+
+/* Expanded state (default) — icon + label side by side */
+.sidebar-footer button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sb-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.sb-label-text {
+  flex: 1;
+}
+
+/* Collapsed state — narrow rail, icons only */
+#app-shell.sidebar-collapsed {
+  grid-template-columns: 56px 1fr;
+}
+#app-shell.sidebar-collapsed .sidebar {
+  width: 56px;
+}
+/* Hide all text-bearing elements completely */
+#app-shell.sidebar-collapsed .project-header,
+#app-shell.sidebar-collapsed .sb-label,
+#app-shell.sidebar-collapsed .chapter-list,
+#app-shell.sidebar-collapsed .arc-filter-bar {
+  display: none;
+}
+/* Collapsed footer: stack vertically, icon-only buttons */
+#app-shell.sidebar-collapsed .sidebar-footer {
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 6px;
+  align-items: center;
+}
+#app-shell.sidebar-collapsed .sidebar-footer button {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  justify-content: center;
+  border-radius: 8px;
+}
+#app-shell.sidebar-collapsed .sb-label-text {
+  display: none;
+}
+#app-shell.sidebar-collapsed .sb-icon {
+  font-size: 18px;
+}
+
+/* v0.2.9 — sidebar toggle button */
+.sidebar-toggle-btn {
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  color: var(--ink-faint);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 6px 10px;
+  transition: color var(--motion-micro) var(--ease-cozy), border-color var(--motion-micro) var(--ease-cozy);
+}
+.sidebar-toggle-btn:hover {
+  color: var(--ink);
+  border-color: var(--accent);
+}
+#app-shell.sidebar-collapsed .sidebar-toggle-btn {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 4px;
+}
+/* v0.2.9 — Recent chapters section in sidebar */
+.sb-recent-header {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-faint);
+  padding: 4px 0 2px;
+  list-style: none;
+}
+.sb-recent-divider {
+  height: 1px;
+  background: var(--rule);
+  margin: 4px 0;
+  list-style: none;
+}
+
+/* v0.2.9 — Questions: resolved visual distinction */
+.question-card.resolved {
+  opacity: 0.6;
+}
+.question-card.resolved .question-text {
+  text-decoration: line-through;
+  color: var(--ink-faint);
+}
+
+/* v0.2.9 — Checklist: progress bar */
+.checklist-progress-bar {
+  height: 6px;
+  background: var(--rule);
+  border-radius: 3px;
+  overflow: hidden;
+  margin: 8px 0 16px;
+}
+.checklist-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 3px;
+  transition: width var(--motion-normal) var(--ease-cozy);
+}
+
+/* ── Mobile sidebar drawer (≤800px) ─────────────────────────────────────
+   Lives at the END of polish.css on purpose. The original breakpoint in
+   shell.css said `.sidebar { display: none }` BEFORE the base .sidebar rule
+   that sets display:flex — equal specificity, later source order wins, so
+   the sidebar stayed visible at narrow widths and squeezed the editor into
+   a strip underneath it. Moving that override after the base rule in
+   shell.css would still have lost, because this file loads later and
+   re-declares .sidebar (position/overflow) plus the entire
+   #app-shell.sidebar-collapsed rail. Everything mobile therefore sits here,
+   after every rule it needs to beat.
+
+   It's a drawer rather than display:none because the sidebar holds the
+   chapter list: hiding it outright would fix the layout by removing the
+   mobile writer's only way to switch or create a chapter. #mobile-nav-btn
+   (created in app.js, rendered into .view-tabs inside .main) opens it — a
+   control that deliberately does NOT live inside the panel it reveals,
+   unlike .sidebar-toggle-btn. */
+@media (max-width: 800px) {
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: min(300px, 86vw);
+    z-index: 40;
+    background: var(--bg);
+    box-shadow: var(--shadow-lg);
+    transform: translateX(-100%);
+    transition: transform var(--motion-normal) var(--ease-cozy);
+    overflow-y: auto;
+  }
+  #app-shell.mobile-nav-open .sidebar {
+    transform: translateX(0);
+  }
+
+  /* The collapsed icon-rail is a desktop affordance. At mobile widths the
+     drawer is either fully open or fully off-screen, so a persisted
+     collapsed:true must not narrow it to a 56px rail with its labels and
+     chapter list stripped out — that would hand the writer an open drawer
+     with nothing navigable in it. */
+  #app-shell.sidebar-collapsed {
+    grid-template-columns: 1fr;
+  }
+  #app-shell.sidebar-collapsed .sidebar {
+    width: min(300px, 86vw);
+  }
+  #app-shell.sidebar-collapsed .project-header,
+  #app-shell.sidebar-collapsed .sb-label,
+  #app-shell.sidebar-collapsed .chapter-list,
+  #app-shell.sidebar-collapsed .arc-filter-bar,
+  #app-shell.sidebar-collapsed .sb-label-text {
+    display: revert;
+  }
+  #app-shell.sidebar-collapsed .sidebar-footer {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  #app-shell.sidebar-collapsed .sidebar-footer button {
+    width: auto;
+    height: auto;
+    padding: 8px 10px;
+    justify-content: flex-start;
+  }
+  /* Collapsing to a rail is meaningless inside a drawer. */
+  .sidebar-toggle-btn,
+  #app-shell.sidebar-collapsed .sidebar-toggle-btn {
+    display: none;
+  }
+}
+
+/* Backdrop behind the open drawer — tap anywhere to dismiss. Appended to
+   <body> by app.js as a sibling of #app-shell, same placement as
+   #modal-root. Hidden entirely above the breakpoint so it can never
+   intercept a desktop click. */
+.mobile-nav-backdrop {
+  display: none;
+}
+@media (max-width: 800px) {
+  #app-shell.mobile-nav-open ~ .mobile-nav-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 35;
+    background: rgba(0, 0, 0, 0.38);
+  }
+}
+
+/* The drawer's opening control, in the top bar rather than the sidebar. */
+.mobile-nav-btn {
+  display: none;
+}
+@media (max-width: 800px) {
+  .mobile-nav-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-right: var(--space-2);
+    padding: 6px 10px;
+    background: none;
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    color: var(--ink-soft);
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    transition: color var(--motion-micro) var(--ease-cozy), border-color var(--motion-micro) var(--ease-cozy);
+  }
+  .mobile-nav-btn:hover {
+    color: var(--ink);
+    border-color: var(--accent);
+  }
+}
+
+/* ── P2-7 recovery toast ──────────────────────────────────────────────
+   Non-blocking bottom-right toast shown on boot when a previous session
+   ended with a quota-exceeded save that landed a snapshot in IndexedDB
+   but never reached localStorage. Stays open until the writer clicks
+   Restore or Discard — no timeout dismissal because losing the only
+   chance to recover is worse than a lingering element. */
+.recovery-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9000; /* below modals (10000) and drawer, above app chrome */
+  max-width: 440px;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-left: 4px solid var(--status-draft);
+  border-radius: 8px;
+  box-shadow: var(--shadow-md, 0 6px 20px rgba(0, 0, 0, 0.18));
+  font-family: 'Inter', sans-serif;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity .25s var(--ease-cozy), transform .25s var(--ease-cozy);
+  pointer-events: none;
+}
+.recovery-toast.visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+.recovery-toast-content {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  padding: 14px 16px;
+  align-items: start;
+}
+.recovery-toast-icon {
+  font-size: 20px;
+  line-height: 1;
+  color: var(--status-draft);
+  padding-top: 2px;
+}
+.recovery-toast-body { min-width: 0; }
+.recovery-toast-title {
+  margin: 0 0 4px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--ink);
+}
+.recovery-toast-desc {
+  margin: 0 0 6px;
+  font-size: var(--text-xs);
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+.recovery-toast-desc em {
+  font-style: italic;
+  color: var(--ink);
+}
+.recovery-toast-meta {
+  margin: 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--ink-faint);
+}
+.recovery-toast-meta a,
+.recovery-toast-what {
+  color: var(--accent);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.recovery-toast-what:hover { color: var(--ink); }
+.recovery-toast-explain {
+  display: block;
+  margin-top: 6px;
+  font-size: var(--text-xs);
+  line-height: 1.45;
+  color: var(--ink-soft);
+  font-family: 'Inter', sans-serif;
+}
+.recovery-toast-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-self: stretch;
+}
+.recovery-toast-btn {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--rule);
+  background: var(--paper);
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: background var(--motion-micro) var(--ease-cozy),
+              border-color var(--motion-micro) var(--ease-cozy),
+              color var(--motion-micro) var(--ease-cozy);
+  white-space: nowrap;
+}
+.recovery-toast-btn:hover {
+  color: var(--ink);
+  border-color: var(--accent);
+}
+.recovery-toast-restore {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.recovery-toast-restore:hover {
+  background: var(--accent-strong, var(--accent));
+  color: #fff;
+}
+.recovery-toast-error {
+  margin: 6px 0 0;
+  padding: 6px 8px;
+  background: rgba(155, 59, 59, 0.08);
+  border-left: 2px solid var(--status-draft);
+  font-size: var(--text-xs);
+  line-height: 1.45;
+  color: var(--status-draft);
+}
+
+@media (max-width: 600px) {
+  .recovery-toast {
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    max-width: none;
+  }
+  .recovery-toast-content {
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto;
+  }
+  .recovery-toast-actions {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    justify-content: flex-end;
+  }
+}
