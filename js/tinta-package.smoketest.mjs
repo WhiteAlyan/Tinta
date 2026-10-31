@@ -110,6 +110,19 @@ globalThis.__imageStoreShim = new InMemImageStore();
 process.on('exit', () => {
   try { writeFileSync(origImageStorePath, origImageStoreContents); } catch { /* best effort on the way out */ }
 });
+// Hardening on top of the 'exit' backstop: 'exit' does NOT fire when the
+// process dies to SIGTERM/SIGINT (default disposition) — e.g. a test
+// harness timeout killing a slow suite run. That exact scenario left the
+// stub on disk once already (the whole tree's hardening.smoketest then
+// failed with "ImageStore.deleteBlobs is not a function" — debugged from
+// the wrong file's side a second time). Catch the signals, restore, and
+// re-raise so the exit code still reports the kill.
+for (const killSignal of ['SIGINT', 'SIGTERM']) {
+  process.on(killSignal, () => {
+    try { writeFileSync(origImageStorePath, origImageStoreContents); } catch { /* best effort */ }
+    process.kill(process.pid, killSignal);
+  });
+}
 
 const Store = await import('./store.js');
 const { exportTintaProject, importTintaProject, TINTA_FORMAT_VERSION } = await import('./tintaPackage.js');

@@ -15,7 +15,8 @@ import {
   slugType,
   uid,
 } from './store-core.js';
-import { wordCount } from './format.js';
+import { wordCount, stripFormattingTokens } from './format.js';
+import { isExportableChapter } from './manuscriptExport.js';
 import * as Search from './search.js';
 
 
@@ -584,6 +585,12 @@ export function reorderChapter(chapterId, direction) {
   const project = getActiveProject();
   const chapters = project.chapters.sort((a, b) => a.order - b.order);
   const idx = chapters.findIndex((c) => c.id === chapterId);
+  // CR-22 — an unknown chapter id left idx at -1; with direction 'down'
+  // the swap index was 0, which passed the bounds check, and
+  // chapters[-1].order threw a raw TypeError instead of ignoring the
+  // no-op. The sibling reorderTimelineEvent checks idx === -1 explicitly;
+  // mirrored here.
+  if (idx === -1) return;
   const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
   if (swapIdx < 0 || swapIdx >= chapters.length) return;
   const tmp = chapters[idx].order;
@@ -890,12 +897,22 @@ export function restoreSnapshot(chapterId, snapshotId) {
 export function exportChapterText(chapterId) {
   const chapter = getChapter(chapterId);
   if (!chapter) return '';
-  return chapter.content;
+  // CR-09 — the export menu describes the .md paths as "prose-only, no
+  // formatting beyond the text itself", but the raw manuscript syntax
+  // (**, {{u:…}}, {{img:…}}) used to go through verbatim. Same stripper
+  // the Read Aloud path uses (CR-46).
+  return stripFormattingTokens(chapter.content);
 }
 
 export function exportProjectText(project = getActiveProject()) {
-  const chapters = [...project.chapters].sort((a, b) => a.order - b.order);
-  return chapters.map((c) => `# ${c.title}\n\n${c.content}`).join('\n\n---\n\n');
+  // CR-09 — two defects fixed together: the export ignored
+  // isExportableChapter, so trashed, archived, and scratch chapters
+  // shipped in the whole-project .md backup; and every {{...}} token
+  // passed through verbatim despite the menu describing prose output.
+  const chapters = [...project.chapters]
+    .filter((c) => isExportableChapter(project, c))
+    .sort((a, b) => a.order - b.order);
+  return chapters.map((c) => `# ${c.title}\n\n${stripFormattingTokens(c.content)}`).join('\n\n---\n\n');
 }
 
 // Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
@@ -928,22 +945,43 @@ export function searchProject(query, options) {
 
 // Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
 export function replaceInChapters(query, replacement, options) {
+  const plan = Search.planChapterReplace(getActiveProject(), query, replacement, options);
+  return applyReplacePlan(plan, {
+    query,
+    replacement,
+    useRegex: !!(options && options.useRegex),
+  });
+}
+
+// CR-43 — apply a plan that was already computed (and time-budgeted)
+// through the search service's worker path. Splitting apply from plan
+// lets the UI evaluate the plan off the main thread first — so the same
+// user regex that can freeze a scan can't freeze a replace either — and
+// then hand the precomputed newContent strings to the store, which just
+// snapshots and assigns (no second, un-guarded regex pass on the main
+// thread). replaceInChapters above is now the thin find+apply wrapper
+// for callers that haven't moved to the async path.
+export function applyReplacePlan(plan, { query = '', replacement = '', useRegex = false } = {}) {
   const project = getActiveProject();
-  const plan = Search.planChapterReplace(project, query, replacement, options);
-  const label = options?.useRegex
+  const label = useRegex
     ? `Before regex find/replace: "${query}" → "${replacement}"`
     : `Before find/replace: "${query}" → "${replacement}"`;
-  plan.forEach((item) => {
+  (plan || []).forEach((item) => {
+    if (!item || item.newContent == null) {
+      // A countsOnly plan (newContent: null) must never be applied —
+      // that would null out chapter content. Defensive: skip instead.
+      return;
+    }
     createSnapshot(item.chapterId, label, true);
     const chapter = getChapter(item.chapterId);
     chapter.content = item.newContent;
     chapter.updatedAt = now();
   });
-  if (plan.length) {
+  if ((plan || []).length) {
     project.updatedAt = now();
     save();
   }
-  return plan;
+  return plan || [];
 }
 
 // Every scene referenced across all chapters, flattened — the scene

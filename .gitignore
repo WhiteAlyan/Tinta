@@ -1,0 +1,25 @@
+# CR-36 — without this, the first `git init && git add .` would commit the
+# entire installed toolchain, Playwright's failure artifacts, and Python
+# cache directories into history.
+
+# Node
+node_modules/
+
+# Playwright
+test-results/
+playwright-report/
+blob-report/
+.playwright/
+
+# Python
+__pycache__/
+*.pyc
+
+# OS noise
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+*.swp

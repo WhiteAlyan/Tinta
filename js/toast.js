@@ -8,12 +8,16 @@ let toastDismissTimer = null;
 
 function renderToast(bodyHtml, { icon, actionLabel = null, onAction = null, duration }) {
   const root = els.celebrationToastRoot;
+  // CR-44 — role="status" makes the toast a polite live region: goal
+  // celebrations and saved-state notes are spoken without interrupting,
+  // which is what the visual toast already promises (bottom corner,
+  // never blocking).
   root.innerHTML = toBridge(html`
-    <div class="celebration-toast">
-      <span class="celebration-toast-icon">${icon}</span>
+    <div class="celebration-toast" role="status">
+      <span class="celebration-toast-icon" aria-hidden="true">${icon}</span>
       <div class="celebration-toast-body">${bodyHtml}</div>
       ${actionLabel ? html`<button class="celebration-toast-action">${actionLabel}</button>` : ''}
-      <button class="celebration-toast-dismiss" title="Dismiss">✕</button>
+      <button class="celebration-toast-dismiss" type="button" title="Dismiss" aria-label="Dismiss">✕</button>
     </div>
   `);
   const dismiss = () => {
@@ -57,10 +61,10 @@ export function showStorageWarning(message, options = {}) {
     ? actions
     : (actionLabel && onAction ? [{ label: actionLabel, onClick: onAction }] : []);
   els.storageWarningRoot.innerHTML = toBridge(html`
-    <div class="storage-warning-banner">
+    <div class="storage-warning-banner" role="alert">
       <span>${message}</span>
       ${actionList.map((a, i) => html`<button class="storage-warning-action" data-sw-action="${i}">${a.label}</button>`)}
-      ${persistent ? '' : html`<button id="storage-warning-dismiss" title="Dismiss">✕</button>`}
+      ${persistent ? '' : html`<button id="storage-warning-dismiss" type="button" title="Dismiss" aria-label="Dismiss">✕</button>`}
     </div>
   `);
   q('storage-warning-dismiss')?.addEventListener('click', () => {

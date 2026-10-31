@@ -227,7 +227,7 @@ export function renderSketchLinkChips(sketch) {
           (e) => html`
       <span class="sketch-link-chip" data-entity="${e.id}">
         ${e.name}
-        <button class="sketch-link-remove" title="Unlink">✕</button>
+        <button class="sketch-link-remove" title="Unlink" aria-label="Unlink">✕</button>
       </span>`
         )}`
       : html`<span class="empty-note">Not linked to anything yet.</span>`

@@ -1363,7 +1363,30 @@ still matches reality.
 > narrative itself is not recoverable. Recent history lives
 > in `FIXES-ROADMAP-*.md` at the repo root.
 
+### CR-43 (2026-10-31) — budgeted, sliceable search engine
+
+`searchProject()` runs under a cooperative wall-clock budget checked per
+match attempt, with a global result cap; every result shape carries
+`stopped` (null = ran to completion, else `{ reason: 'time' | 'matches'
+}`). `onlyCategories` lets a driver run one result category per slice
+(the worker's yield loop, or the main-thread fallback). Replace planning
+is budgeted via `buildReplacePlan()` (`{ plan, stopped }`,
+`countsOnly` mode); `planChapterReplace()` is the legacy thin wrapper.
+Full design in `FIXES-ROADMAP-CR43-SEARCH.md`.
+
 ## js/searchView.js <a id="jssearchview-js"></a>
+
+### CR-43 (2026-10-31) — async, debounced, worker-backed search
+
+The engine call is off the render path. Renders paint the last completed
+outcome from a result cache keyed by query + case + regex +
+`Store.getSaveRev()` (any landed flush invalidates it); typing debounces
+(150ms) into `searchService.runSearch()`, which is worker-backed with a
+hard watchdog and token cancellation. A stale outcome still renders under
+a "Searching…" note; stopped/capped runs are surfaced honestly; the
+Replace panel is count-gated on a completed run and applies precomputed
+plans via `Store.applyReplacePlan()` (no second regex pass on the main
+thread). See `FIXES-ROADMAP-CR43-SEARCH.md`.
 
 ### Lines 244–250
 

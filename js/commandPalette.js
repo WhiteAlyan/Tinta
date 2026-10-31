@@ -22,8 +22,8 @@ export function openCommandPalette() {
     className: 'palette-modal',
     showHeader: false,
     body: raw(`
-      <input type="text" id="palette-query" class="palette-input" placeholder="Jump to a chapter, entity, or project…" autocomplete="off" />
-      <div id="palette-results" class="palette-results"></div>
+      <input type="text" id="palette-query" class="palette-input" role="combobox" aria-expanded="true" aria-controls="palette-results" aria-autocomplete="list" aria-label="Jump to a chapter, entity, or project" placeholder="Jump to a chapter, entity, or project…" autocomplete="off" />
+      <div id="palette-results" class="palette-results" role="listbox" aria-label="Results"></div>
     `),
   });
 // Historical context: see docs/CODEBASE_NOTES.md#jscommandpalette-js
@@ -101,18 +101,25 @@ export function openCommandPalette() {
 
     selectedIndex = Math.min(selectedIndex, Math.max(currentResults.length - 1, 0));
 
+    // CR-44 — the palette is a combobox: the input points at the active
+    // option via aria-activedescendant, and each row is a real option
+    // with an id + aria-selected, so a screen reader announces "Chapter —
+    // Kara Vellum, 2 of 12, selected" while the writer arrows through.
+    // The rows stay divs (click targets only — selection is input-driven
+    // by design), which is exactly the aria-activedescendant pattern.
     resultsEl.innerHTML = toBridge(
       currentResults.length === 0
         ? html`<p class="empty-note palette-empty">No matches.</p>`
         : html`${currentResults.map(
             (r, i) => html`
-        <div class="palette-row${i === selectedIndex ? ' active' : ''}" data-index="${i}">
+        <div class="palette-row${i === selectedIndex ? ' active' : ''}" id="palette-row-${i}" data-index="${i}" role="option" aria-selected="${i === selectedIndex ? 'true' : 'false'}">
           <span class="palette-kind">${paletteKindLabel(r.kind)}</span>
           <span class="palette-label">${r.label}</span>
           <span class="palette-sublabel">${r.sublabel}</span>
         </div>`
           )}`
     );
+    input.setAttribute('aria-activedescendant', currentResults.length ? `palette-row-${selectedIndex}` : '');
 
     resultsEl.querySelectorAll('.palette-row').forEach((row) => {
       const i = Number(row.dataset.index);

@@ -1,7 +1,11 @@
 // Historical context: see docs/CODEBASE_NOTES.md#jsnotesview-js
 
 import * as Store from './store.js';
-import { html, raw, toBridge, q } from './dom-utils.js';
+// CR-03 fix — escapeHtml joins the import: openModal() inserts its title
+// through raw() (modal.js), so escaping dynamic titles is the CALLER's
+// job. Every other call site already escaped; the entity image-gallery
+// title below was the last unescaped one.
+import { html, raw, toBridge, q, escapeHtml } from './dom-utils.js';
 import { openWorldbuildingDraftModal, activeEntityIdFromGenerator, clearActiveEntityIdFromGenerator } from './generatorModal.js';
 import { requestRender } from './renderBus.js';
 import { revokeEntityPortraitUrls, resolveEntityAvatar } from './portraits.js';
@@ -75,7 +79,7 @@ export function renderNotesView(_project) {
               : ''
           }
           <button id="new-entity-btn" class="add-scene-btn">+ Add</button>
-          <button id="generate-entity-btn" class="add-scene-btn generate-entity-btn" title="Generate a starter draft for the selected type">🎲</button>
+          <button id="generate-entity-btn" class="add-scene-btn generate-entity-btn" title="Generate a starter draft for the selected type" aria-label="Generate a starter draft for the selected type">🎲</button>
         </div>
         <button id="manage-entity-types-btn" class="wt-menu-item" style="text-align:left; padding-left:0;">⚙ Manage entity types…</button>
         ${tagFilterBarHtml('entity', entityTagFilters, tagOptions, 'margin-top:var(--space-3);')}
@@ -116,7 +120,7 @@ export function renderNotesView(_project) {
             <span class="notes-entity-name-text">${shared ? '🔗 ' : ''}${entity.name}</span>
             ${parent ? html`<span class="drawer-subtitle" style="display:block;font-size:var(--text-2xs);">in ${parent.name}</span>` : ''}
           </span>
-          <button class="notes-entity-delete" title="Delete ${entity.name}">✕</button>
+          <button class="notes-entity-delete" title="Delete ${entity.name}" aria-label="Delete ${entity.name}">✕</button>
         `);
         li.addEventListener('click', () => {
           setActiveEntityId(entity.id);
@@ -246,7 +250,7 @@ function renderEntityDetail(panel) {
       <select id="entity-type-select" class="status-select">
         ${Store.getEntityTypes().map((t) => html`<option value="${t.key}" ${t.key === entity.type ? raw('selected') : ''}>${t.label}</option>`)}
       </select>
-      <button id="entity-history-btn" class="toolbar-btn-icon" title="Revision history · snapshots + restore">🕐</button>
+      <button id="entity-history-btn" class="toolbar-btn-icon" title="Revision history · snapshots + restore" aria-label="Revision history · snapshots + restore">🕐</button>
     </div>
     ${
       activeSeries
@@ -354,8 +358,8 @@ function renderEntityDetail(panel) {
       thumb.innerHTML = toBridge(html`
         <span class="entity-gallery-thumb-img"><span class="image-thumb-loading">Loading…</span></span>
         <div class="entity-gallery-thumb-row">
-          <button class="entity-gallery-star" title="${imageId === portraitId ? 'Portrait image' : 'Set as portrait'}">${imageId === portraitId ? '★' : '☆'}</button>
-          <button class="entity-gallery-remove" title="Remove from gallery">✕</button>
+          <button class="entity-gallery-star" title="${imageId === portraitId ? 'Portrait image' : 'Set as portrait'}" aria-label="${imageId === portraitId ? 'Portrait image' : 'Set as portrait'}">${imageId === portraitId ? '★' : '☆'}</button>
+          <button class="entity-gallery-remove" title="Remove from gallery" aria-label="Remove from gallery">✕</button>
         </div>
       `);
       galleryGrid.appendChild(thumb);
@@ -383,7 +387,15 @@ function renderEntityDetail(panel) {
     openImageLibrary({
       mode: 'entity',
       entityId: entity.id,
-      title: `Add images · ${entity.name}`,
+      // CR-03 fix — entity.name is free user input that survives .tinta
+      // import verbatim, and openModal() injects its title through
+      // raw() without escaping. An entity named after an <img onerror>
+      // payload executed when the writer clicked "Add images" on the
+      // entity drawer. Every sibling call site (annotationsModal,
+      // canvasView, generatorModal, historyModals, library,
+      // wordCheckModal) already wraps dynamic values in escapeHtml();
+      // this was the last one — now it complies too.
+      title: `Add images · ${escapeHtml(entity.name)}`,
       onSelect: () => renderEntityDetail(panel),
     });
   });
@@ -498,7 +510,7 @@ function renderEntityStatusList(panel, entityId) {
             <span class="entity-status-item-label">${se.label}</span>
             <span class="entity-status-item-anchor">${event ? html`as of “${event.title}”` : html`<em>linked event was deleted</em>`}</span>
             ${se.blocksAppearance ? html`<span class="entity-status-item-badge">ends appearances</span>` : ''}
-            <button class="entity-status-item-delete" title="Remove">✕</button>
+            <button class="entity-status-item-delete" title="Remove" aria-label="Remove">✕</button>
           </div>`;
         })}`
       : html`<p class="empty-state-sm">No status changes tracked yet. Add one below to let continuity checking know what shouldn't happen after it.</p>`

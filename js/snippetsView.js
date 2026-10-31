@@ -76,7 +76,7 @@ export function renderSnippetsView(project) {
               <button class="wt-menu-item snippet-promote-btn" data-menu-toggle="${s.id}">⇢ Promote</button>
               ${promoteMenu(s.id)}
             </div>
-            <button class="snippet-delete-btn" title="Delete">✕</button>
+            <button class="snippet-delete-btn" title="Delete" aria-label="Delete">✕</button>
           </div>
         </div>`
             )

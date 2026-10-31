@@ -80,7 +80,9 @@ export async function importFullBackupWithImages(jsonText) {
   const previousImageIds = Store.listProjects().flatMap((p) => Store.getProjectImageIds(p));
   const incomingIds = new Set(Object.keys(images));
 
-  Store.importFullBackup(dbJson); // existing Session 13 function — validation, migrate(), save()
+  // CR-41 — importFullBackup is async now (its rollback decision needs the
+  // landed save result via saveNow()); the with-images wrapper awaits it.
+  await Store.importFullBackup(dbJson); // existing Session 13 function — validation, migrate(), saveNow()
 
   const staleIds = [...new Set(previousImageIds)].filter((id) => !incomingIds.has(id));
   if (staleIds.length) {

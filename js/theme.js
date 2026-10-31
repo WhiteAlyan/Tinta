@@ -64,7 +64,7 @@ export function initTheme() {
   // this read was unguarded, so the same environment got past the store
   // only to throw here during theme init, taking the whole boot with it.
   // Two boot paths, one storage assumption; now they agree.
-  let hasExistingDb = false;
+  let hasExistingDb; // eslint 10 no-useless-assignment — assigned in both try and catch paths before any read
   try {
     hasExistingDb = Boolean(localStorage.getItem('tinta:db') || localStorage.getItem('scriptorium:db'));
   } catch {
@@ -227,7 +227,7 @@ export function applyFont(name) {
 export async function initCustomFont() {
   const { family, fileName } = Store.getCustomFont();
   if (!family || !fileName) return;
-  let blob = null;
+  let blob; // eslint 10 no-useless-assignment — both paths assign before any read
   try {
     blob = await AssetStore.getBlob(AssetStore.KEYS.CUSTOM_FONT);
   } catch {

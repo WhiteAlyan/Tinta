@@ -46,7 +46,7 @@ export function renderAnnotationsView(project) {
           <span class="annotation-note-text">${a.note || html`<span class="empty-state-sm">(no note)</span>`}</span>
         </label>
         ${st ? html`<button class="annotation-scene-tag" data-jump-scene="${a.sceneId}" data-jump-scene-chapter="${a.chapterId}">${st}</button>` : ''}
-        <button class="annotation-delete-btn" title="Delete">✕</button>
+        <button class="annotation-delete-btn" title="Delete" aria-label="Delete">✕</button>
       </div>`;
   };
 

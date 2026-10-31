@@ -2,6 +2,10 @@
 
 // Historical context: see docs/CODEBASE_NOTES.md#jswordtools-js
 import * as Generator from './generator.js';
+import { CJK_CHAR_CLASS } from './format.js';
+
+// CR-18 — a single CJK character token (see tokenizeWords below).
+const CJK_SINGLE_PATTERN = new RegExp(`^[${CJK_CHAR_CLASS}]$`);
 
 // Historical context: see docs/CODEBASE_NOTES.md#jswordtools-js
 const STOPWORDS = new Set([
@@ -25,7 +29,15 @@ const CRUTCH_WORDS = new Set([
 ]);
 
 function tokenizeWords(text = '') {
-  return (text.toLowerCase().match(/[a-z']+/g) || []).filter((w) => w.length > 1 || w === 'a' || w === 'i');
+  // CR-18 — the old [a-z']+ tokenizer saw zero CJK tokens, so Word Check
+  // always reported "nothing to check" for a Chinese or Japanese writer.
+  // CJK characters now tokenize individually (single-character frequency
+  // is the standard unit for CJK word checks); the length>1 filter that
+  // exists to drop stray Latin single letters must not eat them.
+  const tokens = text.toLowerCase().match(new RegExp(`[a-z']+|[${CJK_CHAR_CLASS}]`, 'g')) || [];
+  return tokens.filter(
+    (w) => CJK_SINGLE_PATTERN.test(w) || w.length > 1 || w === 'a' || w === 'i'
+  );
 }
 
 /**

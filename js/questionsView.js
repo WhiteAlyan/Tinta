@@ -57,7 +57,7 @@ export function renderQuestionsView(_project) {
           <label>Pays off <select class="question-payoff">${raw(sceneOptions(sq.payoffSceneId))}</select></label>
         </div>
         <textarea class="question-notes" placeholder="Notes…" rows="2">${sq.notes || ''}</textarea>
-        <button class="question-delete-btn" title="Delete">✕</button>
+        <button class="question-delete-btn" title="Delete" aria-label="Delete">✕</button>
       </div>`;
   }
 

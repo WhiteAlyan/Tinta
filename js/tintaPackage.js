@@ -325,9 +325,15 @@ function buildManifest(project, imageCount) {
 // Historical context: see docs/CODEBASE_NOTES.md#jstintapackage-js
 
 export async function exportTintaProject(projectId = null) {
-  const project = projectId ? Store.getActiveProject() : Store.getActiveProject();
+  // CR-21 — both branches of the old ternary called Store.getActiveProject(),
+  // so the promised per-project export silently exported whatever happened
+  // to be active. No current caller passes an id, but the signature
+  // advertises it — resolve the parameter honestly: an explicit id exports
+  // THAT project (looking it up in the full db, not just the active slot),
+  // and only a null id falls back to the active project.
+  const project = projectId ? Store.getProjectById(projectId) : Store.getActiveProject();
 // Historical context: see docs/CODEBASE_NOTES.md#jstintapackage-js
-  if (!project) throw new Error('No active project to export');
+  if (!project) throw new Error(projectId ? 'No project with that id to export' : 'No active project to export');
 
   const imageIds = collectProjectImageIds(project);
   const manifest = buildManifest(project, imageIds.length);
@@ -414,7 +420,7 @@ export async function checkTintaFile(file) {
   let manifest = null;
   let project = null;
   let imageEntries = [];
-  let format = 'unknown';
+  let format; // eslint 10 no-useless-assignment — every branch assigns before any read
 
   if (isZip(bytes)) {
     format = 'zip';

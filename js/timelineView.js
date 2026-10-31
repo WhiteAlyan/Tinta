@@ -41,10 +41,10 @@ export function renderTimelineView(project) {
             <div class="timeline-event-head">
               <input type="text" class="timeline-date-input" value="${ev.storyDate}" placeholder="When (e.g. Day 3, Spring Y412)…" />
               <div class="timeline-reorder">
-                <button class="timeline-up-btn" title="Move earlier" ${i === 0 ? raw('disabled') : ''}>▲</button>
-                <button class="timeline-down-btn" title="Move later" ${i === events.length - 1 ? raw('disabled') : ''}>▼</button>
+                <button class="timeline-up-btn" title="Move earlier" ${i === 0 ? raw('disabled') : ''} aria-label="Move earlier">▲</button>
+                <button class="timeline-down-btn" title="Move later" ${i === events.length - 1 ? raw('disabled') : ''} aria-label="Move later">▼</button>
               </div>
-              <button class="timeline-delete-btn" title="Delete event">✕</button>
+              <button class="timeline-delete-btn" title="Delete event" aria-label="Delete event">✕</button>
             </div>
             ${
               calendarActive
@@ -56,7 +56,7 @@ export function renderTimelineView(project) {
                       <input type="number" class="timeline-cal-day" value="${ev.calendarDate.day}" min="1" max="${calendar.daysPerMonth[ev.calendarDate.month] || 31}" />
                       <input type="number" class="timeline-cal-year" value="${ev.calendarDate.year}" placeholder="Year" />
                       <span class="timeline-cal-formatted">${Store.formatCalendarDate(calendar, ev.calendarDate)}</span>
-                      <button class="timeline-cal-clear-btn" title="Remove calendar date">✕</button>
+                      <button class="timeline-cal-clear-btn" title="Remove calendar date" aria-label="Remove calendar date">✕</button>
                     </div>`
                   : html`<button class="timeline-cal-set-btn">+ Set calendar date</button>`
                 : ''

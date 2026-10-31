@@ -7,6 +7,36 @@ import { openTarget } from './targets.js';
 // Historical context: see docs/CODEBASE_NOTES.md#jshealthview-js
 let healthChangesRange = 'week';
 
+// CR-12 — the jump-row click handler used to be attached inline on every
+// render, to the PERSISTENT .view-panel section element: innerHTML
+// replacement clears listeners on the children it replaces, but never on
+// the section itself, so after N visits (or N range toggles) clicking any
+// jump row fired N handlers, each doing a synchronous full-app render and
+// logging a warning for unresolved targets. Same dedupe pattern as
+// resumeView's handleResumePanelClick: ONE module-level function, removed
+// and re-added on each render — removeEventListener only matches the same
+// function identity, which is exactly what a module-level declaration
+// guarantees.
+function handleHealthPanelClick(e) {
+  const jump = e.target.closest('[data-jump-entity], [data-jump-chapter], [data-jump-timeline], [data-jump-questions], [data-jump-system], [data-jump-reference], [data-jump-map]');
+  if (!jump) return;
+  const ds = jump.dataset;
+  if (ds.jumpEntity != null) { openTarget({ type: 'entity', id: ds.jumpEntity }, { render: requestRender }); return; }
+  if (ds.jumpChapter != null) {
+    // Dangling-mention rows borrow data-jump-chapter as a vehicle; when
+    // the mention actually points at a timeline event, jump there.
+    if (ds.jumpEvent) { openTarget({ type: 'timeline', id: 'unused' }, { render: requestRender }); return; }
+    if (!ds.jumpChapter) return;
+    openTarget({ type: 'chapter', id: ds.jumpChapter }, { render: requestRender });
+    return;
+  }
+  if (ds.jumpTimeline != null) { openTarget({ type: 'timeline', id: 'unused' }, { render: requestRender }); return; }
+  if (ds.jumpQuestions != null) { openTarget({ type: 'questions', id: 'unused' }, { render: requestRender }); return; }
+  if (ds.jumpSystem != null) { openTarget({ type: 'system', id: ds.jumpSystem }, { render: requestRender }); return; }
+  if (ds.jumpReference != null) { openTarget({ type: 'reference', id: ds.jumpReference }, { render: requestRender }); return; }
+  if (ds.jumpMap != null) { openTarget({ type: 'map', id: ds.jumpMap }, { render: requestRender }); return; }
+}
+
 // Historical context: see docs/CODEBASE_NOTES.md#jshealthview-js
 
 // Historical context: see docs/CODEBASE_NOTES.md#jshealthview-js
@@ -157,23 +187,6 @@ export function renderHealthView(_project) {
     });
   });
 // Historical context: see docs/CODEBASE_NOTES.md#jshealthview-js
-  panel.addEventListener('click', (e) => {
-    const jump = e.target.closest('[data-jump-entity], [data-jump-chapter], [data-jump-timeline], [data-jump-questions], [data-jump-system], [data-jump-reference], [data-jump-map]');
-    if (!jump) return;
-    const ds = jump.dataset;
-    if (ds.jumpEntity != null) { openTarget({ type: 'entity', id: ds.jumpEntity }, { render: requestRender }); return; }
-    if (ds.jumpChapter != null) {
-      // Dangling-mention rows borrow data-jump-chapter as a vehicle; when
-      // the mention actually points at a timeline event, jump there.
-      if (ds.jumpEvent) { openTarget({ type: 'timeline', id: 'unused' }, { render: requestRender }); return; }
-      if (!ds.jumpChapter) return;
-      openTarget({ type: 'chapter', id: ds.jumpChapter }, { render: requestRender });
-      return;
-    }
-    if (ds.jumpTimeline != null) { openTarget({ type: 'timeline', id: 'unused' }, { render: requestRender }); return; }
-    if (ds.jumpQuestions != null) { openTarget({ type: 'questions', id: 'unused' }, { render: requestRender }); return; }
-    if (ds.jumpSystem != null) { openTarget({ type: 'system', id: ds.jumpSystem }, { render: requestRender }); return; }
-    if (ds.jumpReference != null) { openTarget({ type: 'reference', id: ds.jumpReference }, { render: requestRender }); return; }
-    if (ds.jumpMap != null) { openTarget({ type: 'map', id: ds.jumpMap }, { render: requestRender }); return; }
-  });
+  panel.removeEventListener('click', handleHealthPanelClick);
+  panel.addEventListener('click', handleHealthPanelClick);
 }

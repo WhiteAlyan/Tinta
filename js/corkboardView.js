@@ -118,7 +118,7 @@ function renderSceneCard(chapterId, scene) {
     <label>Goal <textarea class="scene-field" data-field="goal" rows="2">${scene.goal}</textarea></label>
     <label>Conflict <textarea class="scene-field" data-field="conflict" rows="2">${scene.conflict}</textarea></label>
     <label>Outcome <textarea class="scene-field" data-field="outcome" rows="2">${scene.outcome}</textarea></label>
-    <button class="scene-delete" title="Delete scene">✕</button>
+    <button class="scene-delete" title="Delete scene" aria-label="Delete scene">✕</button>
   `);
 
   // Drag lives on a dedicated handle rather than the whole card so mouse

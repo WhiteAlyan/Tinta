@@ -152,7 +152,7 @@ export function libraryCardHtml(project, isActive, canDelete) {
   return `
     <div class="library-card${isActive ? ' is-active' : ''}" data-project="${project.id}">
       <div class="library-card-menu-wrap">
-        <button class="library-card-menu-btn" data-menu-toggle="${project.id}" title="More">⋯</button>
+        <button class="library-card-menu-btn" data-menu-toggle="${project.id}" title="More" aria-label="More">⋯</button>
         <div class="library-card-menu hidden" id="library-menu-${project.id}">
           <button class="library-menu-item" data-action="details" data-project="${project.id}">📝 Details</button>
           <button class="library-menu-item" data-action="cover" data-project="${project.id}">🖼 Set cover</button>

@@ -11,29 +11,34 @@ gaps to the full future wishlist). An item appears in exactly one place.
 
 **Verification basis (refreshed this pass against the actual codebase, not
 carried forward from the canvas-and-trio/font-restore numbers below —
-those two are kept here only as history): 55 `.smoketest.mjs` files
-re-run fresh, `node --check` clean across every file in `js/`, 53/55
-passing out of the box. The 2 non-passes were both chased down rather
-than waved off: `recovery-snapshot.smoketest.mjs` failed only because
-`fake-indexeddb` wasn't declared in `package.json`'s devDependencies —
-fixed, and a clean `rm -rf node_modules && npm install` now resolves it
-and reruns green (13/13); `perf-large-project.smoketest.mjs` times out,
-confirmed via an isolated probe to be genuine O(n²) scaling from the
-per-mutation full-serialize-to-localStorage pattern (not a sandbox
-artifact) — this is the same "Persistence" item already named under
-Still Open below, not a new regression. `module-load.smoketest.mjs` now
-asserts **86/86 modules, 916 exports** — store.js's own further split
-into 12 `store-*.js` facade modules (`store-core`, `store-entities`,
-`store-manuscript`, `store-world`, `store-craft`, etc.) has evidently
-happened since Session 33's 74/328 figure below, though no dedicated
-ROADMAP.md entry names that pass — flagging the gap rather than
-inventing the missing log. Playwright specs in `tests/` (15 files) have
+those two are kept here only as history). CR-34 correction pass
+(2026-10-31): the counts below had drifted — the previous basis claimed
+55 smoketests when 58 existed, and presented `module-load.smoketest.mjs`'s
+partial module list as complete export-integrity coverage. Re-verified
+against the current tree: **64 `.smoketest.mjs` files** exist now (63 when this
+count was first written — the batch-5 `cr-batch5.smoketest.mjs` joined after),
+`node --check` clean across every file in `js/`, and
+`module-load.smoketest.mjs` reports **90/90 modules, 946 exports**
+(it self-updates its list; the "86 modules of 100 runtime files" wording
+was both stale and overstated — it never covered every runtime file, so
+treat it as a load-and-export-shape check, not a guarantee about the
+files it doesn't list). Playwright specs in `tests/` (16 files) have
 not been run as part of this verification — they need a real browser,
 which this pass's environment doesn't have; treat browser-level behavior
-as unverified until someone runs them.
-Earlier verification basis, kept for history only — 38 smoketest files
-(canvas-and-trio pass, 44/44 modules and 184 exports), then the same 38
-refreshed for the font-restore patch (Session 28) with Playwright 6/6.
+as unverified until someone runs them. Also corrected as part of this
+pass: the storage-model claim. The primary database now lives in
+**IndexedDB** (`tinta-db`, CR-41/CR-42), with `tinta:db` localStorage as a
+bounded best-effort mirror — any statement anywhere that everything lives
+in localStorage under `tinta:db` is out of date; docs/README.md's Data
+section is the corrected wording.
+Earlier verification basis, kept for history only — 55 `.smoketest.mjs`
+files re-run fresh with 53/55 passing out of the box (both non-passes
+chased down: `recovery-snapshot` was a missing devDependency, and
+`perf-large-project` timed out on genuine O(n²) per-mutation
+serialization — the persistence problem since fixed by CR-41/CR-42);
+before that, 38 smoketest files (canvas-and-trio pass, 44/44 modules and
+184 exports), then the same 38 refreshed for the font-restore patch
+(Session 28) with Playwright 6/6.
 Every section below
 cross-checked with
 targeted greps against current source, not assumed from any prior doc.

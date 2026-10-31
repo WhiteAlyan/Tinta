@@ -1,6 +1,6 @@
 // Historical context: see docs/CODEBASE_NOTES.md#jsnav-js
 
-import { html, toBridge } from './dom-utils.js';
+import { html, raw, toBridge } from './dom-utils.js';
 
 // Historical context: see docs/CODEBASE_NOTES.md#jsnav-js
 export function effectiveNavStyle(userStyle, fitsGrouped) {
@@ -69,10 +69,15 @@ export function attachNavTabs(container, { getActiveView, getNavStyle, getDensit
   }
 
   function paintGrouped(activeView) {
+    // CR-44 — the active tab is announced by assistive tech via
+    // aria-current="page" (the styled .active class is invisible to a
+    // screen reader). The bar itself is a real <nav> landmark in
+    // index.html, so the current-page state completes the navigation
+    // contract: landmark + items + which one you're on.
     container.innerHTML = toBridge(html`${groups().map((group) => html`
         <div class="nav-group">
           <span class="nav-group-label">${group.label}</span>
-          ${group.views.map((v) => html`<button class="view-tab${v.id === activeView ? ' active' : ''}" type="button" data-view="${v.id}">${v.label}</button>`)}
+          ${group.views.map((v) => html`<button class="view-tab${v.id === activeView ? ' active' : ''}" type="button" data-view="${v.id}"${v.id === activeView ? raw(' aria-current="page"') : ''}>${v.label}</button>`)}
         </div>
       `)}`);
   }
@@ -83,9 +88,9 @@ export function attachNavTabs(container, { getActiveView, getNavStyle, getDensit
       const isOpen = openGroup === group.key;
       return html`
         <div class="nav-group nav-group-compact${isActiveGroup ? ' active-group' : ''}">
-          <button class="nav-group-toggle${isOpen ? ' open' : ''}" type="button" data-group="${group.key}" aria-haspopup="true" aria-expanded="${isOpen ? 'true' : 'false'}">${group.label.toUpperCase()}<span class="nav-group-caret">▾</span></button>
+          <button class="nav-group-toggle${isOpen ? ' open' : ''}" type="button" data-group="${group.key}" aria-haspopup="true" aria-expanded="${isOpen ? 'true' : 'false'}">${group.label.toUpperCase()}<span class="nav-group-caret" aria-hidden="true">▾</span></button>
           <div class="nav-flyout${isOpen ? '' : ' hidden'}" role="menu">
-            ${group.views.map((v) => html`<button class="nav-flyout-item${v.id === activeView ? ' active' : ''}" type="button" data-view="${v.id}" role="menuitem">${v.label}</button>`)}
+            ${group.views.map((v) => html`<button class="nav-flyout-item${v.id === activeView ? ' active' : ''}" type="button" data-view="${v.id}" role="menuitem"${v.id === activeView ? raw(' aria-current="page"') : ''}>${v.label}</button>`)}
           </div>
         </div>
       `;
@@ -139,6 +144,17 @@ export function attachNavTabs(container, { getActiveView, getNavStyle, getDensit
     render();
   }
 
+  // CR-44 — Escape on an open flyout closes it and puts focus back on the
+  // group toggle, so keyboard users are where they were before opening
+  // (the same focus-restoration contract the modal/drawer layers follow).
+  function closeFlyoutAndRefocus() {
+    const key = openGroup;
+    if (!key) return;
+    closeFlyout();
+    const toggle = container.querySelector(`[data-group="${key}"]`);
+    if (toggle && typeof toggle.focus === 'function') toggle.focus();
+  }
+
   function focusFlyoutItem(index) {
     const items = container.querySelectorAll('.nav-flyout:not(.hidden) .nav-flyout-item');
     if (!items.length) return;
@@ -163,9 +179,16 @@ export function attachNavTabs(container, { getActiveView, getNavStyle, getDensit
 
   // Arrow-key navigation inside an open flyout — Enter/Space already work
   // for free (native <button> behavior), this only needs to handle moving
-  // focus between items.
+  // focus between items. CR-44 — Escape closes the flyout and restores
+  // focus to its toggle.
   container.addEventListener('keydown', (e) => {
     if (!openGroup) return;
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      closeFlyoutAndRefocus();
+      return;
+    }
     if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
     const items = [...container.querySelectorAll('.nav-flyout:not(.hidden) .nav-flyout-item')];
     const currentIndex = items.indexOf(document.activeElement);

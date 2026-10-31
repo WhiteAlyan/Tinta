@@ -1,5 +1,6 @@
 // Tinta — minimal offline app-shell cache.
-// All actual data lives in localStorage (see js/store.js), so this only
+// All actual data lives in IndexedDB (js/dbBackend.js, via js/store.js),
+// with a best-effort localStorage mirror and fallback — so this only
 // needs to cache the static shell, not any content.
 //
 // Nav refinement pass — switched from cache-first to network-first with a
@@ -23,7 +24,13 @@
 // the existing format.js; the new editor-paragraph.smoketest.mjs is a
 // test file, not a runtime file), but the CSS + editor.js changes are
 // significant enough to warrant a cache refresh.
-const CACHE_NAME = 'tinta-shell-v0.3.0';
+// CR-43 search-hardening fix — bumped from v0.3.0 because SHELL_FILES
+// changed (searchTaskRunner.js + searchService.js + search-worker.js
+// added). The worker file is a same-origin module worker: it MUST be
+// precached or offline search silently loses its worker backend (the
+// service falls back to the main thread, but offline-first means the
+// worker path should work offline too).
+const CACHE_NAME = 'tinta-shell-v0.3.3'; // CR-32 maskable icon joins the shell; CR-29 fetch-handler rework
 const SHELL_FILES = [
   './',
   './index.html',
@@ -74,6 +81,7 @@ const SHELL_FILES = [
   './js/nav.js',
   './js/commands.js',
   './js/dom-utils.js',
+  './js/a11y.js', // CR-44 — focus trap/restore + live-region primitives (imported by modal.js, drawer.js, app.js)
   './js/els.js',
   './js/context.js',
   './js/emptyState.js',
@@ -98,6 +106,7 @@ const SHELL_FILES = [
   './js/generatorModal.js',
   './js/ruleSystem.js',
   './js/store-core.js',
+  './js/dbBackend.js',
   './js/store-settings.js',
   './js/store-backup.js',
   './js/store-projects.js',
@@ -111,6 +120,11 @@ const SHELL_FILES = [
   './js/store-reports.js',
   './js/store.js',
   './js/search.js',
+  // CR-43 — search hardening: shared slice runner + main-thread service
+  // + the module worker itself (thin glue over the runner).
+  './js/searchTaskRunner.js',
+  './js/searchService.js',
+  './js/search-worker.js',
   './js/searchView.js',
   './js/notesView.js',
   './js/writeView.js',
@@ -146,6 +160,7 @@ const SHELL_FILES = [
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
+  './icons/icon-maskable-512.png', // CR-32 — the PWA manifest's maskable icon must be precached like its siblings (same drift P1-14 fixed for the plain icons)
 ];
 // P1-14 fix note: manifest references these two icons but they used to
 // not be in SHELL_FILES, so installing Tinta as a PWA and then going
@@ -206,11 +221,38 @@ self.addEventListener('fetch', (event) => {
         // fallback tracks reality automatically instead of needing a
         // manual version bump to stop being stale.
         if (response.ok) {
+          // CR-29 — the cache refresh used to float outside any
+          // waitUntil: the service worker can be terminated the moment
+          // respondWith's promise settles, killing the put mid-flight so
+          // the "fresh" copy never lands. waitUntil keeps the worker
+          // alive until the put completes.
           const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy)));
         }
         return response;
       })
-      .catch(() => caches.match(event.request))
+      .catch(() =>
+        caches.match(event.request).then((cached) => {
+          if (cached) return cached;
+          // CR-29 — a same-origin URL that was never precached used to
+          // resolve undefined here, surfacing a raw browser network
+          // error instead of any fallback. Navigations get a minimal
+          // offline page (honest about what happened, and pointing the
+          // writer at the app root, which IS precached); everything else
+          // gets a well-formed 504 rather than a rejected promise.
+          if (event.request.mode === 'navigate') {
+            return new Response(
+              '<!doctype html><html lang="en"><meta charset="utf-8"><title>Tinta — offline</title>' +
+              '<body style="font-family:Georgia,serif;margin:3em;max-width:38em;line-height:1.5">' +
+              '<h1>You are offline</h1>' +
+              '<p>Tinta could not reach this page, and it is not in the offline cache. ' +
+              'The writing app itself is cached — go back to the app root and it will load offline.</p>' +
+              '</body></html>',
+              { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+            );
+          }
+          return new Response('', { status: 504, statusText: 'Offline' });
+        })
+      )
   );
 });

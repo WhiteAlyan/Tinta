@@ -22,19 +22,19 @@
   --paper: #FFFFFF;
   --ink: #191825;
   --ink-soft: #4A4756;
-  --ink-faint: #8B8680;
-  --accent: #B08D57;
+  --ink-faint: #746F6B; /* CR-44 — was #8B8680 (3.3–3.6:1); same warm-gray hue, now ≥4.5:1 on --paper and --bg. Pinned by a11y.smoketest.mjs */
+  --accent: #A98754; /* CR-44 — was #B08D57 (2.84:1 on --bg); ≥3:1 (non-text/large-text tier). Text-tier emphasis uses --accent-deep (≥4.5:1) */
   --accent-deep: #8A6B3D;
   --accent-glow: rgba(176, 141, 87, 0.10);
   --rule: #DDD8CC;
   --editor-bg: #FFFFFF;
   --sketch-grid: rgba(25, 24, 37, 0.16);
-  --status-draft: #9B6B2F;
-  --status-revised: #4A7C59;
-  --status-final: #B08D57;
+  --status-draft: #94662D; /* CR-44 — was #9B6B2F (4.25:1 on --bg); ≥4.5:1 on both surfaces */
+  --status-revised: #467556; /* CR-44 — was #4A7C59 (4.46:1 on --bg); ≥4.5:1 on both surfaces */
+  --status-final: #8A6B3D; /* CR-44 — was accent-bronze (3.09:1 as text); the accent-deep bronze keeps the family and clears 4.5:1 */
   --entity-character: #A6435B;
   --entity-location: #3F7D6B;
-  --entity-item: #B08D57;
+  --entity-item: #A98754; /* CR-44 — tracks --accent (was the old #B08D57, 2.84:1 on --bg); ≥3:1 as the dot/badge tier */
   --entity-concept: #5B6FA6;
   /* Session 17 — format-layer highlight swatches. Background tints (like a
      highlighter), not text colors, so readability against --ink doesn't
@@ -60,7 +60,7 @@
   --paper: #111020;
   --ink: #EDE9E0;
   --ink-soft: #B8B4C4;
-  --ink-faint: #6B6780;
+  --ink-faint: #7E7B90; /* CR-44 — was #6B6780 (3.5–3.7:1); ≥4.5:1 on --paper and --bg */
   --accent: #C9A46E;
   --accent-deep: #E0BE8A;
   --accent-glow: rgba(201, 164, 110, 0.14);
@@ -94,7 +94,7 @@
   --paper: #F7EFDF;
   --ink: #2E2417;
   --ink-soft: #55442C;
-  --ink-faint: #8A7856;
+  --ink-faint: #756549; /* CR-44 — was #8A7856 (3.5–3.8:1); ≥4.5:1 on --paper and --bg */
   --accent: #966B3D;
   --accent-deep: #74512A;
   --accent-glow: rgba(150, 107, 61, 0.12);
@@ -103,7 +103,7 @@
   --sketch-grid: rgba(46, 36, 23, 0.16);
   --status-draft: #8A5A2A;
   --status-revised: #4F6E45;
-  --status-final: #966B3D;
+  --status-final: #74512A; /* CR-44 — was accent-bronze (4.11:1 as text); sepia's accent-deep bronze keeps the family and clears 4.5:1 */
   --entity-character: #8A4A52;
   --entity-location: #4F6E45;
   --entity-item: #966B3D;

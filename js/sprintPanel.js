@@ -2,7 +2,8 @@
 
 import * as Store from './store.js';
 import * as Sprint from './sprint.js';
-import { closeModal } from './modal.js';
+import { openModal } from './modal.js';
+import { showToast } from './toast.js';
 import { html, toBridge, q } from './dom-utils.js';
 
 let sprintState = { status: 'idle' };
@@ -61,7 +62,27 @@ function endSprint() {
   const elapsed = Sprint.elapsedMs(sprintState.startedAt);
   sprintState = { ...sprintState, status: 'ended', finalWords: words, finalElapsedMs: elapsed };
   stopSprintTimer();
-  openSprintModal(); // surface the summary even if the modal wasn't open when time ran out — same "the timer going off is the point" reasoning a kitchen timer has
+  // CR-11 — the countdown reaching zero used to call openSprintModal()
+  // unconditionally, which wrote straight into #modal-root and silently
+  // destroyed whatever else was on screen (Settings, Library, the Image
+  // Library) — and because the stomped modal's onClose was never run at
+  // stomp time, it fired later against the wrong surface, yanking the
+  // Library back open out of nowhere. If a NON-sprint modal is open, the
+  // timer respects it: the sprint still ends, and the summary is offered
+  // through a toast with a one-click jump instead of a surprise takeover.
+  // When the sprint's own modal is open (or nothing is), the summary
+  // opens exactly as before — "the timer going off is the point".
+  const openPanel = q('modal-root')?.querySelector('.modal-panel');
+  const sprintOwnModalOpen = Boolean(openPanel?.classList.contains('sprint-modal'));
+  if (openPanel && !sprintOwnModalOpen) {
+    showToast('Sprint finished', {
+      icon: '⏱',
+      actionLabel: 'See summary',
+      onAction: () => openSprintModal(),
+    });
+    return;
+  }
+  openSprintModal();
 }
 
 // A project switch mid-sprint, specifically — not a manual end, so no
@@ -81,65 +102,60 @@ function stopSprintTimer() {
 }
 
 export function openSprintModal() {
-  const root = q('modal-root');
-
+  // CR-11 — both sprint surfaces used to write #modal-root.innerHTML
+  // directly, so modal.js's Escape handling, outside-click binding,
+  // focus management, and onClose bookkeeping never engaged for them:
+  // opening the sprint modal over the Library left the Library's
+  // registered onClose pending, and it fired later when the sprint modal
+  // closed — against the wrong surface. Everything now goes through
+  // openModal(), which tears down whatever is open first (running its
+  // onClose), binds the ✕/backdrop/Escape dismissal, traps focus, and
+  // keeps the bookkeeping honest.
   if (sprintState.status === 'running') {
     const words = Sprint.wordsWritten(Store.getTotalWordCount(), sprintState.baselineWords);
-    root.innerHTML = toBridge(html`
-      <div class="modal-backdrop">
-        <div class="modal-panel sprint-modal sprint-modal-active">
-          <div class="modal-header">
-            <h2>Writing Sprint</h2>
-            <button id="modal-close" class="modal-close">✕</button>
-          </div>
-          <div id="sprint-active-panel"></div>
-          <button id="sprint-end-btn" class="sprint-end-btn">End Sprint</button>
-        </div>
-      </div>
-    `);
+    openModal({
+      title: 'Writing Sprint',
+      className: 'sprint-modal sprint-modal-active',
+      body: html`
+        <div id="sprint-active-panel"></div>
+        <button id="sprint-end-btn" class="sprint-end-btn">End Sprint</button>
+      `,
+    });
     renderSprintActivePanel(words, Date.now());
     q('sprint-end-btn').addEventListener('click', endSprint);
   } else if (sprintState.status === 'ended') {
     const minutes = Math.floor(sprintState.finalElapsedMs / 60000);
     const seconds = Math.round((sprintState.finalElapsedMs % 60000) / 1000);
     const wpm = Sprint.computeWpm(sprintState.finalWords, sprintState.finalElapsedMs);
-    root.innerHTML = toBridge(html`
-      <div class="modal-backdrop">
-        <div class="modal-panel sprint-modal">
-          <div class="modal-header">
-            <h2>Sprint Complete</h2>
-            <button id="modal-close" class="modal-close">✕</button>
-          </div>
-          <div class="sprint-summary-grid">
-            <div class="stats-card"><div class="stats-card-value">${sprintState.finalWords.toLocaleString()}</div><div class="stats-card-label">Words written</div></div>
-            <div class="stats-card"><div class="stats-card-value">${minutes}:${String(seconds).padStart(2, '0')}</div><div class="stats-card-label">Duration</div></div>
-            <div class="stats-card"><div class="stats-card-value">${wpm}</div><div class="stats-card-label">Words / min</div></div>
-          </div>
-          <button id="sprint-again-btn" class="sprint-end-btn">Start Another Sprint</button>
+    openModal({
+      title: 'Sprint Complete',
+      className: 'sprint-modal',
+      body: html`
+        <div class="sprint-summary-grid">
+          <div class="stats-card"><div class="stats-card-value">${sprintState.finalWords.toLocaleString()}</div><div class="stats-card-label">Words written</div></div>
+          <div class="stats-card"><div class="stats-card-value">${minutes}:${String(seconds).padStart(2, '0')}</div><div class="stats-card-label">Duration</div></div>
+          <div class="stats-card"><div class="stats-card-value">${wpm}</div><div class="stats-card-label">Words / min</div></div>
         </div>
-      </div>
-    `);
+        <button id="sprint-again-btn" class="sprint-end-btn">Start Another Sprint</button>
+      `,
+    });
     q('sprint-again-btn').addEventListener('click', () => {
       sprintState = { status: 'idle' };
       openSprintModal();
     });
   } else {
-    root.innerHTML = toBridge(html`
-      <div class="modal-backdrop">
-        <div class="modal-panel sprint-modal">
-          <div class="modal-header">
-            <h2>Writing Sprint</h2>
-            <button id="modal-close" class="modal-close">✕</button>
-          </div>
-          <p class="sprint-note">Pick a length, or go open-ended and stop whenever. Tracks words added across the whole project this sitting; switch chapters mid-sprint and it keeps counting.</p>
-          <div class="sprint-presets">
-            ${Sprint.DURATION_PRESETS_MIN.map((m) => html`<button class="sprint-preset-btn" data-minutes="${m}">${m} min</button>`)}
-          </div>
-          <button id="sprint-open-btn" class="sprint-open-btn">Open-ended (no timer)</button>
+    openModal({
+      title: 'Writing Sprint',
+      className: 'sprint-modal',
+      body: html`
+        <p class="sprint-note">Pick a length, or go open-ended and stop whenever. Tracks words added across the whole project this sitting; switch chapters mid-sprint and it keeps counting.</p>
+        <div class="sprint-presets">
+          ${Sprint.DURATION_PRESETS_MIN.map((m) => html`<button class="sprint-preset-btn" data-minutes="${m}">${m} min</button>`)}
         </div>
-      </div>
-    `);
-    root.querySelectorAll('.sprint-preset-btn').forEach((btn) => {
+        <button id="sprint-open-btn" class="sprint-open-btn">Open-ended (no timer)</button>
+      `,
+    });
+    q('modal-root').querySelectorAll('.sprint-preset-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
         startSprint({ mode: 'countdown', minutes: Number(btn.dataset.minutes) });
         openSprintModal();
@@ -150,11 +166,6 @@ export function openSprintModal() {
       openSprintModal();
     });
   }
-
-  q('modal-close').addEventListener('click', closeModal);
-  root.querySelector('.modal-backdrop').addEventListener('click', (e) => {
-    if (e.target.classList.contains('modal-backdrop')) closeModal();
-  });
 }
 
 function renderSprintActivePanel(words, now) {

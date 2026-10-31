@@ -1,6 +1,11 @@
 // Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
 
 import { saveRecoverySnapshot, getRecoverySnapshot, clearRecoverySnapshot, saveDowngradeQuarantine } from './recoveryStore.js';
+// CR-41 — the IndexedDB transport for the primary database. store-core
+// still owns every decision about WHEN to persist; dbBackend.js is only
+// the storage engine (meta + per-project object stores, one transaction
+// per flush, structured clones instead of JSON strings).
+import * as dbBackend from './dbBackend.js';
 
 const DB_KEY = 'tinta:db';
 // Roadmap #5 — exported (and re-exported through store.js) so the .tinta
@@ -867,8 +872,31 @@ export function consumeLoadWarning() {
   return warning;
 }
 
+// CR-41 — shared raw-read for both boot paths (localStorage backend and
+// the IDB migration/mirror-reconciliation path in bootFromIndexedDB).
+function readRawFromLocalStorage() {
+  try {
+    const raw = localStorage.getItem(DB_KEY);
+    if (raw) return { raw, fromLegacyKey: false };
+    // Nothing under the new key yet — check the pre-rename key before
+    // assuming this is a genuinely fresh install.
+    const legacy = localStorage.getItem(LEGACY_DB_KEY);
+    if (legacy) return { raw: legacy, fromLegacyKey: true };
+  } catch {
+    // localStorage itself is unreachable (private-browsing lockdown, a
+    // browser setting, etc.) — nothing to recover, just start fresh.
+  }
+  return { raw: null, fromLegacyKey: false };
+}
+
 export function load() {
   if (_db) return _db;
+  // CR-41 — load() remains the synchronous boot path for the localStorage
+  // backend (and for any caller that runs before ready() — legacy
+  // smoketests, pre-boot module code). Production boots through ready(),
+  // which prefers the IndexedDB backend and falls back to this path only
+  // when IndexedDB is unavailable or fails to open.
+  if (_backend === 'undecided') _backend = 'local';
   // Roadmap #9 — bound the corrupt-backup quarantine BEFORE anything this
   // boot can add to it. Each `tinta:db:corrupt-backup:<ts>` key holds a
   // full copy of an unreadable db, and they used to accumulate forever:
@@ -877,22 +905,7 @@ export function load() {
   // the live db lives in. The newest two are kept (the recovery path at
   // most ever needs the most recent quarantine); anything older goes.
   sweepCorruptBackups();
-  let migratedFromLegacyKey = false;
-  let raw = null;
-
-  try {
-    raw = localStorage.getItem(DB_KEY);
-    if (!raw) {
-      // Nothing under the new key yet — check the pre-rename key before
-      // assuming this is a genuinely fresh install.
-      raw = localStorage.getItem(LEGACY_DB_KEY);
-      if (raw) migratedFromLegacyKey = true;
-    }
-  } catch {
-    // localStorage itself is unreachable (private-browsing lockdown, a
-    // browser setting, etc.) — nothing to recover, just start fresh.
-    raw = null;
-  }
+  const { raw, fromLegacyKey: migratedFromLegacyKey } = readRawFromLocalStorage();
 
   if (!raw) {
     // Genuinely nothing saved yet — a fresh install, not a recovery case.
@@ -980,7 +993,7 @@ export function load() {
 const CORRUPT_BACKUP_PREFIX = `${DB_KEY}:corrupt-backup:`;
 const KEEP_CORRUPT_BACKUPS = 2;
 function sweepCorruptBackups() {
-  let length = 0;
+  let length; // eslint 10 no-useless-assignment — the catch returns before any read
   try {
     length = localStorage.length;
   } catch {
@@ -1020,6 +1033,49 @@ function notifyCrossTabConflict(detail) {
     }
   });
 }
+// CR-06 — one shared way to enter the stale state, so both arbitration
+// paths (the mirror's storage event and the BroadcastChannel peer flush)
+// refuse saves, stop retries, and notify through the same triple.
+function markCrossTabStale(detail) {
+  _crossTabStale = true;
+  clearSaveRetry();
+  notifyCrossTabConflict(detail);
+}
+
+// CR-06 — per-tab session identity. One landed flush bumps the revision
+// exactly once, so if TWO tabs land flushes that carry the SAME revision,
+// the second write physically overwrote the first and one tab is now
+// editing a copy that exists only in its memory. The BroadcastChannel
+// message carries this id so a receiving tab can tell "a peer landed my
+// rev" (clobber — flag it) from "my own notification echoed back" (never
+// happens today, but free to guard). Random suffix: two tabs launched in
+// the same millisecond must not share an id.
+const _sessionId = `tab-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+
+// CR-06 — fast 53-bit string hash (cyrb53 shape). Not cryptographic: it
+// only has to tell two divergent database payloads apart. The mirror
+// storage-event path has no session id in its payload (the bytes must stay
+// loadable by older Tinta builds), so equal-revision arbitration there is
+// by CONTENT: hash the incoming payload, compare with the last bytes this
+// tab actually wrote to the same key. Identical bytes = a benign echo of a
+// shared state; different bytes at the same rev = two divergent states
+// met and one lost.
+let _lastMirrorWriteHash = null;
+function fastHash53(str, seed = 0) {
+  let h1 = 0xdeadbeef ^ seed;
+  let h2 = 0x41c6ce57 ^ seed;
+  for (let i = 0; i < str.length; i++) {
+    const ch = str.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return 4294967296 * (2097151 & h2) + (h1 >>> 0);
+}
+function noteMirrorWrite(json) {
+  _lastMirrorWriteHash = fastHash53(json);
+}
 // Exposed read-only so the UI can decide what to show without needing its
 // own copy of this state (e.g. re-rendering a banner after a re-render
 // wipes it, or checking on boot after a background tab was left open).
@@ -1034,10 +1090,27 @@ function handleStorageEvent(e) {
     const incomingRev = incoming?.rev || 0;
     const ourRev = _db?.rev || 0;
     if (incomingRev > ourRev) {
-      _crossTabStale = true;
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
-      clearSaveRetry();
-      notifyCrossTabConflict({ incomingRev, ourRev });
+      markCrossTabStale({ incomingRev, ourRev });
+      return;
+    }
+    // CR-06 — equal-revision clobber detection. Two tabs that were both at
+    // rev N and both landed a debounced save each compute N+1; the second
+    // write physically overwrites the first, and the overwritten tab used
+    // to see incoming(N+1) > our(N+1) as false and keep editing on a
+    // clobbering trajectory — the guard only detected strictly ascending
+    // interleavings, which is precisely the case it exists for.
+    //
+    // The mirror payload carries no session identity (older builds load
+    // these bytes), so equality is arbitrated by content: the incoming
+    // bytes are compared against the hash of what THIS tab last wrote to
+    // the same key. The `!== null` guard covers a tab that booted, loaded
+    // rev N and never wrote — a peer persisting the shared state it also
+    // loaded is a benign echo, not a clobber, and must not raise the
+    // banner.
+    if (incomingRev === ourRev && _lastMirrorWriteHash !== null) {
+      if (fastHash53(e.newValue) !== _lastMirrorWriteHash) {
+        markCrossTabStale({ incomingRev, ourRev, equalRev: true });
+      }
     }
   } catch {
 // Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
@@ -1068,7 +1141,7 @@ function scheduleSaveRetry() {
   _saveRetryTimer = setTimeout(() => {
     _saveRetryTimer = null;
     _saveRetryAttempt++;
-    writeToLocalStorage();
+    retryPersistNow();
   }, delay);
 }
 
@@ -1095,7 +1168,7 @@ export function _forceSaveRetryNow() {
   clearTimeout(_saveRetryTimer);
   _saveRetryTimer = null;
   _saveRetryAttempt++;
-  writeToLocalStorage();
+  retryPersistNow();
   return true;
 }
 
@@ -1137,6 +1210,27 @@ export function save() {
     notifySaveError({ type: 'stale', error: null });
     return false;
   }
+  // CR-41/CR-42 — two persistence transports:
+  //
+  //   'local' (IndexedDB unavailable — private-browsing lockdowns, legacy
+  //        smoketest environments): the original synchronous localStorage
+  //        write. Its contract is unchanged, truthful boolean and all.
+  //
+  //   'idb' (the production path): the write is ACCEPTED and a coalesced
+  //        flush is scheduled — every save() call in the same task shares
+  //        ONE IndexedDB transaction, and no JSON string is ever built
+  //        (structured clone instead). The boolean means "accepted for
+  //        persistence": guards passed, flush queued. Flush failures
+  //        surface through the same channels the local path always used —
+  //        onSaveError banners, the retry backoff, and the IndexedDB
+  //        recovery snapshot — so no caller learns a new failure mode.
+  //        Paths that need the LANDED result (full-backup restore,
+  //        recovery-snapshot restore) await saveNow() instead.
+  if (_backend === 'idb') {
+    _mutationsSinceBoot++;
+    scheduleFlush();
+    return true;
+  }
   return writeToLocalStorage();
 }
 
@@ -1159,6 +1253,7 @@ function writeToLocalStorage() {
     const newRev = (_db.rev || 0) + 1;
     const json = JSON.stringify({ ..._db, rev: newRev });
     localStorage.setItem(DB_KEY, json);
+    noteMirrorWrite(json); // CR-06 — remember our bytes for equal-rev arbitration
     _db.rev = newRev; // only commit the bump after the write actually landed
     clearSaveRetry();
     checkStorageHeadroom();
@@ -1193,9 +1288,495 @@ function writeToLocalStorage() {
     // failed save (rare by definition — saving is broken), and puts on the
     // same store serialize, so overlapping retries can't corrupt it.
     if (isQuota) {
-      saveRecoverySnapshot(_db).catch(() => {});
+      // CR-01 fix — the snapshot must record WHICH disk revision it was
+      // taken against. _db.rev is still the last SUCCESSFUL save's rev
+      // here (the bump above only commits after setItem lands), and
+      // that is precisely the fact the boot-time staleness check needs:
+      // if the next boot's disk rev is still equal, the failed write
+      // never landed and this snapshot is the only copy of the unsaved
+      // work. Passing the rev explicitly (instead of relying on the
+      // payload's own rev field) decouples the staleness rule from the
+      // "rev only advances on success" invariant that
+      // save-rev-integrity.smoketest.mjs pins.
+      saveRecoverySnapshot(_db, { diskRevAtSnapshot: _db.rev || 0 }).catch(() => {});
     }
     return false;
+  }
+}
+
+// ══ CR-41 / CR-42 — IndexedDB-primary persistence machinery ══════════════
+//
+// Backend selection and lifecycle:
+//   'undecided' → 'local' the moment load() runs (legacy tests, pre-boot
+//                 callers) — behavior bit-for-bit identical to the
+//                 pre-CR-41 store.
+//   'undecided' → 'idb' via ready() (the production boot path; app.js
+//                 awaits it before any view code runs). Falls back to
+//                 'local' when IndexedDB is missing or the open fails.
+//
+// CR-42's core: persistence is DECOUPLED from mutations. save() no longer
+// serializes anything on the hot path — it schedules a coalesced flush
+// that runs once per task (queueMicrotask), and each flush hands the
+// in-memory objects to IndexedDB as native structured clones. A batch of
+// 5,000 creates is now ONE flush with zero JSON.stringify calls, where it
+// used to be 5,000 increasingly expensive full-database serializations.
+
+// Which transport save()/load() use. Declared here (before its first
+// runtime use) so every module-level function sees a stable binding.
+let _backend = 'undecided';
+
+// Counts save()-accepted mutations since the synchronous boot. Only used
+// by reconcileIdbAfterSyncBoot(): if a pre-ready caller already loaded
+// AND mutated the db, adopting IndexedDB state wholesale would discard
+// those mutations, so reconciliation bails out.
+let _mutationsSinceBoot = 0;
+
+let _readyPromise = null;
+let _flushQueued = false;
+let _flushChain = Promise.resolve();
+// Test-only interceptor for the flush write itself (null in production).
+// Lets a smoketest drive flush failures (quota, unknown) through the real
+// error/snapshot/retry machinery without stubbing the whole IDB stack.
+let _flushInterceptorForTests = null;
+export function _setFlushInterceptorForTests(fn) {
+  _flushInterceptorForTests = fn;
+}
+
+// Test-only: reset the whole module state machine so a smoketest can drive
+// multiple BOOTS in one process (module state otherwise boots exactly
+// once). Same test-hook family as _simulateStorageEvent / _forceSaveRetryNow.
+export function _resetStoreForTests() {
+  _db = null;
+  _backend = 'undecided';
+  _loadWarning = null;
+  _schemaDowngradeLock = false;
+  _crossTabStale = false;
+  _mutationsSinceBoot = 0;
+  _readyPromise = null;
+  _flushQueued = false;
+  _flushChain = Promise.resolve();
+  _flushInterceptorForTests = null;
+  _undoStack = [];
+  _redoStack = [];
+  _lastMirrorWriteHash = null; // CR-06 — fresh boot, no bytes written yet
+  clearSaveRetry();
+  dbBackend._resetForTests();
+}
+
+export function getStorageBackend() {
+  return _backend;
+}
+
+// Production boot. Callers (app.js init) await this before their first
+// Store read. Idempotent: concurrent callers share the one promise.
+export function ready() {
+  if (_readyPromise) return _readyPromise;
+  _readyPromise = (async () => {
+    if (_db) {
+      // A synchronous load() already ran (pre-ready caller or a test
+      // environment). Reconcile with IndexedDB only when it is provably
+      // safe: nothing has mutated since the sync boot. Otherwise stay on
+      // the local backend — the session's data lives there now.
+      if (_backend === 'local' && dbBackend.isAvailable() && _mutationsSinceBoot === 0 && !_schemaDowngradeLock) {
+        try {
+          await reconcileIdbAfterSyncBoot();
+        } catch {
+          /* IDB open failed — the local boot stands */
+        }
+      }
+      ensureLifecycleHooks();
+      return;
+    }
+    if (!dbBackend.isAvailable()) {
+      load(); // legacy localStorage boot — same session shape as pre-CR-41
+      ensureLifecycleHooks();
+      return;
+    }
+    _backend = 'idb';
+    try {
+      await bootFromIndexedDB();
+    } catch {
+      // Open failed at boot (CR-19's transient-failure family). Fall back
+      // to the localStorage backend for the whole session rather than
+      // booting on nothing — exactly the behavior the app had before
+      // CR-41, which is strictly better than a blank db.
+      _backend = 'local';
+      load();
+    }
+    ensureLifecycleHooks();
+  })();
+  return _readyPromise;
+}
+
+// ── boot from IndexedDB (migration + mirror reconciliation) ─────────────
+async function bootFromIndexedDB() {
+  const { meta, projects } = await dbBackend.loadAll();
+  const { raw: mirrorRaw, fromLegacyKey } = readRawFromLocalStorage();
+
+  if (meta && typeof meta === 'object') {
+    // Roadmap #5, IDB edition — a db written by a NEWER Tinta gets the
+    // same downgrade quarantine + write lock the localStorage path has
+    // always applied. (We hold the parsed meta, not raw bytes, so the
+    // quarantine copy is a re-stringification — content-faithful, and
+    // the lock itself is the real protection.)
+    if (typeof meta.version === 'number' && meta.version > SCHEMA_VERSION) {
+      _schemaDowngradeLock = true;
+      saveDowngradeQuarantine(JSON.stringify({ ...meta, projects })).catch(() => {});
+      _db = emptyDb();
+      _loadWarning = {
+        type: 'downgrade',
+        message:
+          `This database was written by a newer version of Tinta (schema v${meta.version}; this build understands up to v${SCHEMA_VERSION}). ` +
+          'Your data was not modified — a pristine copy was also saved to browser storage, and saving is paused in this build so nothing can overwrite it. ' +
+          'Please continue in the newer version of Tinta, or update this copy first.',
+      };
+      return; // no initial flush — refusing to write is the point
+    }
+    let candidate = { ...meta, projects };
+    // Mirror reconciliation. The localStorage mirror is a best-effort
+    // copy (written at page-visibility pause points); the IDB store is
+    // written on every flush. In the rare crash window where the mirror
+    // holds a rev the last IDB flush never landed, the mirror is the
+    // fresher copy and wins — the same last-writer-wins-by-rev rule the
+    // cross-tab guard has always used. When the mirror is stale or equal
+    // it stays where it is: it doubles as the fallback older Tinta builds
+    // read, and writeMirrorIfFits() refreshes it at pause points.
+    if (mirrorRaw) {
+      try {
+        const parsedMirror = JSON.parse(mirrorRaw);
+        if (parsedMirror && typeof parsedMirror === 'object' && (parsedMirror.rev || 0) > (meta.rev || 0)) {
+          candidate = parsedMirror;
+        }
+      } catch {
+        /* corrupt mirror — IDB wins; leave the bytes for a manual salvage */
+      }
+    }
+    // Same minimum-viability rule load() has always enforced on
+    // localStorage data: a db with no projects at all is not a state the
+    // app can boot into.
+    if (!candidate.projects || Object.keys(candidate.projects).length === 0) {
+      saveDowngradeQuarantine(JSON.stringify({ ...meta, projects })).catch(() => {});
+      _db = emptyDb();
+      _loadWarning = {
+        type: 'corrupt',
+        message:
+          "Your saved writing couldn't be read and had to be reset. " +
+          'A copy of the unreadable data was kept in browser storage, in case it can be recovered.',
+      };
+      return;
+    }
+    if (!candidate.activeProjectId || !candidate.projects[candidate.activeProjectId]) {
+      candidate.activeProjectId = Object.keys(candidate.projects)[0];
+    }
+    _db = migrate(candidate);
+  } else if (mirrorRaw) {
+    // Fresh IndexedDB — migrate an existing localStorage install in.
+    try {
+      const parsed = JSON.parse(mirrorRaw);
+      if (!parsed || !parsed.projects || Object.keys(parsed.projects).length === 0) {
+        throw new Error('saved data has no projects');
+      }
+      if (!parsed.activeProjectId || !parsed.projects[parsed.activeProjectId]) {
+        parsed.activeProjectId = Object.keys(parsed.projects)[0];
+      }
+      if (typeof parsed.version === 'number' && parsed.version > SCHEMA_VERSION) {
+        _schemaDowngradeLock = true;
+        saveDowngradeQuarantine(mirrorRaw).catch(() => {});
+        _db = emptyDb();
+        _loadWarning = {
+          type: 'downgrade',
+          message:
+            `This database was written by a newer version of Tinta (schema v${parsed.version}; this build understands up to v${SCHEMA_VERSION}). ` +
+            'Your data was not modified — a pristine copy was also saved to browser storage, and saving is paused in this build so nothing can overwrite it. ' +
+            'Please continue in the newer version of Tinta, or update this copy first.',
+        };
+        return;
+      }
+      _db = migrate(parsed);
+    } catch {
+      // Corrupt mirror — same quarantine shape as load()'s corrupt path.
+      try {
+        localStorage.setItem(`${DB_KEY}:corrupt-backup:${Date.now()}`, mirrorRaw);
+      } catch {
+        // Couldn't even quarantine — fall through to the blank db.
+      }
+      _db = emptyDb();
+      _loadWarning = {
+        type: 'corrupt',
+        message:
+          "Your saved writing couldn't be read and had to be reset. " +
+          "A copy of the unreadable data was kept in local storage under a " +
+          "'-corrupt-backup-' key, in case it can be recovered.",
+      };
+    }
+    ensureCrossTabListener();
+    await runFlush(); // land the migrated state immediately
+    if (fromLegacyKey) {
+      // The pre-rename key was the only copy; now IDB + mirror hold it.
+      try { localStorage.removeItem(LEGACY_DB_KEY); } catch { /* swept on a later boot */ }
+    }
+    return;
+  } else {
+    // Genuinely fresh install.
+    _db = emptyDb();
+  }
+
+  ensureCrossTabListener();
+  await runFlush(); // land the boot state (fresh db or reconciled mirror)
+}
+
+// A synchronous load() already ran (pre-ready caller). Adopt the IDB copy
+// only when it is strictly newer and the session hasn't mutated anything.
+async function reconcileIdbAfterSyncBoot() {
+  const { meta, projects } = await dbBackend.loadAll();
+  if (!meta || typeof meta !== 'object') return; // IDB fresh — nothing to adopt
+  if (typeof meta.version === 'number' && meta.version > SCHEMA_VERSION) {
+    // Newer-schema data in IDB and an older session already running:
+    // adopting would wipe the session; ignoring leaves the IDB copy
+    // untouched (local saves never write there).
+    return;
+  }
+  if ((meta.rev || 0) > (_db?.rev || 0)) {
+    _db = migrate({ ...meta, projects });
+  }
+  _backend = 'idb';
+}
+
+// ── the flush chain (CR-42) ──────────────────────────────────────────────
+function scheduleFlush() {
+  if (_flushQueued) return; // one flush per task is enough — it persists
+  _flushQueued = true;      // whatever the db holds when it runs
+  queueMicrotask(() => {
+    // A direct saveNow() supersedes the queued flush (it set _flushQueued
+    // back to false and persisted this state itself) — firing anyway would
+    // double-write the same rev.
+    if (!_flushQueued) return;
+    _flushQueued = false;
+    runFlush();
+  });
+}
+
+// Serialized: a save() arriving mid-flush chains the next flush instead
+// of racing one. Every runFlush persists the db state as of ITS start.
+function runFlush() {
+  const run = _flushChain.then(() => doFlush());
+  _flushChain = run.then(() => {}, () => {});
+  return run;
+}
+
+async function doFlush() {
+  if (!_db) return true;
+  if (_schemaDowngradeLock) return false;
+  if (_crossTabStale) return false;
+  const newRev = (_db.rev || 0) + 1;
+  try {
+    // Test hook — see _setFlushInterceptorForTests below.
+    if (_flushInterceptorForTests) await _flushInterceptorForTests(_db, newRev);
+    else await dbBackend.persist(_db, newRev);
+    _db.rev = newRev; // same invariant as the localStorage path: the rev
+                      // only advances after the write actually landed
+    clearSaveRetry();
+    checkIdbHeadroom();
+    notifySaveSuccess();
+    // P2-7 — a landed flush makes any recovery snapshot stale; drop it
+    // (best-effort — a failed clear is caught by the boot-time rev check).
+    clearRecoverySnapshot().catch(() => {});
+    broadcastRev(newRev);
+    return true;
+  } catch (err) {
+    const isQuota = Boolean(err && /quota/i.test(err.name || err.message || ''));
+    notifySaveError({ type: isQuota ? 'quota' : 'unknown', error: err });
+    scheduleSaveRetry();
+    if (isQuota) {
+      // Same CR-01-aware snapshot contract as the localStorage quota path:
+      // the snapshot carries the last SUCCESSFUL rev, and the boot-time
+      // staleness rule knows equality means this flush never landed.
+      saveRecoverySnapshot(_db, { diskRevAtSnapshot: _db.rev || 0 }).catch(() => {});
+    }
+    return false;
+  }
+}
+
+// Retargeted retry: the backoff machinery is transport-agnostic now.
+function retryPersistNow() {
+  if (_backend === 'idb') runFlush();
+  else writeToLocalStorage();
+}
+
+// Paths that must know the LANDED result await this instead of save().
+// (Full-backup restore's rollback, recovery-snapshot restore's
+// clear-on-success, the legacy-key migration decision.)
+export async function saveNow() {
+  if (!_db) return true;
+  if (_schemaDowngradeLock) {
+    notifySaveError({ type: 'locked', error: null });
+    return false;
+  }
+  if (_crossTabStale) {
+    notifySaveError({ type: 'stale', error: null });
+    return false;
+  }
+  if (_backend !== 'idb') return writeToLocalStorage();
+  _mutationsSinceBoot++;
+  _flushQueued = false; // a pending microtask flush is superseded by this one
+  return runFlush();
+}
+
+// ── the localStorage mirror (fallback + old-build compatibility) ────────
+// After CR-41 the primary lives in IndexedDB; 'tinta:db' becomes a
+// bounded, best-effort copy written only at natural pause points
+// (visibility hidden / pagehide). It keeps two properties alive:
+//   1. a same-origin fallback if IndexedDB is ever wiped or unreadable
+//      while localStorage survives (rev arbitration at boot picks the
+//      fresher copy), and
+//   2. the pre-CR-41 behavior for older Tinta builds that still read
+//      only localStorage.
+// The size cap (~4.4MB as UTF-16 — under localStorage's ~5MB wall, sized
+// like the old estimateDbSizeBytes accounting) means very large databases
+// simply skip the mirror; their durability is the IDB primary itself.
+const MIRROR_MAX_CHARS = 2_200_000;
+function writeMirrorIfFits() {
+  if (_backend !== 'idb' || !_db || _schemaDowngradeLock || _crossTabStale) return;
+  try {
+    const json = JSON.stringify({ ..._db, rev: _db.rev || 0 });
+    if (json.length <= MIRROR_MAX_CHARS) {
+      localStorage.setItem(DB_KEY, json);
+      noteMirrorWrite(json); // CR-06 — our own echo must not self-flag later
+    }
+  } catch {
+    // Mirror writes are best-effort by definition — quota pressure or an
+    // unreachable localStorage must never surface as a user-facing error
+    // here, because the IDB primary already holds the data.
+  }
+}
+
+// ── cross-tab sync (IDB edition) ─────────────────────────────────────────
+// localStorage has the `storage` event; IndexedDB has nothing equivalent.
+// A BroadcastChannel carries flush notifications between tabs instead.
+// The message carries only the new rev — the same last-writer-wins-by-rev
+// arbitration as the storage-event path, same stale banner, same refusal
+// to save on top of a newer tab.
+let _broadcastChannel = null;
+function ensureBroadcastChannel() {
+  if (_broadcastChannel) return;
+  if (typeof BroadcastChannel === 'undefined') return;
+  try {
+    _broadcastChannel = new BroadcastChannel('tinta:db-sync');
+  } catch {
+    return; // some contexts disallow construction — cross-tab staleness
+            // then relies on the storage-event mirror path
+  }
+  _broadcastChannel.onmessage = (e) => {
+    const rev = e?.data?.rev;
+    if (typeof rev === 'number') handlePeerFlushRev(rev, e?.data?.sid);
+  };
+}
+
+function broadcastRev(rev) {
+  try {
+    // CR-06 — the sid lets a peer detect the equal-revision clobber case:
+    // two tabs at rev N both land rev N+1, and the second write destroys
+    // the first. Without the id the overwritten tab saw a rev equal to its
+    // own and stayed silent; with it, it flags stale and its unsaved text
+    // becomes eligible for the copy-out rescue instead of being reloaded
+    // away.
+    _broadcastChannel?.postMessage({ rev, sid: _sessionId });
+  } catch { /* cross-tab sync is best-effort */ }
+}
+
+function handlePeerFlushRev(incomingRev, peerSid) {
+  const ourRev = _db?.rev || 0;
+  if (incomingRev > ourRev) {
+    markCrossTabStale({ incomingRev, ourRev });
+    return;
+  }
+  // CR-06 — equal-revision clobber. A landed flush bumps the rev exactly
+  // once, so a peer flush at OUR current rev can only mean two distinct
+  // flushes raced to the same revision number and one write won the disk.
+  // The sid check keeps this from ever firing on an echo of our own
+  // broadcast. Both tabs end up flagged (neither can prove it won), which
+  // is the honest outcome: the disk holds exactly one of the two divergent
+  // copies, and the other exists only in a tab's memory — that tab gets
+  // the copy-out rescue before reloading.
+  if (incomingRev === ourRev && peerSid && peerSid !== _sessionId) {
+    markCrossTabStale({ incomingRev, ourRev, equalRev: true });
+  }
+}
+
+// Test-only hook — drives the exact path a real peer flush notification
+// takes (smoketests can't open a second tab). The sid defaults to a value
+// no real session can generate, so a simulated flush is always "a peer".
+export function _simulateCrossTabFlush(rev, sid = 'test-peer') {
+  handlePeerFlushRev(rev, sid);
+}
+
+// Read-only view of the last successfully persisted revision (CR-43).
+// The search view folds this into its result-cache key: rev bumps on
+// every landed flush, so a search result cached before an edit is
+// invalidated the moment that edit's flush lands — without the view
+// having to know which collections a given mutation touches. Flushes
+// are microtask-coalesced, so the bump has always landed by the time
+// the next render following a mutation runs.
+export function getSaveRev() {
+  return (_db && _db.rev) || 0;
+}
+
+// ── page lifecycle durability hooks ──────────────────────────────────────
+let _lifecycleHooksRegistered = false;
+function ensureLifecycleHooks() {
+  if (_lifecycleHooksRegistered) return;
+  if (typeof window === 'undefined' || typeof window.addEventListener !== 'function') return;
+  if (typeof document === 'undefined') return;
+  _lifecycleHooksRegistered = true;
+  if (_backend !== 'idb') return; // the local path already persists synchronously
+  ensureBroadcastChannel();
+  // Hidden/hidden-adjacent moments get a synchronous best-effort mirror
+  // write plus a fire-and-forget flush. A hidden tab is not a killed tab:
+  // the async IDB transaction almost always commits. (A hard kill can
+  // still lose the last coalesced tick — the same window the old
+  // autosave debounce had, just smaller.)
+  const pausePersist = () => {
+    runFlush();
+    writeMirrorIfFits();
+  };
+  window.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') pausePersist();
+  });
+  window.addEventListener('pagehide', pausePersist);
+  window.addEventListener('beforeunload', pausePersist);
+}
+
+// ── headroom warning, IDB edition ────────────────────────────────────────
+// The old check compared JSON bytes against localStorage's ~5MB wall.
+// With IndexedDB the honest signal is the browser's own quota estimate:
+// warn at ≥80% of the granted quota or ≥200MB absolute, reset with the
+// same hysteresis ratio the local path uses.
+const IDB_USAGE_ABSOLUTE_WARN_BYTES = 200 * 1024 * 1024;
+const IDB_USAGE_WARN_RATIO = 0.8;
+async function checkIdbHeadroom() {
+  try {
+    const est = await dbBackend.estimateUsage();
+    if (!est) return;
+    const ratio = est.quota > 0 ? est.usage / est.quota : 0;
+    const over = ratio >= IDB_USAGE_WARN_RATIO || est.usage >= IDB_USAGE_ABSOLUTE_WARN_BYTES;
+    if (over && !_sizeWarningShown) {
+      _sizeWarningShown = true;
+      _storageHeadroomListeners.forEach((fn) => {
+        try {
+          fn({ bytes: est.usage, quota: est.quota });
+        } catch {
+          // same defensive shape as every other listener list here
+        }
+      });
+    } else if (
+      !over &&
+      ratio < IDB_USAGE_WARN_RATIO * STORAGE_WARNING_RESET_RATIO &&
+      est.usage < IDB_USAGE_ABSOLUTE_WARN_BYTES * STORAGE_WARNING_RESET_RATIO
+    ) {
+      _sizeWarningShown = false;
+    }
+  } catch {
+    // The estimate is advisory — never let it break the flush path.
   }
 }
 
@@ -1312,7 +1893,7 @@ export { migrate };
 // Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
 const MAX_DELETED_ITEM_BACKUPS = 20;
 
-export function backupBeforeDelete(kind, id, data, label) {
+export function backupBeforeDelete(kind, id, data, label, extra = null) {
   const project = getActiveProject();
   if (!Array.isArray(project.deletedItemBackups)) project.deletedItemBackups = [];
   project.deletedItemBackups.unshift({
@@ -1321,6 +1902,12 @@ export function backupBeforeDelete(kind, id, data, label) {
     originalId: id,
     label,
     data: JSON.parse(JSON.stringify(data)), // deep copy — the live record is about to be mutated/deleted out from under this
+    // CR-23 — optional second payload for cascade material. deleteEntity's
+    // cascade removes every relationship touching the entity; without
+    // capturing those edges here, the undo entry could only rebuild a
+    // relationship-less orphan. Stored SEPARATELY from data so restore
+    // paths that spread data back onto a fresh record never inherit it.
+    ...(extra ? { extra: JSON.parse(JSON.stringify(extra)) } : {}),
     deletedAt: now(),
   });
   project.deletedItemBackups = project.deletedItemBackups.slice(0, MAX_DELETED_ITEM_BACKUPS);

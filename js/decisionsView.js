@@ -25,7 +25,7 @@ export function renderDecisionsView(_project) {
           ${d.alternatives ? html`<p class="decision-log-sub">Considered: ${d.alternatives}</p>` : ''}
           <div class="snippet-card-footer">
             <span>${new Date(d.createdAt).toLocaleString()}</span>
-            <button class="decision-delete-btn" title="Delete">✕</button>
+            <button class="decision-delete-btn" title="Delete" aria-label="Delete">✕</button>
           </div>
         </div>`
             )

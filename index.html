@@ -18,10 +18,18 @@
                              https is allowed, plus a local LanguageTool
                              (http://localhost:8081 et al). Plain-http LAN
                              endpoints need adding here on purpose.
-       media-src blob:     — custom ambience tracks load via object URLs
+       media-src 'self' blob: https:
+                             — custom ambience tracks load via object URLs;
+                             CR-17: https: is allowed because the settings
+                             modal offers direct audio URLs
+                             (settingsModal.js → ambience.playFromUrl →
+                             new Audio(url)) and those were silently blocked
+                             by the old media-src. https only — plain-http
+                             sources stay out, same trust line connect-src
+                             already draws for the grammar endpoint
        object-src 'none'; base-uri 'none'; form-action 'none' — nothing in
                              the app needs plugins, base hijacks, or forms -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' https: http://localhost:* http://127.0.0.1:*; media-src 'self' blob:; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' https: http://localhost:* http://127.0.0.1:*; media-src 'self' blob: https:; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'" />
 <link rel="manifest" href="manifest.json" />
 
 <!-- Canvas-and-trio pass — fonts are self-hosted now (css/fonts.css +
@@ -79,7 +87,7 @@
   <main class="main">
     <nav class="view-tabs" id="view-tabs">
       <div class="nav-tabs-groups" id="nav-tabs-groups"></div>
-      <button id="palette-btn" class="view-tab" title="Quick switcher (Ctrl/Cmd+K)">⌘K</button>
+      <button id="palette-btn" class="view-tab" type="button" title="Quick switcher (Ctrl/Cmd+K)" aria-label="Quick switcher (⌘K)">⌘K</button>
     </nav>
 
     <section class="view-panel active" data-view="write"></section>

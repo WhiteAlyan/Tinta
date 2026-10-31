@@ -1,20 +1,23 @@
 // Historical context: see docs/CODEBASE_NOTES.md#jsmanuscriptexport-js
 
 import { createZip } from './zip.js';
-import { COLOR_NAMES, IMAGE_TOKEN_PATTERN } from './format.js';
+import { COLOR_NAMES, IMAGE_TOKEN_PATTERN, UNDERLINE_TOKEN_PATTERN, wordCount } from './format.js';
 
 // Historical context: see docs/CODEBASE_NOTES.md#jsmanuscriptexport-js
 
 function parseInlineRuns(line) {
   const runs = [];
-  // Combined pattern so bold/italic/color/image tokens are all found in
-  // left-to-right document order in one pass, rather than four separate
-  // regex passes that would need re-merging by position afterward.
+  // Combined pattern so bold/italic/color/underline/image tokens are all
+  // found in left-to-right document order in one pass, rather than five
+  // separate regex passes that would need re-merging by position
+  // afterward. CR-09 — underline was the one inline token this pattern
+  // missed, so {{u:important}} leaked into DOCX/EPUB exports verbatim.
   const pattern = new RegExp(
     `\\*\\*([^*]+?)\\*\\*` + // 1: bold
     `|\\*([^*]+?)\\*` + // 2: italic
     `|\\{\\{(${COLOR_NAMES.join('|')}):([^}]+?)\\}\\}` + // 3 color name, 4 color text
-    `|${IMAGE_TOKEN_PATTERN.source}`, // 5 image id, 6 align
+    `|${UNDERLINE_TOKEN_PATTERN.source}` + // 5: underlined text (CR-09)
+    `|${IMAGE_TOKEN_PATTERN.source}`, // 6 image id, 7 align
     'g'
   );
   let last = 0;
@@ -24,7 +27,8 @@ function parseInlineRuns(line) {
     if (m[1] !== undefined) runs.push({ text: m[1], bold: true });
     else if (m[2] !== undefined) runs.push({ text: m[2], italic: true });
     else if (m[3] !== undefined) runs.push({ text: m[4], color: m[3] });
-    else if (m[5] !== undefined) runs.push({ image: m[5], align: m[6] || 'center' });
+    else if (m[5] !== undefined) runs.push({ text: m[5], underline: true });
+    else if (m[6] !== undefined) runs.push({ image: m[6], align: m[7] || 'center' });
     last = pattern.lastIndex;
   }
   if (last < line.length) runs.push({ text: line.slice(last) });
@@ -51,8 +55,14 @@ export function parseChapterParagraphs(content) {
   return paragraphs;
 }
 
+// CR-37 — the old strip pattern was ASCII-only: [^\w\- ]+ deleted every
+// CJK and accented character, so a project titled 我的小说 exported as
+// untitled.docx. \p{L}/\p{N} keep letters and numbers from ANY script;
+// only characters that are genuinely unsafe in a filename (/, \, :,
+// control chars, emoji-punctuation oddities) are stripped. The u flag is
+// required for Unicode property escapes.
 function safeFilenameLocal(title) {
-  return (title || 'untitled').trim().replace(/[^\w\- ]+/g, '').replace(/\s+/g, '-').toLowerCase() || 'untitled';
+  return (title || 'untitled').trim().replace(/[^\p{L}\p{N}\-_ ]+/gu, '').replace(/\s+/g, '-').toLowerCase() || 'untitled';
 }
 
 // Historical context: see docs/CODEBASE_NOTES.md#jsmanuscriptexport-js
@@ -74,6 +84,7 @@ function docxRuns(runs) {
       const props = [];
       if (r.bold) props.push('<w:b/>');
       if (r.italic) props.push('<w:i/>');
+      if (r.underline) props.push('<w:u/>'); // CR-09 — underline reached DOCX as a literal {{u:…}} token before
       const rPr = props.length ? `<w:rPr>${props.join('')}</w:rPr>` : '';
       return `<w:r>${rPr}<w:t xml:space="preserve">${xmlEscape(r.text)}</w:t></w:r>`;
     })
@@ -172,7 +183,10 @@ ${authorLine}
 }
 
 // Historical context: see docs/CODEBASE_NOTES.md#jsmanuscriptexport-js
-function isExportableChapter(project, chapter) {
+// Exported for store-manuscript.js's markdown export — CR-09: the .md
+// path ignored this rule entirely, so trashed and archived chapters
+// shipped in the whole-project prose backup.
+export function isExportableChapter(project, chapter) {
 // Historical context: see docs/CODEBASE_NOTES.md#jsmanuscriptexport-js
   if (chapter.archived || chapter.trashedAt) return false;
   const type = (project.chapterTypes || []).find((t) => t.key === chapter.docType);
@@ -233,13 +247,20 @@ function epubHtmlEscape(str = '') {
 
 function epubRunHtml(run) {
   if (run.image !== undefined) {
-    return { image: run.image, align: run.align };
+    // CR-09 — this branch used to leak: the caller stringified runs into
+    // the paragraph HTML, so a mid-sentence image exported as the literal
+    // text "[object Object]". Image runs are now handled by the caller
+    // (which has the image table); this function is text-only. Kept as a
+    // defensive empty string rather than an object return so any future
+    // caller stringifies to '' instead of garbage.
+    return '';
   }
   if (!run.text) return '';
   let html = epubHtmlEscape(run.text);
   if (run.color) html = `<span class="c-${run.color}">${html}</span>`;
   if (run.bold) html = `<strong>${html}</strong>`;
   if (run.italic) html = `<em>${html}</em>`;
+  if (run.underline) html = `<u>${html}</u>`; // CR-09 — was a literal {{u:…}} token in the EPUB before
   return html;
 }
 
@@ -258,7 +279,20 @@ function epubChapterXhtml(chapter, imagesById, partTitle = null) {
         if (!img) return `<p class="image-missing">[image unavailable]</p>`;
         return `<figure class="fig-${align}"><img src="images/${img.filename}" alt=""/></figure>`;
       }
-      const html = p.runs.map(epubRunHtml).join('');
+      // CR-09 — mid-sentence images used to hit the string path below and
+      // export as "[object Object]" (the old epubRunHtml returned an
+      // object for image runs). An <img> inside <p> is valid XHTML, so a
+      // mixed paragraph renders the image inline where the token sits;
+      // missing images degrade to the same placeholder the figure path
+      // uses.
+      const html = p.runs
+        .map((r) => {
+          if (r.image === undefined) return epubRunHtml(r);
+          const img = imagesById[r.image];
+          if (!img) return '<span class="image-missing">[image unavailable]</span>';
+          return `<img src="images/${img.filename}" alt=""/>`;
+        })
+        .join('');
       return html ? `<p>${html}</p>` : '';
     })
     .filter(Boolean)
@@ -325,11 +359,18 @@ export function buildEpub(project, { author = '', images = [], coverImage = null
     // The cover image gets one manifest entry with properties="cover-image"
     // rather than two (one plain, one cover) when it's also referenced
     // inline — a duplicate href pointing at the same file is invalid OPF.
-    ...images.map((img) =>
-      coverImage && img.id === coverImage.id
-        ? `<item id="img-${img.id}" href="images/${img.filename}" media-type="${img.mime}" properties="cover-image"/>`
-        : `<item id="img-${img.id}" href="images/${img.filename}" media-type="${img.mime}"/>`
-    ),
+    ...images.map((img) => {
+      // CR-40 — img.mime comes from the blob store and is attacker-settable
+      // through an imported .tinta package; interpolated raw it could break
+      // the OPF (unescaped quotes → invalid self-contained package). An
+      // allow-list of the image types Tinta itself produces is one line
+      // and stricter than escaping; anything else exports as
+      // application/octet-stream, which every reader accepts as a binary.
+      const safeMime = /^(image\/(png|jpeg|jpg|gif|webp))$/.test(img.mime) ? img.mime : 'application/octet-stream';
+      return coverImage && img.id === coverImage.id
+        ? `<item id="img-${img.id}" href="images/${img.filename}" media-type="${safeMime}" properties="cover-image"/>`
+        : `<item id="img-${img.id}" href="images/${img.filename}" media-type="${safeMime}"/>`;
+    }),
   ];
 
   const spineItems = chapterFiles.map((c) => `<itemref idref="${c.id}"/>`);
@@ -427,8 +468,11 @@ export async function exportEpub(project, { author = '', getImageBytes } = {}) {
 }
 
 export function exportDocx(project, { author = '' } = {}) {
+  // CR-18 — the title-page total now comes from the same wordCount() the
+  // footer uses, so CJK prose counts correctly here too instead of the
+  // inline whitespace-split it used to be.
   const wordTotal = project.chapters
     .filter((c) => isExportableChapter(project, c))
-    .reduce((sum, c) => sum + (c.content || '').trim().split(/\s+/).filter(Boolean).length, 0);
+    .reduce((sum, c) => sum + wordCount(c.content), 0);
   return buildDocx(project, { author, wordTotal });
 }

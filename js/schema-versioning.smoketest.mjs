@@ -91,8 +91,11 @@ section('VERSIONED_MIGRATIONS — the real extension point for future schema cha
 const futureVersionDb = JSON.parse(Store.exportFullBackup());
 futureVersionDb.version = 99; // simulates a db from a future Tinta version
 let downgradeThrew = null;
+// CR-41 — importFullBackup is async now (its rollback decision awaits
+// saveNow()), so a refused import surfaces as a REJECTED promise rather
+// than a synchronous throw. The guard contract is unchanged.
 try {
-  Store.importFullBackup(JSON.stringify(futureVersionDb));
+  await Store.importFullBackup(JSON.stringify(futureVersionDb));
 } catch (err) {
   downgradeThrew = err;
 }

@@ -145,8 +145,18 @@ function renderMapCanvas(map) {
   ImageStore.getObjectUrl(map.imageId)
     .then((url) => {
 // Historical context: see docs/CODEBASE_NOTES.md#jsmapview-js
+      // CR-26 — staleness FIRST, then the registry. mapImageUrl used to be
+      // assigned before the staleness check, so two in-flight getObjectUrl
+      // promises (fresh URL per call — the caller owns each) could both
+      // write the single-slot registry: the loser's URL was orphaned,
+      // never registered and never revoked — one leaked blob URL per
+      // race. Now a resolution that lost the race revokes its own URL
+      // immediately and never touches the slot the winner owns.
+      if (q('map-canvas-wrap') !== wrap) {
+        if (url) URL.revokeObjectURL(url);
+        return; // view moved on before this resolved
+      }
       if (url) mapImageUrl = url;
-      if (q('map-canvas-wrap') !== wrap) return; // view moved on before this resolved
       if (!url) {
         wrap.innerHTML = toBridge(html`<div class="map-no-image">This map's background image is missing (it may have been deleted from the Image Library). Set a new one above.</div>`);
         return;

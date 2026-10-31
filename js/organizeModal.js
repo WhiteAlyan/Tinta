@@ -112,9 +112,9 @@ export function renderOrganizeChaptersTab(body) {
                     ${folders.map((f) => html`<option value="${f.id}" ${c.folderId === f.id ? raw('selected') : ''}>${f.name}</option>`)}
                   </select>
                   ${partSelect}
-                  <button class="organize-icon-btn organize-fav-btn${c.favorite ? ' active' : ''}" data-chapter-id="${c.id}" title="Favorite">${c.favorite ? '★' : '☆'}</button>
-                  <button class="organize-icon-btn organize-pin-btn${c.pinned ? ' active' : ''}" data-chapter-id="${c.id}" title="Pin">📌</button>
-                  <button class="organize-icon-btn organize-archive-btn" data-chapter-id="${c.id}" title="${c.archived ? 'Unarchive' : 'Archive'}">${c.archived ? '⤴' : '🗄'}</button>
+                  <button class="organize-icon-btn organize-fav-btn${c.favorite ? ' active' : ''}" data-chapter-id="${c.id}" title="Favorite" aria-label="Favorite">${c.favorite ? '★' : '☆'}</button>
+                  <button class="organize-icon-btn organize-pin-btn${c.pinned ? ' active' : ''}" data-chapter-id="${c.id}" title="Pin" aria-label="Pin">📌</button>
+                  <button class="organize-icon-btn organize-archive-btn" data-chapter-id="${c.id}" title="${c.archived ? 'Unarchive' : 'Archive'}" aria-label="${c.archived ? 'Unarchive' : 'Archive'}">${c.archived ? '⤴' : '🗄'}</button>
                 </div>
               `;
             })
@@ -159,7 +159,7 @@ export function renderOrganizeFavoritesTab(body) {
     <div class="organize-list">
       ${
         chapters.length
-          ? chapters.map((c) => chapterOpenRowHtml(c, html`<button class="organize-icon-btn organize-fav-btn active" data-chapter-id="${c.id}" title="Remove from favorites">★</button>`))
+          ? chapters.map((c) => chapterOpenRowHtml(c, html`<button class="organize-icon-btn organize-fav-btn active" data-chapter-id="${c.id}" title="Remove from favorites" aria-label="Remove from favorites">★</button>`))
           : html`<p class="empty-note">No favorites yet. Star a chapter from the sidebar or the All Chapters tab.</p>`
       }
     </div>
@@ -206,7 +206,7 @@ export function renderOrganizeFoldersTab(body) {
                   <div class="organize-group-header">
                     <span class="organize-group-name">${f.name}</span>
                     <span class="organize-group-count">${chapters.length}</span>
-                    <button class="organize-icon-btn organize-delete-folder-btn" data-folder-id="${f.id}" title="Delete folder (chapters stay, just unassigned)">✕</button>
+                    <button class="organize-icon-btn organize-delete-folder-btn" data-folder-id="${f.id}" title="Delete folder (chapters stay, just unassigned)" aria-label="Delete folder (chapters stay, just unassigned)">✕</button>
                   </div>
                   ${chapters.length ? chapters.map((c) => chapterOpenRowHtml(c)) : html`<p class="empty-note">No chapters in this folder yet. Assign one from the All Chapters tab.</p>`}
                 </div>
@@ -250,11 +250,11 @@ export function renderOrganizePartsTab(body) {
               return html`
                 <div class="organize-group" data-part-id="${p.id}">
                   <div class="organize-group-header">
-                    <button class="organize-icon-btn organize-part-up-btn" data-part-id="${p.id}" title="Move up" ${i === 0 ? raw('disabled') : ''}>↑</button>
-                    <button class="organize-icon-btn organize-part-down-btn" data-part-id="${p.id}" title="Move down" ${i === parts.length - 1 ? raw('disabled') : ''}>↓</button>
+                    <button class="organize-icon-btn organize-part-up-btn" data-part-id="${p.id}" title="Move up" ${i === 0 ? raw('disabled') : ''} aria-label="Move up">↑</button>
+                    <button class="organize-icon-btn organize-part-down-btn" data-part-id="${p.id}" title="Move down" ${i === parts.length - 1 ? raw('disabled') : ''} aria-label="Move down">↓</button>
                     <span class="organize-group-name">${p.title}</span>
                     <span class="organize-group-count">${chapters.length}</span>
-                    <button class="organize-icon-btn organize-delete-part-btn" data-part-id="${p.id}" title="Delete part (chapters stay, just unassigned)">✕</button>
+                    <button class="organize-icon-btn organize-delete-part-btn" data-part-id="${p.id}" title="Delete part (chapters stay, just unassigned)" aria-label="Delete part (chapters stay, just unassigned)">✕</button>
                   </div>
                   ${chapters.length ? chapters.map((c) => chapterOpenRowHtml(c)) : html`<p class="empty-note">No chapters in this part yet. Assign one from the All Chapters tab.</p>`}
                 </div>
@@ -308,9 +308,9 @@ export function renderOrganizeCollectionsTab(body) {
                   <div class="organize-group-header">
                     <span class="organize-group-name">${coll.name}</span>
                     <span class="organize-group-count">${members.length}</span>
-                    <button class="organize-icon-btn organize-delete-collection-btn" data-collection-id="${coll.id}" title="Delete collection (chapters aren't affected)">✕</button>
+                    <button class="organize-icon-btn organize-delete-collection-btn" data-collection-id="${coll.id}" title="Delete collection (chapters aren't affected)" aria-label="Delete collection (chapters aren't affected)">✕</button>
                   </div>
-                  ${members.map((c) => chapterOpenRowHtml(c, html`<button class="organize-icon-btn organize-remove-from-collection-btn" data-collection-id="${coll.id}" data-chapter-id="${c.id}" title="Remove from collection">✕</button>`))}
+                  ${members.map((c) => chapterOpenRowHtml(c, html`<button class="organize-icon-btn organize-remove-from-collection-btn" data-collection-id="${coll.id}" data-chapter-id="${c.id}" title="Remove from collection" aria-label="Remove from collection">✕</button>`))}
                   ${
                     addable.length
                       ? html`
@@ -468,7 +468,7 @@ export function renderOrganizeSavedSearchesTab(body) {
                 <span class="organize-row-title" style="cursor:default">${s.name}</span>
                 <span class="organize-row-wc">“${s.query}”${s.useRegex ? ' · regex' : ''}${s.caseSensitive ? ' · case-sensitive' : ''}</span>
                 <button class="organize-text-btn organize-run-search-btn" data-search-id="${s.id}">Run</button>
-                <button class="organize-icon-btn organize-delete-search-btn" data-search-id="${s.id}" title="Delete">✕</button>
+                <button class="organize-icon-btn organize-delete-search-btn" data-search-id="${s.id}" title="Delete" aria-label="Delete">✕</button>
               </div>
             `)
           : html`<p class="empty-note">No saved searches yet.</p>`
@@ -518,7 +518,7 @@ export function renderOrganizeQuotesTab(body) {
                   <span class="organize-row-title" style="cursor:default">“${quote.text}”</span>
                   <span class="organize-row-wc">${sourceChapter ? sourceChapter.title : 'chapter no longer exists'}</span>
                   ${sourceChapter ? html`<button class="organize-text-btn organize-jump-quote-btn" data-chapter-id="${quote.chapterId}">Open</button>` : ''}
-                  <button class="organize-icon-btn organize-delete-quote-btn" data-quote-id="${quote.id}" title="Delete">✕</button>
+                  <button class="organize-icon-btn organize-delete-quote-btn" data-quote-id="${quote.id}" title="Delete" aria-label="Delete">✕</button>
                 </div>
               `;
             })

@@ -83,7 +83,7 @@ export function renderWriteView(project) {
 
       <div class="write-toolbar-right">
         <div class="wt-popover-group">
-          <button id="details-btn" class="toolbar-btn-icon" title="Chapter details: status, POV, arc">≡</button>
+          <button id="details-btn" class="toolbar-btn-icon" title="Chapter details: status, POV, arc" aria-label="Chapter details: status, POV, arc">≡</button>
           <div id="details-popover" class="wt-popover hidden">
             <label class="wt-popover-field">
               <span>Status</span>
@@ -108,11 +108,11 @@ export function renderWriteView(project) {
             </label>
           </div>
         </div>
-        <button id="history-btn" class="toolbar-btn-icon" title="Revision history">🕐</button>
-        <button id="grammar-btn" class="toolbar-btn-icon" title="Grammar & style check">✓</button>
-        <button id="bookmark-toggle-btn" class="toolbar-btn-icon${chapterBookmark ? ' active' : ''}" title="${chapterBookmark ? 'Remove bookmark' : 'Bookmark this chapter'}">${chapterBookmark ? '★' : '☆'}</button>
+        <button id="history-btn" class="toolbar-btn-icon" title="Revision history" aria-label="Revision history">🕐</button>
+        <button id="grammar-btn" class="toolbar-btn-icon" title="Grammar & style check" aria-label="Grammar & style check">✓</button>
+        <button id="bookmark-toggle-btn" class="toolbar-btn-icon${chapterBookmark ? ' active' : ''}" title="${chapterBookmark ? 'Remove bookmark' : 'Bookmark this chapter'}" aria-label="${chapterBookmark ? 'Remove bookmark' : 'Bookmark this chapter'}">${chapterBookmark ? '★' : '☆'}</button>
         <div class="wt-popover-group">
-          <button id="bookmarks-list-btn" class="toolbar-btn-icon" title="Jump to a bookmark">🔖${allBookmarks.length ? html`<span class="toolbar-btn-badge">${allBookmarks.length}</span>` : ''}</button>
+          <button id="bookmarks-list-btn" class="toolbar-btn-icon" title="Jump to a bookmark" aria-label="Jump to a bookmark">🔖${allBookmarks.length ? html`<span class="toolbar-btn-badge">${allBookmarks.length}</span>` : ''}</button>
           <div id="bookmarks-popover" class="wt-popover hidden">
             ${
               allBookmarks.length === 0
@@ -120,18 +120,18 @@ export function renderWriteView(project) {
                 : allBookmarks.map(
                     (b) => html`<div class="bookmark-row" data-jump-bookmark-chapter="${b.chapterId}" data-jump-bookmark-scene="${b.sceneId || ''}">
                         <span>${b.label}</span>
-                        <button class="bookmark-remove-btn" data-remove-bookmark="${b.id}" title="Remove">✕</button>
+                        <button class="bookmark-remove-btn" data-remove-bookmark="${b.id}" title="Remove" aria-label="Remove">✕</button>
                       </div>`
                   )
             }
           </div>
         </div>
         <div class="wt-popover-group">
-          <button id="annotations-btn" class="toolbar-btn-icon" title="Annotations: TODOs, notes, continuity flags">🏷${openAnnotationCount ? html`<span class="toolbar-btn-badge">${openAnnotationCount}</span>` : ''}</button>
+          <button id="annotations-btn" class="toolbar-btn-icon" title="Annotations: TODOs, notes, continuity flags" aria-label="Annotations: TODOs, notes, continuity flags">🏷${openAnnotationCount ? html`<span class="toolbar-btn-badge">${openAnnotationCount}</span>` : ''}</button>
         </div>
-        <button id="export-btn" class="toolbar-btn-icon" title="Export">⇩</button>
+        <button id="export-btn" class="toolbar-btn-icon" title="Export" aria-label="Export">⇩</button>
         <div class="wt-popover-group">
-          <button id="more-btn" class="toolbar-btn-icon" title="More tools">⋯</button>
+          <button id="more-btn" class="toolbar-btn-icon" title="More tools" aria-label="More tools">⋯</button>
           <div id="more-menu" class="wt-popover wt-menu hidden">
             <button id="wordcheck-btn" class="wt-menu-item">📊 Word Check</button>
             <button id="thesaurus-btn" class="wt-menu-item">🔤 Names &amp; Archeshic Records</button>
@@ -148,20 +148,25 @@ export function renderWriteView(project) {
       <div class="chapter-heading-divider" aria-hidden="true"><span></span><i>❖</i><span></span></div>
     </div>
     <div class="format-toolbar">
-      <button id="format-bold-btn" class="format-btn" title="Bold (Ctrl/Cmd+B)"><strong>B</strong></button>
-      <button id="format-italic-btn" class="format-btn" title="Italic (Ctrl/Cmd+I)"><em>I</em></button>
-      <button id="format-underline-btn" class="format-btn" title="Underline (Ctrl/Cmd+U)"><u>U</u></button>
+      <button id="format-bold-btn" class="format-btn" title="Bold (Ctrl/Cmd+B)" aria-label="Bold (Ctrl/Cmd+B)"><strong>B</strong></button>
+      <button id="format-italic-btn" class="format-btn" title="Italic (Ctrl/Cmd+I)" aria-label="Italic (Ctrl/Cmd+I)"><em>I</em></button>
+      <button id="format-underline-btn" class="format-btn" title="Underline (Ctrl/Cmd+U)" aria-label="Underline (Ctrl/Cmd+U)"><u>U</u></button>
       <div class="format-color-group">
-        <button id="format-color-btn" class="format-btn" title="Highlight color">🎨</button>
+        <button id="format-color-btn" class="format-btn" title="Highlight color" aria-label="Highlight color">🎨</button>
         <div id="format-color-menu" class="format-color-menu hidden">
-          ${Format.COLOR_NAMES.map((c) => html`<button class="format-swatch fmt-color-${c}" data-color="${c}" title="${c}"></button>`)}
+          ${Format.COLOR_NAMES.map((c) => html`<button class="format-swatch fmt-color-${c}" data-color="${c}" title="${c}" aria-label="${c}"></button>`)}
         </div>
       </div>
-      <button id="save-quote-btn" class="format-btn" title="Save selected text as a quote">❝</button>
+      <button id="save-quote-btn" class="format-btn" title="Save selected text as a quote" aria-label="Save selected text as a quote">❝</button>
     </div>
     <div class="editor-stack${isChapterSwitch ? ' chapter-enter' : ''}">
       <div id="focus-dim-overlay" class="focus-dim-overlay" aria-hidden="true"></div>
-      <textarea id="chapter-editor" class="chapter-editor" placeholder="Begin writing…">${chapter.content}</textarea>
+      <!-- CR-28 — the textarea's content is assigned below via .value, not
+           rendered as inner text: the HTML parser drops exactly ONE newline
+           immediately after the opening tag, so a chapter starting with a
+           blank line silently lost it on the render→autosave round trip,
+           byte-mutating stored prose on every visit. -->
+      <textarea id="chapter-editor" class="chapter-editor" placeholder="Begin writing…"></textarea>
     </div>
     <div class="write-footer">
       <span id="save-status" class="save-status">Saved</span>
@@ -174,6 +179,11 @@ export function renderWriteView(project) {
   els.wordCount = q('word-count');
 
   const textarea = q('chapter-editor');
+  // CR-28 — byte-stable content: assign the value instead of rendering it
+  // as textarea inner text (the HTML parser eats one newline right after
+  // the opening tag). Must happen BEFORE attachEditor, which snapshots
+  // textarea.value as the initial lastSavedValue watermark.
+  textarea.value = chapter.content ?? '';
   setActiveTextareaEl(textarea);
 // Historical context: see docs/CODEBASE_NOTES.md#jswriteview-js
   setCurrentEditorHandle(attachEditor({

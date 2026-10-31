@@ -124,7 +124,7 @@ function renderSystemDetail(systemId) {
           </label>
           ${n.requirement.length ? html`<span class="annotation-scene-tag">requires ${n.requirement.map((id) => nodeName(id) || '?').join(', ')}</span>` : ''}
           <button class="wt-menu-item system-node-edit-btn">Edit</button>
-          <button class="annotation-delete-btn" title="Delete">✕</button>
+          <button class="annotation-delete-btn" title="Delete" aria-label="Delete">✕</button>
         </div>`
             )}</div>`
           : html`<p class="empty-state-sm">No nodes yet. Add the first skill/spell/technology in this system.</p>`

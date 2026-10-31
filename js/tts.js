@@ -25,16 +25,33 @@ export function getVoices() {
     return Promise.resolve(existing);
   }
   return new Promise((resolve) => {
+    // CR-47 fix — this promise now has exactly two exit paths (the event
+    // fires, or the 1s fallback fires) and BOTH of them clean up fully.
+    // The old fallback resolved but left `handler` registered on
+    // speechSynthesis forever — one leaked listener per getVoices() call
+    // that hit the fallback, accumulating for the life of the page (the
+    // Read Aloud modal opens a fresh getVoices() every time it's opened).
+    // Now the handler removes itself on the event path, and the fallback
+    // removes the handler (and clears the timer) on the timeout path.
     const handler = () => {
       const voices = synth.getVoices();
       cachedVoices = voices;
+      clearTimeout(timer);
       synth.removeEventListener('voiceschanged', handler);
       resolve(voices);
     };
     synth.addEventListener('voiceschanged', handler);
     // Some browsers never fire the event if there's genuinely nothing to
-    // report — don't hang the caller forever waiting on it.
-    setTimeout(() => resolve(synth.getVoices()), 1000);
+    // report — don't hang the caller forever waiting on it. The result is
+    // cached here too, matching the event path (speak() matches
+    // settings.voiceURI against cachedVoices; without the cache a
+    // fallback-resolved session would never restore the saved voice).
+    const timer = setTimeout(() => {
+      synth.removeEventListener('voiceschanged', handler);
+      const voices = synth.getVoices();
+      cachedVoices = voices;
+      resolve(voices);
+    }, 1000);
   });
 }
 

@@ -64,7 +64,7 @@ export function openAnnotationsModal(chapter) {
           <span class="annotation-note-text">${a.note || html`<span class="empty-state-sm">(no note)</span>`}</span>
         </label>
         ${st ? html`<span class="annotation-scene-tag">${st}</span>` : ''}
-        <button class="annotation-delete-btn" title="Delete">✕</button>
+        <button class="annotation-delete-btn" title="Delete" aria-label="Delete">✕</button>
       </div>`;
     };
 

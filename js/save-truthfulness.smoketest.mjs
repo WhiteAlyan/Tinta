@@ -58,7 +58,7 @@ function section(title) { console.log(`\n${title}`); }
 // ── 1. Happy path — a landed write reports true ─────────────────────────
 section('updateChapterContent — a write that lands reports true');
 globalThis.localStorage.clear();
-let chapterId = null;
+let chapterId; // assigned in every block below; the null init was never read
 {
   Store.createProject('Truthfulness');
   const chapter = Store.createChapter('Chapter One');

@@ -68,12 +68,89 @@ function escapeHtmlForOverlay(str = '') {
     .replace(/>/g, '&gt;');
 }
 
+// CR-05 fix — IME composition guard. During a Chinese/Japanese/Korean
+// composition every keystroke of the candidate string arrives as a
+// keydown with isComposing=true (keyCode 229 on legacy Safari/IE), and
+// the keystrokes that COMMIT the composition (Enter) or navigate
+// candidate windows (arrows) are ordinary keys as far as the DOM is
+// concerned. Without a guard the mention popup swallowed Enter/Tab and
+// the arrows mid-composition (inserting its first fuzzy match on top
+// of the text being committed), the typewriter sounds clicked through
+// every candidate navigation, and Ctrl+B/I/U toggles could fire
+// mid-composition. Standard fix: early-return on isComposing / 229 in
+// every textarea keydown handler. isComposing on the event is the
+// modern signal; keyCode 229 covers Safari builds that don't set it.
+function isImeComposing(e) {
+  return e.isComposing === true || e.keyCode === 229;
+}
+
+// Historical context: see docs/CODEBASE_NOTES.md#jseditor-js
+// CR-08 — the one sanctioned way to programmatically rewrite a textarea's
+// value. Assigning `.value` directly clears the browser's native undo
+// stack in Chromium, Firefox, and WebKit — and the app-level undo
+// deliberately refuses to run inside a textarea (commands.js
+// isTextEditingField) because native undo is supposed to own prose
+// history. Net effect used to be that one Ctrl+B invalidated the writer's
+// entire Ctrl+Z history, contradicting the shortcut list's own promise.
+//
+// The undo-preserving path is execCommand('insertText') on a selection:
+// it flows through the same editing pipeline as typing, so the native
+// stack records it as one undoable step. setRangeText was considered and
+// rejected — it bypasses undo (and in some engines clears the buffer
+// outright). We locate the minimal replaced span by trimming the common
+// prefix/suffix of the old and new values (exact for every wrap/insert
+// edit the app performs), select it, and insert. If the engine rejects or
+// mangles the edit (checked by comparing the resulting value), we fall
+// back to the historical value assignment: losing undo history for that
+// one operation is strictly better than losing prose.
+export function applyTextareaEdit(textarea, newText, newSelStart, newSelEnd) {
+  const oldText = textarea.value;
+  if (newText === oldText) {
+    textarea.setSelectionRange(newSelStart, newSelEnd);
+    return;
+  }
+  // Minimal edit span: skip the shared prefix, then the shared suffix.
+  let start = 0;
+  const minLen = Math.min(oldText.length, newText.length);
+  while (start < minLen && oldText[start] === newText[start]) start++;
+  let endOld = oldText.length;
+  let endNew = newText.length;
+  while (endOld > start && endNew > start && oldText[endOld - 1] === newText[endNew - 1]) {
+    endOld--;
+    endNew--;
+  }
+  const inserted = newText.slice(start, endNew);
+  // eslint 10 no-useless-assignment — always assigned inside the try before
+  // any read; the initializer would be dead.
+  let usedExecCommand;
+  textarea.focus();
+  try {
+    textarea.setSelectionRange(start, endOld);
+    usedExecCommand =
+      typeof document !== 'undefined' &&
+      typeof document.execCommand === 'function' &&
+      document.execCommand('insertText', false, inserted) === true;
+  } catch {
+    usedExecCommand = false;
+  }
+  if (!usedExecCommand || textarea.value !== newText) {
+    // Fallback — tests, exotic embeds, or an engine that mangled the
+    // insertion (insertText has known newline quirks in old WebKit).
+    textarea.value = newText;
+  }
+  textarea.setSelectionRange(newSelStart, newSelEnd);
+  // execCommand fires its own input event mid-call (before the caret is
+  // moved to its final position); this one runs with the final value AND
+  // the final selection, which is what every listener assumes. The
+  // duplicate pass through the save scheduler is coalesced there.
+  textarea.dispatchEvent(new Event('input'));
+}
+
 // Historical context: see docs/CODEBASE_NOTES.md#jseditor-js
 export function applyFormatToggle(textarea, result) {
-  textarea.value = result.text;
-  textarea.focus();
-  textarea.setSelectionRange(result.selStart, result.selEnd);
-  textarea.dispatchEvent(new Event('input'));
+  // CR-08 — routes through applyTextareaEdit so toggling bold/italic/
+  // underline/color preserves the native undo stack instead of wiping it.
+  applyTextareaEdit(textarea, result.text, result.selStart, result.selEnd);
 }
 
 export function attachEditor({ textarea, chapterId, onSave, onWordCount, onMentionClick }) {
@@ -96,6 +173,14 @@ export function attachEditor({ textarea, chapterId, onSave, onWordCount, onMenti
   // appears. Until then, the placeholder `[image loading…]` shows.
   const imageUrlCache = new Map();
   let imageReRenderScheduled = false;
+  // CR-39 — the caret position the overlay last rendered. The input event
+  // and keyup both used to call updateDimOverlay() unconditionally, so
+  // every printable keystroke ran the full-document paragraph regex, the
+  // per-mention entity lookups and the whole-innerHTML overlay parse TWICE,
+  // plus the mirror-div layout thrash in updateTypewriterScroll. keyup now
+  // refreshes only when the caret actually moved without an input event
+  // (arrow keys, Home/End, page navigation).
+  const lastOverlayCaret = { start: -1, end: -1 };
   function scheduleImageReRender() {
     if (imageReRenderScheduled) return;
     imageReRenderScheduled = true;
@@ -162,6 +247,10 @@ export function attachEditor({ textarea, chapterId, onSave, onWordCount, onMenti
     dimOverlay.style.paddingRight = `${4 + gutter}px`;
     const text = textarea.value;
     const caret = textarea.selectionStart;
+    // CR-39 — remember the caret this pass rendered, so the keyup handler
+    // can skip its redundant second pass after printable input.
+    lastOverlayCaret.start = textarea.selectionStart;
+    lastOverlayCaret.end = textarea.selectionEnd;
     const paragraphs = splitParagraphs(text);
     const focusMode = isFocusModeActive();
     const images = buildImagesMap(text);
@@ -177,7 +266,15 @@ export function attachEditor({ textarea, chapterId, onSave, onWordCount, onMenti
       const paraText = text.slice(p.start, p.end);
       const paraHtml = isCurrent
         ? escapeHtmlForOverlay(paraText)
-        : Format.renderEditorParagraph(paraText, { images, mentionResolver });
+        // CR-04 fix — keepMarkers: true puts renderEditorParagraph in
+        // metric-parity mode: format markers stay in the output as
+        // transparent .fmt-marker spans, so this paragraph occupies the
+        // same width as the textarea's raw layout of the same characters.
+        // Without it the overlay soft-wrapped formatted paragraphs at
+        // different points than the textarea (markers deleted + real bold
+        // glyphs), which is what dragged the caret a line off and broke
+        // bottom-of-chapter scroll sync.
+        : Format.renderEditorParagraph(paraText, { images, mentionResolver, keepMarkers: true });
       html += `<span class="${cls}">${paraHtml}</span>`;
       if (i < paragraphs.length - 1) {
         // Between-paragraph whitespace (blank lines) — render as
@@ -196,6 +293,10 @@ export function attachEditor({ textarea, chapterId, onSave, onWordCount, onMenti
 // Historical context: see docs/CODEBASE_NOTES.md#jseditor-js
   function updateTypewriterScroll() {
     if (textarea.closest('#app-shell')?.dataset.focusLevel !== 'typewriter') return;
+    // CR-39 — record the caret here too: this mirror-div measurement is
+    // the expensive half of the duplicated keystroke work.
+    lastOverlayCaret.start = textarea.selectionStart;
+    lastOverlayCaret.end = textarea.selectionEnd;
     const { top, lineHeight } = getCaretCoordinates(textarea, textarea.selectionStart);
     const rect = textarea.getBoundingClientRect();
     const target = rect.top + rect.height / 2 - lineHeight / 2;
@@ -295,6 +396,7 @@ export function attachEditor({ textarea, chapterId, onSave, onWordCount, onMenti
   textarea.addEventListener('keydown', popup.handleKeydown);
 // Historical context: see docs/CODEBASE_NOTES.md#jseditor-js
   textarea.addEventListener('keydown', (e) => {
+    if (isImeComposing(e)) return; // CR-05 — no typewriter clicks mid-composition
     const settings = Store.getTypewriterSettings();
     if (!settings.enabled) return;
     if (e.key === 'Enter') {
@@ -310,6 +412,10 @@ export function attachEditor({ textarea, chapterId, onSave, onWordCount, onMenti
   // browsers is "view source" by default; preventDefault on it is fine
   // inside a writing app (the writer isn't viewing source).
   textarea.addEventListener('keydown', (e) => {
+    // CR-05 — same composition guard: a format toggle triggered while
+    // the IME is mid-composition rewrites textarea.value underneath the
+    // composition, cancelling it and losing the buffered input.
+    if (isImeComposing(e)) return;
     if (!(e.metaKey || e.ctrlKey) || e.shiftKey) return;
     const key = e.key.toLowerCase();
     if (key === 'b') {
@@ -335,10 +441,20 @@ export function attachEditor({ textarea, chapterId, onSave, onWordCount, onMenti
     const hit = Store.extractMentions(textarea.value).find((m) => pos >= m.index && pos <= m.index + m.length);
     if (hit) onMentionClick(hit.name);
   });
-  textarea.addEventListener('keyup', () => {
-    schedulePositionSave();
+  // CR-39 — keyup fires for every printable key AFTER the input event has
+  // already refreshed the overlay at the same caret. Only caret movement
+  // that produces no input event (arrows, Home/End, PgUp/PgDn) needs the
+  // second pass — gate both refreshes on the selection actually having
+  // moved since the last rendered overlay state.
+  function refreshOverlayIfCaretMoved() {
+    if (textarea.selectionStart === lastOverlayCaret.start && textarea.selectionEnd === lastOverlayCaret.end) return;
     updateDimOverlay();
     updateTypewriterScroll();
+  }
+
+  textarea.addEventListener('keyup', () => {
+    schedulePositionSave();
+    refreshOverlayIfCaretMoved();
   });
   textarea.addEventListener('scroll', () => {
     popup.hide();
@@ -360,7 +476,22 @@ export function attachEditor({ textarea, chapterId, onSave, onWordCount, onMenti
   updateDimOverlay();
   updateTypewriterScroll();
 
-  return { flush, destroy: popup.destroy };
+  return {
+    flush,
+    destroy: popup.destroy,
+    // CR-07 — the watermark: the last editor value whose persist actually
+    // LANDED. It only advances on a true return from
+    // Store.updateChapterContent, so after a save refused as cross-tab
+    // stale it still holds the last-known-good text — exactly what the
+    // conflict banner needs to distinguish "editor has unsaved work" from
+    // "editor matches what landed". Comparing against the live chapter
+    // object was wrong: updateChapterContent mutates that object BEFORE
+    // save() is attempted, so the comparison saw the refused text as
+    // already-saved and degraded the rescue banner to the plain reload
+    // variant.
+    getLastSavedValue: () => lastSavedValue,
+    getValue: () => textarea.value,
+  };
 }
 
 // Historical context: see docs/CODEBASE_NOTES.md#jseditor-js
@@ -454,11 +585,11 @@ function createMentionPopup(textarea) {
       name = entity.name;
     }
     const { text, caret } = insertMention(textarea.value, currentRange.start, currentRange.end, name);
-    textarea.value = text;
-    textarea.selectionStart = textarea.selectionEnd = caret;
+    // CR-08 — insert through the undo-preserving edit path; a direct
+    // value assignment wiped the writer's whole native undo history.
+    // applyTextareaEdit focuses the textarea and fires the input event.
+    applyTextareaEdit(textarea, text, caret, caret);
     hide();
-    textarea.focus();
-    textarea.dispatchEvent(new Event('input'));
   }
 
   function update() {
@@ -494,6 +625,12 @@ function createMentionPopup(textarea) {
   }
 
   function handleKeydown(e) {
+    // CR-05 fix — guard FIRST: while a composition is active the popup
+    // must not intercept Enter/Tab (they commit the composition) or the
+    // arrow keys (they navigate IME candidates). Previously an IME user
+    // typing an entity name inside [[...]] had the popup insert its
+    // first fuzzy match on top of the composition being committed.
+    if (isImeComposing(e)) return;
     if (popup.style.display === 'none') return;
     if (e.key === 'ArrowDown') {
       e.preventDefault();

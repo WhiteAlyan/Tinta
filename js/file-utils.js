@@ -27,6 +27,11 @@ export function downloadBinaryFile(filename, bytes, mime) {
   URL.revokeObjectURL(url);
 }
 
+// CR-37 — the old [^\w\- ]+ strip was ASCII-only: \w matches [A-Za-z0-9_]
+// in JS without the u flag, so every CJK and accented character was
+// deleted and a project titled 我的小说 exported as untitled.md.
+// \p{L}/\p{N} with the u flag keep letters and numbers from any script;
+// only characters genuinely unsafe in a filename are stripped.
 export function safeFilename(title) {
-  return (title || 'untitled').trim().replace(/[^\w\- ]+/g, '').replace(/\s+/g, '-').toLowerCase() || 'untitled';
+  return (title || 'untitled').trim().replace(/[^\p{L}\p{N}\-_ ]+/gu, '').replace(/\s+/g, '-').toLowerCase() || 'untitled';
 }

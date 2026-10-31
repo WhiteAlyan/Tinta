@@ -82,7 +82,7 @@ export function renderCanvasView(_project) {
           ${presets.map((p) => html`<option value="${p.id}"${canvasLoadedPresetId === p.id ? raw(' selected') : ''}>${p.name}</option>`)}
         </select>
         <button id="canvas-preset-save-btn" class="toolbar-btn" title="Save the current filters and layout as a preset">💾 Save view</button>
-        ${presets.length ? html`<button id="canvas-preset-delete-btn" class="toolbar-btn" title="Delete the selected preset"${canvasLoadedPresetId ? '' : raw(' disabled')}>🗑</button>` : ''}
+        ${presets.length ? html`<button id="canvas-preset-delete-btn" class="toolbar-btn" title="Delete the selected preset"${canvasLoadedPresetId ? '' : raw(' disabled')} aria-label="Delete the selected preset">🗑</button>` : ''}
         <span class="canvas-hint">${canvasHintText()}</span>
         <button id="canvas-add-entity-btn" class="toolbar-btn" title="Add a new entity to the canvas">+ Entity</button>
         ${canvasHiddenEntityIds.size > 0 ? html`<button id="canvas-show-all-btn" class="toolbar-btn" title="Show entities hidden from this canvas">👁 Show all (${canvasHiddenEntityIds.size})</button>` : ''}
@@ -90,7 +90,7 @@ export function renderCanvasView(_project) {
       </div>
     </div>
     <div class="canvas-legend">
-      ${Store.getEntityTypes().map((t) => html`<button type="button" class="canvas-legend-item${canvasHiddenTypes.has(t.key) ? ' hidden-type' : ''}" data-type="${t.key}" title="Click to show/hide ${entityTypeLabelPlural(t.key)}"><span class="canvas-dot ${entityDotClass(t.key)}"${raw(entityColorStyleAttr(t.key))}></span>${entityTypeLabelPlural(t.key)}</button>`)}
+      ${Store.getEntityTypes().map((t) => html`<button type="button" class="canvas-legend-item${canvasHiddenTypes.has(t.key) ? ' hidden-type' : ''}" data-type="${t.key}" title="Click to show/hide ${entityTypeLabelPlural(t.key)}" aria-label="Click to show/hide ${entityTypeLabelPlural(t.key)}"><span class="canvas-dot ${entityDotClass(t.key)}"${raw(entityColorStyleAttr(t.key))}></span>${entityTypeLabelPlural(t.key)}</button>`)}
     </div>
     <div class="canvas-stage"></div>
   `);
@@ -503,7 +503,7 @@ function openRelationshipEditModal(rel, onDone) {
                         <div class="relationship-history-item-head">
                           <strong>${escapeHtml(h.label)}</strong>
                           ${linkedEvent ? `<span class="relationship-history-when">${escapeHtml(linkedEvent.title)}${linkedEvent.storyDate ? ` · ${escapeHtml(linkedEvent.storyDate)}` : ''}</span>` : h.timelineEventId ? '<span class="relationship-history-when relationship-history-dangling">linked event deleted</span>' : ''}
-                          <button class="relationship-history-delete-btn" title="Remove this entry">✕</button>
+                          <button class="relationship-history-delete-btn" title="Remove this entry" aria-label="Remove this entry">✕</button>
                         </div>
                         ${h.status || h.strength ? `<div class="relationship-history-meta">${escapeHtml([h.status, h.strength].filter(Boolean).join(' · '))}</div>` : ''}
                         ${h.note ? `<div class="relationship-history-note">${escapeHtml(h.note)}</div>` : ''}

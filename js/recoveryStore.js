@@ -17,9 +17,24 @@
 // ~5MB), so a snapshot saved to IndexedDB will land even when the same
 // payload fails to land in localStorage. On next boot, we check for a
 // recovery snapshot and surface a non-blocking toast offering to
-// restore the lost changes. If the snapshot's rev is <= the disk db's
-// rev (because the retry timer eventually succeeded before the tab
-// closed), the snapshot is stale and is silently cleared.
+// restore the lost changes.
+//
+// CR-01 fix — staleness is now CONTENT-TIMELINE-aware, not a bare rev
+// comparison. The old rule ("snapshot.rev <= disk.rev → stale") was
+// inverted for the exact case the snapshot exists for: _db.rev only
+// advances AFTER a successful localStorage write, so a snapshot taken
+// on the quota-failure path always carries the last SUCCESSFUL save's
+// rev — numerically equal to disk. Under the old rule every snapshot
+// that survived to boot was classified as stale and silently deleted,
+// destroying the only copy of the writer's unsaved work and making the
+// recovery toast unreachable. The rule is now: a snapshot is stale only
+// when the disk rev has moved PAST the rev the snapshot was taken
+// against (proof that a later save landed). Equality means the failed
+// write never landed — the snapshot IS the freshest copy. Snapshots
+// also carry a `diskRevAtSnapshot` meta record (stored alongside the
+// payload, not inside it — replaceDb() must receive a clean db) so the
+// comparison survives any future path that snapshots with a bumped
+// payload rev. See isSnapshotStale() below.
 //
 // The snapshot is the FULL in-memory _db serialized as JSON. We don't
 // try to diff against the disk db — that's complex and the typical
@@ -30,17 +45,32 @@ import { makeBlobStore } from './makeBlobStore.js';
 
 const store = makeBlobStore('tinta-recovery');
 const SNAPSHOT_KEY = 'unsaved-db-snapshot';
+// CR-01 — bookkeeping that travels WITH the snapshot but is not part of
+// the db. Kept under a separate key so getRecoverySnapshot() can keep
+// returning the db object verbatim (recoveryToast feeds it straight
+// into replaceDb()). Best-effort: if the meta put ever fails while the
+// payload put succeeded, isSnapshotStale() falls back to the payload's
+// own rev, which still classifies the mainline case correctly.
+const SNAPSHOT_META_KEY = 'unsaved-db-snapshot-meta';
 
-// Save the in-memory _db as a JSON string to IndexedDB. Best-effort —
+// Save the in-memory _db as a JSON string to IndexedDB (plus the CR-01
+// meta record under a sibling key). Best-effort —
 // if IndexedDB itself is unavailable (private browsing, fresh session,
 // etc.), the catch swallows the error and the writer is no worse off
 // than before this fix existed. Returns true if the snapshot landed,
 // false otherwise.
-export async function saveRecoverySnapshot(db) {
+// CR-01 — `meta` travels in a sibling key (see SNAPSHOT_META_KEY).
+// store-core's quota path passes { diskRevAtSnapshot: _db.rev }.
+export async function saveRecoverySnapshot(db, meta = {}) {
   if (!db) return false;
   try {
     const json = JSON.stringify(db);
     await store.putBlob(SNAPSHOT_KEY, json);
+    // The payload is the critical copy; the meta record is an accuracy
+    // upgrade. A failed meta put must not discard a landed payload.
+    try {
+      await store.putBlob(SNAPSHOT_META_KEY, JSON.stringify(meta || {}));
+    } catch {}
     return true;
   } catch {
     // IndexedDB unavailable, quota exceeded even for IndexedDB
@@ -66,15 +96,58 @@ export async function getRecoverySnapshot() {
   }
 }
 
+// Read the snapshot's meta record back. Returns {} when absent (legacy
+// snapshots written before CR-01 have no meta — isSnapshotStale then
+// falls back to the payload rev).
+export async function getRecoverySnapshotMeta() {
+  try {
+    const json = await store.getBlob(SNAPSHOT_META_KEY);
+    if (typeof json !== 'string' || !json) return {};
+    const parsed = JSON.parse(json);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+// CR-01 — the boot-time staleness decision, extracted as a pure function
+// so the smoketest can pin it against the exact scenario that used to
+// destroy the writer's work.
+//
+// Stale means: "a successful save landed after this snapshot was taken,
+// so disk already contains (at least) this state". That is provable only
+// by the disk rev moving PAST the rev the snapshot was taken against —
+// never by equality, because the quota-failure path cannot advance the
+// rev (only a successful write does, and success also clears the
+// snapshot). Equality therefore means the failed write never landed and
+// the snapshot is the only copy of the unsaved work → NOT stale.
+export function isSnapshotStale(snapshot, meta, diskRev) {
+  if (!snapshot) return true;
+  const disk = Number.isFinite(diskRev) ? diskRev : 0;
+  const metaRev = Number.isFinite(meta?.diskRevAtSnapshot) ? meta.diskRevAtSnapshot : null;
+  // Prefer the recorded disk rev; legacy snapshots fall back to the
+  // payload rev (which equaled disk at snapshot time under the old code).
+  const effective = metaRev !== null ? metaRev : (Number.isFinite(snapshot.rev) ? snapshot.rev : 0);
+  return effective < disk;
+}
+
 // Delete the snapshot. Called after a successful restore OR after
-// detecting the snapshot is stale (rev <= disk db's rev).
+// detecting the snapshot is stale (disk rev moved past it — see
+// isSnapshotStale).
 export async function clearRecoverySnapshot() {
   try {
     await store.deleteBlob(SNAPSHOT_KEY);
   } catch {
     // Best-effort — if the delete fails, the next boot will see the
-    // stale snapshot again and offer to restore from it. Not harmful
-    // because the rev comparison will re-detect staleness.
+    // snapshot again and re-run the staleness check.
+  }
+  try {
+    await store.deleteBlob(SNAPSHOT_META_KEY);
+  } catch {
+    // Same best-effort posture. An orphaned meta record is harmless:
+    // the next saveRecoverySnapshot overwrites it, and without a
+    // payload getRecoverySnapshot() returns null so maybeShow() exits
+    // before the meta is ever consulted.
   }
 }
 

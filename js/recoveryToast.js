@@ -6,10 +6,17 @@
 //   1. On boot, app.js init() calls RecoveryToast.maybeShow().
 //   2. maybeShow() reads Store.getRecoverySnapshot() (async). If no
 //      snapshot exists, returns silently.
-//   3. If a snapshot exists, compares snapshot.rev to the disk db's
-//      rev. If snapshot.rev <= disk db's rev, the snapshot is stale
-//      (the retry timer eventually succeeded before the tab closed)
-//      and is silently cleared.
+//   3. If a snapshot exists, decides freshness via
+//      recoveryStore.isSnapshotStale(): the snapshot is stale only when
+//      the disk db's rev has moved PAST the rev the snapshot was taken
+//      against (recorded as diskRevAtSnapshot in the snapshot's meta
+//      record). CR-01 fix — the old rule ("snapshot.rev <= disk.rev →
+//      stale") destroyed EVERY surviving snapshot, because a quota-
+//      failed write can never advance the rev: equality meant the
+//      failed write never landed, i.e. the snapshot holds the only copy
+//      of the unsaved work, i.e. exactly the case the toast exists for.
+//      The toast was unreachable code and boot actively deleted the
+//      writer's rescue copy.
 //   4. Otherwise, renders a non-blocking toast at the bottom-right
 //      with two buttons: "Restore recovered changes" and "Discard".
 //   5. Restore: replaceDb(snapshot) → save() → clearRecoverySnapshot().
@@ -28,7 +35,11 @@ import * as Store from './store.js';
 // Roadmap #7 — clearUndoHistory joins the restore: the snapshot replaces the
 // entire db, so undo entries from before the restore describe mutations to a
 // document that no longer exists (same reasoning as importFullBackup).
-import { clearUndoHistory, replaceDb, save, isCrossTabStale } from './store-core.js';
+import { clearUndoHistory, replaceDb, saveNow, isCrossTabStale } from './store-core.js';
+// CR-01 fix — staleness rule + snapshot meta live next to the snapshot
+// payload they describe. Imported directly from recoveryStore (Store's
+// surface intentionally doesn't grow for an internal boot-time check).
+import { isSnapshotStale, getRecoverySnapshotMeta } from './recoveryStore.js';
 import { html, toBridge } from './dom-utils.js';
 import { requestRender } from './renderBus.js';
 
@@ -44,19 +55,22 @@ export async function maybeShow() {
   }
   if (!snapshot) return; // no snapshot, nothing to do
 
-  // Stale-snapshot check: if the disk db's rev is >= the snapshot's
-  // rev, the retry timer eventually succeeded (or the writer manually
-  // saved after the snapshot was taken) and the snapshot is stale.
-  // Silently clear it and return.
+  // Stale-snapshot check (CR-01 fix) — the snapshot is stale only when
+  // the disk rev has moved PAST the rev the snapshot was taken against
+  // (proof a later save landed — e.g. the retry timer succeeded, or
+  // another tab wrote). Equality is NOT staleness: a quota-failed write
+  // cannot advance the rev, so equality means the failed write never
+  // landed and this snapshot is the freshest copy of the writer's work.
   const diskDb = Store.getActiveDb();
   const diskRev = diskDb?.rev || 0;
-  const snapshotRev = snapshot?.rev || 0;
-  if (snapshotRev <= diskRev) {
+  let meta = {};
+  try { meta = await getRecoverySnapshotMeta(); } catch {}
+  if (isSnapshotStale(snapshot, meta, diskRev)) {
     try { await Store.clearRecoverySnapshot(); } catch {}
     return;
   }
 
-  renderToast({ snapshot, diskRev, snapshotRev });
+  renderToast({ snapshot, diskRev, snapshotRev: snapshot?.rev || 0 });
 }
 
 function renderToast({ snapshot, diskRev, snapshotRev }) {
@@ -121,9 +135,12 @@ function renderToast({ snapshot, diskRev, snapshotRev }) {
       // If save fails again (still over quota), the snapshot stays
       // in IndexedDB and the writer can manually export the db via
       // File → Export Backup to free up space, then retry on next boot.
+      // CR-41 — saveNow() not save(): this path needs the LANDED result
+      // (it clears the snapshot and rewrites undo history on success),
+      // not the coalesced-flush "accepted" boolean.
       try {
         replaceDb(snapshot);
-        const ok = save();
+        const ok = await saveNow();
         if (ok) {
           try { await Store.clearRecoverySnapshot(); } catch {}
           // Roadmap #7 — undo entries predating the restore point at the

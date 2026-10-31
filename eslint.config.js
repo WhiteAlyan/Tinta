@@ -19,18 +19,89 @@
 // `performance`, `TextEncoder`/`TextDecoder`, `getComputedStyle`,
 // `fetch`, and friends tripped 53 `no-undef` errors, drowning the one
 // REAL undefined-name bug (`renameSeries()`'s missing import) among
-// them. The hand list is gone: `globals.browser` (763 names) +
-// `globals.node` for the Node-side smoketests. The globals package is
+// them. The hand list is gone: `globals.browser` for app code +
+// `globals.node` for the Node-side harnesses. The globals package is
 // already in node_modules as a transitive dep of eslint itself, so this
 // adds no new install weight; it is pinned in devDependencies below.
+//
+// CR-33 — the single config block served BOTH app code and smoketests,
+// so globals.node applied to browser runtime files: a reference to
+// `process` or `Buffer` in js/ passed no-undef. One block per file class
+// now — js/**/*.js (the app the browser actually loads) gets browser
+// globals ONLY; js/**/*.mjs (the Node-side smoketest harnesses) and
+// tests/**/*.js (Playwright specs) get node globals plus the harness's
+// deliberate globalThis extension. no-unused-vars is also promoted from
+// warn to error for app code — it was downgraded to keep an old lint run
+// green, which meant unused imports accumulated silently.
+//
+// CR-35 — toolchain currency: eslint 9.x reached end-of-life (the
+// lockfile itself carried npm's deprecation notice), so this config now
+// targets eslint 10 / @eslint/js 10 and globals 17. eslint-plugin-import
+// is effectively unmaintained and this config used exactly one of its
+// rules (no-unresolved), so it was ported to the maintained fork
+// eslint-plugin-import-x — same rule name under the `import/` prefix,
+// same Node resolver settings.
 import js from '@eslint/js';
-import importPlugin from 'eslint-plugin-import';
+import importPlugin from 'eslint-plugin-import-x';
 import globals from 'globals';
+
+// Rules shared by both file classes.
+const sharedRules = {
+  'import/no-unresolved': 'error',
+  'no-undef': 'error',
+  'no-redeclare': 'error',
+  'no-unused-private-class-members': 'warn',
+  // Don't enforce style rules — the codebase has its own style that
+  // doesn't match any preset. Style is enforced by review, not lint.
+  'no-console': 'off',
+  'prefer-const': 'off',
+  'no-empty': 'off',
+  'no-unused-expressions': 'off',
+};
+
+const sharedSettings = {
+  // Import resolver — uses Node's resolution algorithm for bare
+  // specifiers and relative paths. The app's source files are plain
+  // ES modules with .js extensions, so no custom resolver is needed.
+  'import/resolver': {
+    node: {
+      extensions: ['.js', '.mjs'],
+    },
+  },
+};
 
 export default [
   js.configs.recommended,
   {
-    files: ['js/**/*.js', 'js/**/*.mjs', 'tests/**/*.js'],
+    // The app runtime — exactly the files index.html loads. Browser
+    // globals only: Node leaking in here is precisely the bug class
+    // CR-33 exists for.
+    files: ['js/**/*.js'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'module',
+      globals: {
+        ...globals.browser,
+      },
+    },
+    plugins: {
+      import: importPlugin,
+    },
+    rules: {
+      ...sharedRules,
+      'no-unused-vars': ['error', {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+        caughtErrorsIgnorePattern: '^_',
+      }],
+    },
+    settings: sharedSettings,
+  },
+  {
+    // The Node-side test harnesses — smoketests (js/*.smoketest.mjs) and
+    // Playwright specs (tests/*.spec.js). These genuinely run under Node,
+    // so node globals apply here and only here.
+    files: ['js/**/*.mjs', 'tests/**/*.js'],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',
@@ -45,34 +116,17 @@ export default [
       import: importPlugin,
     },
     rules: {
-      // The two rules the audit specifically asked for:
+      ...sharedRules,
+      // Harness files poke at globals and shim APIs by design; unused
+      // imports stay a warning here rather than blocking `npm run lint`,
+      // but app code (above) fails the run.
       'no-unused-vars': ['warn', {
         argsIgnorePattern: '^_',
         varsIgnorePattern: '^_',
         caughtErrorsIgnorePattern: '^_',
       }],
-      'import/no-unresolved': 'error',
-      // A few more that catch real bugs in this codebase specifically:
-      'no-undef': 'error',
-      'no-redeclare': 'error',
-      'no-unused-private-class-members': 'warn',
-      // Don't enforce style rules — the codebase has its own style that
-      // doesn't match any preset. Style is enforced by review, not lint.
-      'no-console': 'off',
-      'prefer-const': 'off',
-      'no-empty': 'off',
-      'no-unused-expressions': 'off',
     },
-    settings: {
-      // Import resolver — uses Node's resolution algorithm for bare
-      // specifiers and relative paths. The app's source files are plain
-      // ES modules with .js extensions, so no custom resolver is needed.
-      'import/resolver': {
-        node: {
-          extensions: ['.js', '.mjs'],
-        },
-      },
-    },
+    settings: sharedSettings,
   },
   {
     // Ignore generated/build artifacts — none exist today, but if a

@@ -28,7 +28,16 @@ export function renderSidebar(project) {
     els.arcFilterSelect.innerHTML = toBridge(html`<option value="">All arcs</option>${arcs.map((a) => html`<option value="${a}" ${a === prevArc ? 'selected' : ''}>${a}</option>`)}`);
     // Reattach listener each render — simpler than tracking whether it's
     // already attached, since renderSidebar always rebuilds the options list.
-    els.arcFilterSelect.onchange = () => renderSidebar(project);
+    // CR-27 — the handler used to re-render the sidebar ONLY, so adjusting
+    // the arc filter while Corkboard was active left a stale chapter subset
+    // on screen until the next full render. requestRender() lets the
+    // render bus refresh whichever views are live (the corkboard reads the
+    // same filter value at render time); the sidebar refresh above keeps
+    // its own list immediately correct.
+    els.arcFilterSelect.onchange = () => {
+      renderSidebar(project);
+      requestRender();
+    };
   }
   const activeArc = arcs.length > 0 ? els.arcFilterSelect.value : '';
 
@@ -86,7 +95,11 @@ export function buildActGroupItem(group) {
 
   const header = document.createElement('button');
   header.className = 'sb-act-header';
-  header.innerHTML = toBridge(html`<span class="sb-act-caret${isOpen ? ' open' : ''}">▸</span><span class="sb-act-label">${group.arc || 'Unsorted'}</span>`);
+  header.innerHTML = toBridge(html`<span class="sb-act-caret${isOpen ? ' open' : ''}" aria-hidden="true">▸</span><span class="sb-act-label">${group.arc || 'Unsorted'}</span>`);
+  // CR-44 — a collapsed/expanded disclosure state must be programmatic,
+  // not just visual (the caret glyph). aria-expanded is the disclosure
+  // contract for the nested list below.
+  header.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
   header.addEventListener('click', () => {
     if (collapsedActs.has(group.arc)) collapsedActs.delete(group.arc);
     else collapsedActs.add(group.arc);
@@ -110,9 +123,13 @@ export function buildChapterListItem(chapter) {
   const row = document.createElement('div');
   row.className = 'sb-chapter-row';
 
+  // CR-44 — the status dot was title-only (invisible to screen readers).
+  // role="img" + aria-label turns the colored dot into a named indicator.
   const dot = document.createElement('span');
   dot.className = `status-dot dot-${chapter.status}`;
   dot.title = STATUS_LABEL[chapter.status];
+  dot.setAttribute('role', 'img');
+  dot.setAttribute('aria-label', STATUS_LABEL[chapter.status]);
 
   const label = document.createElement('span');
   label.className = 'sb-chapter-title';
@@ -122,10 +139,15 @@ export function buildChapterListItem(chapter) {
   wc.className = 'sb-chapter-wc';
   wc.textContent = Store.wordCount(chapter.content);
 
-// Historical context: see docs/CODEBASE_NOTES.md#jssidebar-js
   const favBtn = document.createElement('button');
   favBtn.className = 'sb-chapter-favorite' + (chapter.favorite ? ' active' : '');
   favBtn.title = chapter.favorite ? 'Remove from favorites' : 'Add to favorites';
+  // CR-44 — icon-only controls get real accessible names; a title
+  // attribute is a tooltip, not a name (most screen readers don't expose
+  // it on focus, and touch users never see it at all). aria-pressed
+  // carries the toggle state the .active class shows visually.
+  favBtn.setAttribute('aria-label', chapter.favorite ? 'Remove from favorites' : 'Add to favorites');
+  favBtn.setAttribute('aria-pressed', chapter.favorite ? 'true' : 'false');
   favBtn.textContent = chapter.favorite ? '★' : '☆';
   favBtn.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -136,6 +158,8 @@ export function buildChapterListItem(chapter) {
   const pinBtn = document.createElement('button');
   pinBtn.className = 'sb-chapter-pin' + (chapter.pinned ? ' active' : '');
   pinBtn.title = chapter.pinned ? 'Unpin' : 'Pin to top';
+  pinBtn.setAttribute('aria-label', chapter.pinned ? 'Unpin' : 'Pin to top');
+  pinBtn.setAttribute('aria-pressed', chapter.pinned ? 'true' : 'false');
   pinBtn.textContent = '📌';
   pinBtn.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -143,10 +167,12 @@ export function buildChapterListItem(chapter) {
     requestRender();
   });
 
-// Historical context: see docs/CODEBASE_NOTES.md#jssidebar-js
   const del = document.createElement('button');
   del.className = 'sb-chapter-delete';
   del.title = 'Move to trash';
+  // CR-44 — the name names WHAT gets trashed; three identical "Move to
+  // trash" buttons in a screen reader's button list is unusable.
+  del.setAttribute('aria-label', `Move ${chapter.title} to trash`);
   del.textContent = '✕';
   del.addEventListener('click', async (e) => {
     // Without this, the click bubbles to the row's own listener below and
@@ -173,10 +199,31 @@ export function buildChapterListItem(chapter) {
     row.append(pill);
   }
 
-  row.addEventListener('click', () => {
+  // CR-44 — the row was a click-only div: keyboard writers couldn't open
+  // a chapter from the sidebar AT ALL. role="button" + tabindex="0" +
+  // Enter/Space activation is the standard non-interactive-to-button
+  // bridge; the explicit aria-label keeps the spoken name tight (title,
+  // status, word count) instead of the row's full text soup (which would
+  // double-speak the inner buttons' labels too). The active chapter also
+  // carries aria-current="true" so it's findable without walking the list.
+  const activateRow = () => {
     setActiveChapterId(chapter.id);
     setActiveView('write');
     requestRender();
+  };
+  row.setAttribute('role', 'button');
+  row.setAttribute('tabindex', '0');
+  row.setAttribute('aria-current', chapter.id === activeChapterId ? 'true' : 'false');
+  row.setAttribute(
+    'aria-label',
+    `${chapter.title}, ${STATUS_LABEL[chapter.status]}, ${Store.wordCount(chapter.content)} words`
+  );
+  row.addEventListener('click', activateRow);
+  row.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      activateRow();
+    }
   });
 
   li.appendChild(row);
@@ -205,13 +252,24 @@ export function buildChapterListItem(chapter) {
         const sceneLi = document.createElement('li');
         sceneLi.className = 'sb-scene';
         sceneLi.textContent = scene.title;
-        sceneLi.addEventListener('click', (e) => {
+        // CR-44 — same click-only-div fix as the chapter row above: the
+        // scene inspector was unreachable by keyboard.
+        const openScene = (e) => {
 // Historical context: see docs/CODEBASE_NOTES.md#jssidebar-js
           e.stopPropagation();
           setActiveChapterId(chapter.id);
           setActiveView('write');
           requestRender();
           openSceneInspector(chapter.id, scene.id);
+        };
+        sceneLi.setAttribute('role', 'button');
+        sceneLi.setAttribute('tabindex', '0');
+        sceneLi.addEventListener('click', openScene);
+        sceneLi.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            openScene(e);
+          }
         });
         sceneList.appendChild(sceneLi);
       });

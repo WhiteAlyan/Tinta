@@ -17,7 +17,9 @@ import {
   backupBeforeDelete,
   getActiveProject,
   getSeriesForActiveProject,
+  load,
   now,
+  ownGet,
   save,
   uid,
 } from './store-core.js';
@@ -27,6 +29,13 @@ export {
   getActiveProject,
   load,
   save,
+  // CR-41 — async boot + landed-result persistence + backend introspection.
+  ready,
+  saveNow,
+  getStorageBackend,
+  _simulateCrossTabFlush,
+  _setFlushInterceptorForTests,
+  _resetStoreForTests,
 } from './store-core.js';
 // Roadmap #5 — SCHEMA_VERSION joins the public surface. tintaPackage.js
 // already wrote `schemaVersion: Store.SCHEMA_VERSION` into every manifest,
@@ -34,6 +43,10 @@ export {
 // silently been `undefined` (dropped by JSON.stringify) on every export so
 // far. Re-exporting fixes both the manifest and the import guards.
 export { SCHEMA_VERSION } from './store-core.js';
+// CR-43 — read-only save revision, consumed by the search view's result
+// cache key (see getSaveRev in store-core.js for why rev is the right
+// cache-buster here).
+export { getSaveRev } from './store-core.js';
 // Pure re-exports (not referenced by domain code internally).
 export {
   STORAGE_KEY,
@@ -201,7 +214,7 @@ export {
 // 0.2.8 Pass 7 — deleteRelationship (the deleteEntity cascade) and
 // getRelationshipsForEntity (craft promotions) keep staying callers;
 // facade->domain is the sanctioned direction. The other 14 are pure.
-import { deleteRelationship, getRelationshipsForEntity } from './store-relationships.js';
+import { deleteRelationship, getRelationshipsForEntity, createRelationship, updateRelationship } from './store-relationships.js';
 export { deleteRelationship, getRelationshipsForEntity };
 // Pure re-exports (no remaining internal callers in this module).
 export {
@@ -425,6 +438,10 @@ export {
   SCENE_REVISION_STATUSES,
   addChapterToCollection,
   addChapterWriteTime,
+  // CR-43 — apply a precomputed (worker-budgeted) replace plan. Sits
+  // next to replaceInChapters, which keeps its legacy find+apply shape
+  // for callers that haven't moved to the async path yet.
+  applyReplacePlan,
   archiveChapter,
   assignChapterToFolder,
   assignChapterToPart,
@@ -529,10 +546,46 @@ export function setAuthoritySource(kind, id, source) {
   else updateEntity(id, { authoritySource: source });
 }
 
+// CR-21 — per-project export promised an id parameter that nothing
+// resolved; this is the resolver it was implicitly advertising. Looks the
+// project up in the full db (not just the active slot), with ownGet
+// semantics so imported garbage keys like 'constructor' resolve to null
+// rather than to the Object prototype.
+export function getProjectById(projectId) {
+  if (!projectId) return null;
+  const db = load();
+  if (!db || !db.projects) return null;
+  return ownGet(db.projects, projectId) || null;
+}
+
 export function deleteEntity(entityId) {
   const project = getActiveProject();
-  const entity = project.entities[entityId];
-  if (entity) backupBeforeDelete('entity', entityId, entity, entity.name);
+  // CR-23 — the lookup used to be a bare index, so deleteEntity('constructor')
+  // found the inherited Object function, archived a junk backup for it,
+  // and swept the maps/sketches/references with a nonsense id. ownGet is
+  // what every other entity accessor uses (see store-core.js) — mirrored
+  // here so the delete path can't fabricate a record from the prototype.
+  const entity = ownGet(project.entities, entityId);
+  // CR-23 — capture the cascade BEFORE it runs. The old backup held only
+  // the entity record: the cascade's deleteRelationship calls were not
+  // part of any backup, so the undo entry could only ever restore a
+  // relationship-less orphan. The edges are stored in the backup's extra
+  // payload (see backupBeforeDelete) with the entity's ORIGINAL id; the
+  // restore path remaps it onto the freshly created record. Each captured
+  // edge also carries its TYPE's label resolved at capture time — the
+  // label lives on the relationship type, and the cascade's
+  // cleanupOrphanedRelationshipType garbage-collects a type whose last
+  // edge just vanished, so the restore path couldn't re-resolve it later.
+  const cascadeRelationships = entity
+    ? Object.keys(project.relationships)
+        .map((relId) => project.relationships[relId])
+        .filter((rel) => rel && (rel.fromId === entityId || rel.toId === entityId))
+        .map((rel) => ({
+          ...rel,
+          label: (project.relationshipTypes && project.relationshipTypes[rel.typeId]?.label) || '',
+        }))
+    : [];
+  if (entity) backupBeforeDelete('entity', entityId, entity, entity.name, { relationships: cascadeRelationships });
 // Historical context: see docs/CODEBASE_NOTES.md#jsstore-js
   Object.values(project.entities).forEach((e) => {
     if (e.parentId === entityId) e.parentId = null;
@@ -588,6 +641,33 @@ export function restoreDeletedItem(backupId) {
   if (backup.kind === 'entity') {
     const entity = createEntity({ name: backup.data.name, type: backup.data.type, description: backup.data.description });
     updateEntity(entity.id, { ...backup.data, id: entity.id, createdAt: entity.createdAt, updatedAt: now() });
+    // CR-23 — rebuild the cascade-deleted edges. The backup's extra
+    // payload holds the relationships captured at delete time, keyed to
+    // the entity's ORIGINAL id; each edge is recreated with a fresh id,
+    // remapping that original onto the restored record's new id. Edges
+    // whose OTHER endpoint no longer exists are skipped (they would
+    // dangle). Freeform fields ride along through updateRelationship;
+    // the audit history does not — its timelineEventIds may themselves
+    // have been deleted, and a partial history is worse than a clean
+    // restart for a living edge.
+    const originalId = backup.originalId;
+    for (const rel of backup.extra?.relationships || []) {
+      if (!rel || typeof rel !== 'object') continue;
+      const otherId = rel.fromId === originalId ? rel.toId : rel.fromId;
+      if (!otherId || !ownGet(project.entities, otherId)) continue;
+      const created = createRelationship({
+        fromId: rel.fromId === originalId ? entity.id : rel.fromId,
+        toId: rel.toId === originalId ? entity.id : rel.toId,
+        label: rel.label || '',
+      });
+      updateRelationship(created.id, {
+        status: rel.status || '',
+        strength: rel.strength || '',
+        startDate: rel.startDate || '',
+        endDate: rel.endDate || '',
+        notes: rel.notes || '',
+      });
+    }
     return { kind: 'entity', id: entity.id };
   }
   if (backup.kind === 'ruleSystem') {

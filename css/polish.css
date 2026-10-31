@@ -1160,3 +1160,32 @@ textarea:focus,
     justify-content: flex-end;
   }
 }
+
+/* ── CR-44 — keyboard focus visibility ─────────────────────────────────
+   One themed ring for anything interactive that doesn't already declare
+   its own focus treatment. :focus-visible (not :focus) keeps mouse
+   clicks ring-free while keyboard Tab always shows where focus is —
+   the WCAG 2.4.7 contract. Specificity note: this loads last (polish.css
+   is the final stylesheet), so it wins over any author rule that only
+   styled :focus and left :focus-visible to the UA. The two intentional
+   exceptions stay as they are: the chapter editor and its title input
+   are borderless writing surfaces whose caret + per-paragraph highlight
+   ARE the focus indicator (an always-on ring on the manuscript textarea
+   would draw a rectangle around the writer's prose); their outline is
+   suppressed by their own :focus rules. The per-field glow rules above
+   continue to layer on top for text entry. */
+button:focus-visible,
+select:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--accent-deep);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Command palette input — its :focus rule (tools.css) removes the
+   outline; the bottom border needs a visible focus state to match. */
+.palette-input:focus {
+  border-bottom-color: var(--accent-deep);
+}

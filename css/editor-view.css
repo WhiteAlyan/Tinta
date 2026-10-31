@@ -319,7 +319,8 @@
    transparent (color: transparent) so they occupy the same width as
    in the textarea, preserving caret-position alignment between the
    overlay and the textarea. The .mention-chip-name is the visible
-   styled part (background, padding). Click on the chip area lands in
+   styled part (highlight halo + outline — zero layout cost, see the
+   CR-04 note below). Click on the chip area lands in
    the textarea (overlay has pointer-events: none) and the existing
    click handler detects the mention via caret position. */
 .focus-dim-overlay .mention-chip {
@@ -331,22 +332,46 @@
   color: transparent;
   text-decoration: none;
 }
+/* CR-04 fix — the chip used to add width the textarea doesn't have:
+   padding (6px) + border (2px) per chip, plus a font-weight bump to
+   500. Every one of those shifted soft-wrap points in mention-heavy
+   paragraphs. The look is rebuilt from zero-layout-cost properties:
+   box-shadow fakes the padding halo, outline (with offset) fakes the
+   border, and the weight now inherits the textarea's. outline and
+   box-shadow paint outside the layout box and never affect line
+   breaking. */
 .focus-dim-overlay .mention-chip-name {
-  background: rgba(122, 90, 58, 0.14);
-  border: 1px solid rgba(122, 90, 58, 0.28);
+  background: transparent;
+  box-shadow: 0 0 0 3px rgba(122, 90, 58, 0.14);
+  outline: 1px solid rgba(122, 90, 58, 0.28);
+  outline-offset: 2px;
   border-radius: 3px;
-  padding: 0 3px;
-  font-weight: 500;
+  font-weight: inherit;
 }
 .focus-dim-overlay .mention-chip-resolved .mention-chip-name {
-  background: rgba(122, 90, 58, 0.14);
-  border-color: rgba(122, 90, 58, 0.28);
+  box-shadow: 0 0 0 3px rgba(122, 90, 58, 0.14);
+  outline-color: rgba(122, 90, 58, 0.28);
   color: var(--ink);
 }
 .focus-dim-overlay .mention-chip-unresolved .mention-chip-name {
   background: transparent;
-  border: 1px dashed rgba(155, 107, 47, 0.45);
+  box-shadow: none;
+  outline: 1px dashed rgba(155, 107, 47, 0.45);
+  outline-offset: 2px;
   color: var(--ink-faint);
+}
+
+/* CR-04 fix — metric-parity marker spans. renderEditorParagraph runs
+   with keepMarkers: true for the overlay, so format markers (**, *,
+   {{u:, }}) stay in the output wrapped in these spans. They must keep
+   the textarea's exact advance width: regular weight, full opacity
+   footprint, invisible ink. Any styling that changes glyph or box
+   width here reintroduces the caret drift the fix removes. */
+.focus-dim-overlay .fmt-marker {
+  color: transparent;
+  font-weight: inherit;
+  font-style: inherit;
+  text-decoration: none;
 }
 
 /* v0.3 — inline images in the overlay. Smaller than Book mode's
@@ -393,7 +418,15 @@
 /* v0.3 — formatted spans inside the overlay. Color swatches use the
    existing fmt-color-* classes from elsewhere; they're defined in
    views.css/tools.css. Strong/em/u render via the browser's default
-   styling, but make sure they inherit the overlay's font metrics. */
+   styling, but make sure they inherit the overlay's font metrics.
+   CR-04 fix — strong no longer uses font-weight: 700. Bold glyphs are
+   WIDER than regular glyphs in the app's proportional fonts, so real
+   bold changed line-break positions versus the textarea's layout of
+   the same characters. -webkit-text-stroke thickens the glyph outline
+   instead: visually heavy, metrically identical. em keeps real italic
+   (true italics have slightly different advance widths — the one
+   residual, documented in the review; fixing it would cost the
+   feature's actual italic look). */
 .focus-dim-overlay strong,
 .focus-dim-overlay em,
 .focus-dim-overlay u {
@@ -401,7 +434,7 @@
   font-style: inherit;
   text-decoration: inherit;
 }
-.focus-dim-overlay strong { font-weight: 700; }
+.focus-dim-overlay strong { -webkit-text-stroke: 0.7px currentColor; }
 .focus-dim-overlay em { font-style: italic; }
 .focus-dim-overlay u { text-decoration: underline; text-underline-offset: 2px; text-decoration-thickness: 1px; }
 

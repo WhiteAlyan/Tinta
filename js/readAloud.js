@@ -4,6 +4,7 @@ import * as Store from './store.js';
 import * as TTS from './tts.js';
 import { closeModal } from './modal.js';
 import { html, toBridge, q } from './dom-utils.js';
+import { stripFormattingTokens } from './format.js';
 
 export function openReadAloudModal(chapter) {
   const root = q('modal-root');
@@ -93,10 +94,17 @@ export function openReadAloudModal(chapter) {
     if (TTS.isPaused()) {
       TTS.resume();
     } else {
-      // Pronunciation dictionary pass — plain word-substitution on the
-      // text handed to speech synthesis, not the chapter content itself
-      // (which is untouched — this only affects how it sounds read aloud).
-      TTS.speak(Store.applyPronunciations(chapter.content), {
+      // CR-46 — strip the manuscript syntax down to plain speakable text
+      // BEFORE the pronunciation pass: formatting tokens (**, *,
+      // {{u:…}}, {{<color>:…}}), {{img:…}} embeds, and [[mention]] brackets
+      // used to go
+      // to the speech engine verbatim and got read aloud ("star star",
+      // "brace brace u colon"). The chapter content itself is untouched —
+      // stripping only affects how it sounds read aloud. Then the
+      // pronunciation dictionary applies its word substitutions on the
+      // already-clean text (a taught respelling can also cover a mention's
+      // name, since the brackets are gone by this point).
+      TTS.speak(Store.applyPronunciations(stripFormattingTokens(chapter.content)), {
         voiceURI: voiceSelect.value,
         rate: Number(rateInput.value),
         onEnd: () => {
@@ -144,7 +152,7 @@ export function openReadAloudModal(chapter) {
             (e) => html`
       <li class="pronunciation-item" data-word="${e.word}">
         <span><strong>${e.word}</strong> → ${e.phonetic}</span>
-        <button class="pronunciation-delete-btn" title="Remove">✕</button>
+        <button class="pronunciation-delete-btn" title="Remove" aria-label="Remove">✕</button>
       </li>`
           )}`
         : html`<li class="empty-note">No pronunciations taught yet.</li>`

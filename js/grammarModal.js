@@ -5,6 +5,7 @@ import * as Grammar from './grammar.js';
 import { activeView, activeChapterId, currentEditorHandle } from './context.js';
 import { openModal, teardown } from './modal.js';
 import { html, toBridge, q } from './dom-utils.js';
+import { applyTextareaEdit } from './editor.js';
 
 export function openGrammarModal(chapter) {
   const settings = Store.getGrammarSettings();
@@ -165,7 +166,7 @@ function renderDictionaryList() {
           (w) => html`
       <li class="pronunciation-item" data-word="${w}">
         <span>${w}</span>
-        <button class="pronunciation-delete-btn" title="Remove">✕</button>
+        <button class="pronunciation-delete-btn" title="Remove" aria-label="Remove">✕</button>
       </li>`
         )}`
       : html`<li class="empty-note">Nothing ignored yet.</li>`
@@ -190,7 +191,7 @@ function renderStyleGuideList() {
           (r) => html`
       <li class="pronunciation-item" data-rule="${r.id}">
         <span>“${r.incorrect}” → “${r.preferred}”${r.note ? html` <span class="health-row-sub">· ${r.note}</span>` : ''}</span>
-        <button class="pronunciation-delete-btn" title="Remove">✕</button>
+        <button class="pronunciation-delete-btn" title="Remove" aria-label="Remove">✕</button>
       </li>`
         )}`
       : html`<li class="empty-note">No style guide rules yet.</li>`
@@ -264,7 +265,7 @@ export function renderGrammarResultsModal(chapter, matches) {
             <span class="grammar-category-tag">${m.category}</span>
             <div class="grammar-match-head-actions">
               <button class="grammar-ignore-btn" title="Never flag this word again in this project">Ignore word</button>
-              <button class="grammar-dismiss-btn" title="Dismiss">✕</button>
+              <button class="grammar-dismiss-btn" title="Dismiss" aria-label="Dismiss">✕</button>
             </div>
           </div>
           <p class="grammar-match-message">${m.shortMessage}</p>
@@ -332,8 +333,10 @@ function applyGrammarReplacement(chapterId, match, replacement) {
 
   const textarea = q('chapter-editor');
   if (activeView === 'write' && activeChapterId === chapterId && textarea) {
-    textarea.value = newContent;
-    textarea.dispatchEvent(new Event('input'));
+    // CR-08 — route through the undo-preserving edit path; a direct value
+    // assignment here wiped the writer's whole native undo history every
+    // time a grammar suggestion was accepted.
+    applyTextareaEdit(textarea, newContent, match.offset + replacement.length, match.offset + replacement.length);
 // Historical context: see docs/CODEBASE_NOTES.md#jsgrammarmodal-js
     currentEditorHandle?.flush();
   } else {

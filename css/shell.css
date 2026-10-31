@@ -142,6 +142,10 @@
   transition: opacity .1s;
 }
 .sb-chapter-row:hover .sb-chapter-delete { opacity: 1; }
+/* CR-44 — keyboard focus reveals the row actions exactly like hover
+   does: opacity-0-on-idle must never hide a FOCUSED control from the
+   keyboard writer who just Tab'd onto it (WCAG 2.4.7). */
+.sb-chapter-row:focus-within .sb-chapter-delete { opacity: 1; }
 .sb-chapter-delete:hover { color: var(--status-draft); }
 
 /* Organization pass — favorite/pin toggles. Hover-revealed like delete
@@ -164,7 +168,9 @@
   transition: opacity .1s, color .1s;
 }
 .sb-chapter-row:hover .sb-chapter-favorite,
+.sb-chapter-row:focus-within .sb-chapter-favorite,
 .sb-chapter-row:hover .sb-chapter-pin,
+.sb-chapter-row:focus-within .sb-chapter-pin,
 .sb-chapter-favorite.active,
 .sb-chapter-pin.active { opacity: 1; }
 .sb-chapter-favorite:hover { color: var(--accent); }

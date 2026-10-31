@@ -15,7 +15,8 @@
 import * as Store from './store.js';
 import * as ImageStore from './imagestore.js';
 // Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js
-import { html, raw, toBridge, q, escapeHtml, escapeAttr, safeExternalUrl, bindOutsideClick, capitalize } from './dom-utils.js';
+import { html, raw, toBridge, q, qs, escapeHtml, escapeAttr, safeExternalUrl, bindOutsideClick, capitalize } from './dom-utils.js';
+import { restoreFocus } from './a11y.js';
 import { STATUS_LABEL } from './vocabulary.js';
 import { requestRender } from './renderBus.js';
 import { setActiveView, setActiveChapterId } from './context.js';
@@ -28,10 +29,16 @@ function releaseDrawerUrls() {
 }
 
 let closeTimer = null;
+// CR-13 — what was focused when the drawer opened, restored on close so
+// dismissing the inspector returns keyboard/screen-reader focus to the
+// control that opened it (a canvas dot, a mention, a backlink row…)
+// instead of dropping it at <body>.
+let lastFocusedBeforeDrawer = null;
 
 export function closeDrawer() {
   const root = q('drawer-root');
   if (!root) return;
+  const wasOpen = root.classList.contains('open') || root.innerHTML.trim() !== '';
   root.classList.remove('open');
   clearTimeout(closeTimer);
 // Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js
@@ -39,6 +46,15 @@ export function closeDrawer() {
     if (!root.classList.contains('open')) root.innerHTML = '';
   }, 250);
   releaseDrawerUrls();
+  // CR-13 — focus restoration only on a genuine close. Re-opening one
+  // drawer over another calls openDrawerShell again (which re-captures),
+  // so this can't race the open path; the guard keeps redundant
+  // closeDrawer() calls (they happen — the outside-click handler and the
+  // global Escape both fire it) from restoring a stale element.
+  if (wasOpen) {
+    restoreFocus(lastFocusedBeforeDrawer);
+    lastFocusedBeforeDrawer = null;
+  }
 }
 
 function openDrawerShell(bodyHtml) {
@@ -46,10 +62,23 @@ function openDrawerShell(bodyHtml) {
   if (!root) return null;
   clearTimeout(closeTimer);
   releaseDrawerUrls();
+  // CR-13 — capture the opener before replacing the shell (a re-open
+  // over an existing drawer would otherwise lose the original opener).
+  // Only capture when the drawer wasn't already open, for the same
+  // reason closeDrawer() only restores when it was.
+  const alreadyOpen = root.classList.contains('open');
+  if (!alreadyOpen) lastFocusedBeforeDrawer = document.activeElement || null;
 // Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js
+  // CR-13 — the drawer is a dialog in the non-modal sense: it overlays
+  // content but deliberately does NOT block the manuscript behind it
+  // (that's the modal/drawer split documented at the top of this file),
+  // so role="dialog" WITHOUT aria-modal — screen readers must still be
+  // able to reach the manuscript, and Tab keeps its natural page-wide
+  // order. tabindex="-1" lets the shell take focus so opening announces
+  // the dialog; the panel is labelled from its .drawer-title below.
   root.innerHTML = toBridge(html`
-    <div class="drawer-panel">
-      <button id="drawer-close" class="drawer-close" title="Close">✕</button>
+    <div class="drawer-panel" role="dialog" tabindex="-1">
+      <button id="drawer-close" class="drawer-close" type="button" title="Close" aria-label="Close">✕</button>
       ${bodyHtml}
     </div>
   `);
@@ -58,6 +87,19 @@ function openDrawerShell(bodyHtml) {
   q('drawer-close').addEventListener('click', closeDrawer);
 // Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js
   bindOutsideClick(handleOutsideClick, { capture: true });
+  // CR-13 — name the dialog from its title (every drawer renders an
+  // h3.drawer-title) and move focus in. Focus follows the panel, not the
+  // close button: the writer lands on the dialog's name (“Kara Vellum,
+  // dialog”), and Tab reaches the close button first anyway.
+  const panel = qs('.drawer-panel', root);
+  const titleEl = qs('.drawer-title', root);
+  const label = titleEl && typeof titleEl.textContent === 'string' ? titleEl.textContent.trim() : '';
+  if (panel) {
+    if (label) panel.setAttribute('aria-label', label);
+    if (typeof panel.focus === 'function') {
+      try { panel.focus({ preventScroll: true }); } catch { panel.focus(); }
+    }
+  }
   return root;
 }
 
@@ -408,7 +450,7 @@ function renderSceneRelationships(chapterId, sceneId) {
           const verb = isFrom ? Store.getSceneRelationshipTypeLabel(r.type) : `${Store.getSceneRelationshipTypeLabel(r.type)} (reverse)`;
           return html`<div class="drawer-list-item scene-rel-item" data-rel="${r.id}">
             <span>${verb} <strong>${sceneLabel(otherId)}</strong></span>
-            <button class="scene-rel-remove" title="Remove">✕</button>
+            <button class="scene-rel-remove" title="Remove" aria-label="Remove">✕</button>
           </div>`;
         })}</div>`
       : html`<p class="empty-note">No scene relationships yet.</p>`
@@ -422,9 +464,15 @@ function renderSceneRelationships(chapterId, sceneId) {
   });
 
   const otherScenes = allScenes.filter((s) => s.id !== sceneId);
+  // CR-24 — the options used to be wrapped in an outer <option>; the HTML
+  // parser closes that outer element the moment the inner ones start, so
+  // the select ended up with a leading EMPTY option selected by default.
+  // The Add handler returns silently on the falsy value, so the control
+  // looked broken until the writer noticed. A real placeholder option
+  // says what to do instead of being a phantom blank.
   targetSelect.innerHTML = toBridge(
     otherScenes.length
-      ? html`<option>${otherScenes.map((s) => html`<option value="${s.id}">${s.chapterTitle} → ${s.title}</option>`)}</option>`
+      ? html`<option value="">Choose a scene…</option>${otherScenes.map((s) => html`<option value="${s.id}">${s.chapterTitle} → ${s.title}</option>`)}`
       : html`<option value="">No other scenes yet</option>`
   );
 }
@@ -443,7 +491,7 @@ function renderSceneAnnotations(sceneId) {
               <span class="annotation-type-tag anno-type-${a.type}">${Store.getAnnotationTypeLabel(a.type)}</span>
               <span>${a.note || html`<span class="empty-state-sm">(no note)</span>`}</span>
             </label>
-            <button class="scene-anno-remove" title="Remove">✕</button>
+            <button class="scene-anno-remove" title="Remove" aria-label="Remove">✕</button>
           </div>`)}</div>`
       : html`<p class="empty-note">Nothing flagged in this scene yet.</p>`
   );
@@ -472,7 +520,7 @@ function renderSceneStoryQuestions(sceneId) {
 
   const renderRow = (question, role) => html`<div class="drawer-list-item scene-sq-item" data-question="${question.id}" data-role="${role}">
     <span>${question.question}${question.resolved ? html` <span class="entity-status-item-badge">resolved</span>` : ''}</span>
-    <button class="scene-sq-unlink" title="Unlink from this scene">✕</button>
+    <button class="scene-sq-unlink" title="Unlink from this scene" aria-label="Unlink from this scene">✕</button>
   </div>`;
 
   introducedList.innerHTML = toBridge(
@@ -498,9 +546,11 @@ function renderSceneStoryQuestions(sceneId) {
 
 // Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js
   const linkable = Store.getStoryQuestionList().filter((qq) => qq.payoffSceneId !== sceneId);
+  // CR-24 — same nested-<option> phantom blank as the scene-relationship
+  // target select above; a real placeholder instead of the parser artifact.
   linkSelect.innerHTML = toBridge(
     linkable.length
-      ? html`<option>${linkable.map((qq) => html`<option value="${qq.id}">${qq.question}</option>`)}</option>`
+      ? html`<option value="">Choose a question…</option>${linkable.map((qq) => html`<option value="${qq.id}">${qq.question}</option>`)}`
       : html`<option value="">No open questions to link yet</option>`
   );
 }

@@ -9,10 +9,11 @@ import { renderBookView, revokeBookModeUrls } from './bookView.js';
 import { cancelCanvasLinkMode, renderCanvasView } from './canvasView.js';
 import { renderChecklistView } from './checklistView.js';
 import { openCommandPalette } from './commandPalette.js';
-import { activeView, activeChapterId, navHandle, setActiveChapterId, setActiveEntityId, setActiveView, setNavHandle } from './context.js';
+import { activeView, currentEditorHandle, navHandle, setActiveChapterId, setActiveEntityId, setActiveView, setNavHandle } from './context.js';
 import { renderCorkboardView } from './corkboardView.js';
 import { renderDecisionsView } from './decisionsView.js';
 import { q } from './dom-utils.js';
+import { announce } from './a11y.js';
 import { closeDrawer } from './drawer.js';
 import { getFocusLevel, setFocusLevel, updateFocusButtons } from './editor.js';
 import { els } from './els.js';
@@ -74,7 +75,7 @@ import * as RecoveryToast from './recoveryToast.js';
 // clicked the button to save their last keystrokes, and a quiet failure
 // there is exactly the class of loss this banner exists to prevent.
 async function copyUnsavedTextToClipboard(text, btn) {
-  let copied = false;
+  let copied; // eslint 10 no-useless-assignment — never read before the try assigns it
   try {
     await navigator.clipboard.writeText(text);
     copied = true;
@@ -99,7 +100,19 @@ async function copyUnsavedTextToClipboard(text, btn) {
   }
 }
 
-function init() {
+async function init() {
+  // CR-41 — the store boots asynchronously now (IndexedDB primary with a
+  // localStorage fallback). Everything below reads Store state, so the
+  // boot MUST be settled first: load the db (migrating a legacy
+  // localStorage install on the way), then wire the app exactly as before.
+  await Store.ready();
+  // Test seam — specs can opt into a Store handle for driving persistence
+  // failure paths (the same family as the __TINTA_SKIP_BOOT_OVERLAYS flag;
+  // never set in production, so nothing is exposed there).
+  if (typeof window !== 'undefined' && window.__TINTA_EXPOSE_STORE) {
+    window.__TINTA_STORE = Store;
+  }
+
   Theme.initTheme();
   Theme.initBackground();
   Theme.initCustomFont();
@@ -195,14 +208,32 @@ function init() {
 // while stale, and bypassing the refusal would clobber the newer tab — so
 // the banner instead NAMES the loss and offers a copy-out action that puts
 // the unsaved text on the clipboard before the reload.
-  Store.onCrossTabConflict(() => {
+  Store.onCrossTabConflict((detail) => {
     const editor = document.querySelector('#chapter-editor');
-    const savedChapter = Store.getChapter(activeChapterId);
-    const unsavedText = editor && savedChapter && editor.value !== savedChapter.content ? editor.value : '';
+    // CR-07 — compare the editor against the editor watermark (the last
+    // value whose persist actually LANDED), not the live chapter object.
+    // updateChapterContent mutates the in-memory chapter BEFORE save() is
+    // attempted, so in the ordering where this tab's debounce fired and
+    // was refused as stale, the chapter object already holds the new text
+    // and the old comparison found "no difference" — the banner degraded
+    // to the plain reload variant and the writer's reload destroyed the
+    // text. The watermark only advances on a successful persist, so it is
+    // the honest last-known-good reference here.
+    const handle = currentEditorHandle;
+    const editorValue = handle?.getValue ? handle.getValue() : editor?.value ?? '';
+    const lastLanded = handle?.getLastSavedValue ? handle.getLastSavedValue() : null;
+    const unsavedText =
+      editorValue && lastLanded !== null && editorValue !== lastLanded ? editorValue : '';
     const actions = [{ label: 'Reload now', onClick: () => window.location.reload() }];
-    let message = 'This project was just updated in another tab. To avoid overwriting that newer version, saving is paused here. Reload this tab to pick it up before continuing.';
+    // CR-06 — an equal-revision conflict means two tabs landed the same
+    // revision and one copy lost; name that distinctly so the writer
+    // understands why BOTH tabs are flagged, not just the older one.
+    const whatHappened = detail?.equalRev
+      ? 'Another tab was writing this project at the same time as this one, and the two copies diverged — the other copy won the disk.'
+      : 'This project was just updated in another tab.';
+    let message = `${whatHappened} To avoid overwriting that newer version, saving is paused here. Reload this tab to pick it up before continuing.`;
     if (unsavedText) {
-      message = "This project was just updated in another tab, and this tab's editor still holds unsaved text (the last keystrokes before the pause). Saving is paused here so the newer version isn't overwritten — copy the unsaved text out before reloading, or reload to discard it.";
+      message = `${whatHappened} This tab's editor still holds text that never landed (the last keystrokes before the pause). Saving is paused here so the newer version isn't overwritten — copy the unsaved text out before reloading, or reload to discard it.`;
       actions.unshift({ label: 'Copy unsaved text', onClick: (btn) => copyUnsavedTextToClipboard(unsavedText, btn) });
     }
     showStorageWarning(message, { actions, persistent: true });
@@ -474,6 +505,11 @@ function bindGlobalControls() {
   sidebarToggle.id = 'sidebar-toggle-btn';
   sidebarToggle.className = 'sidebar-toggle-btn';
   sidebarToggle.title = Store.getSidebarCollapsed() ? 'Expand sidebar' : 'Collapse sidebar';
+  // CR-44 — the sidebar is a disclosure: expanded/collapsed must be
+  // programmatic, and the button needs a name (its content is a glyph).
+  sidebarToggle.setAttribute('type', 'button');
+  sidebarToggle.setAttribute('aria-label', 'Toggle sidebar');
+  sidebarToggle.setAttribute('aria-expanded', Store.getSidebarCollapsed() ? 'false' : 'true');
   sidebarToggle.textContent = Store.getSidebarCollapsed() ? '☰' : '☜';
   sidebarToggle.addEventListener('click', () => {
     const collapsed = !Store.getSidebarCollapsed();
@@ -481,6 +517,7 @@ function bindGlobalControls() {
     els.shell.classList.toggle('sidebar-collapsed', collapsed);
     sidebarToggle.textContent = collapsed ? '☰' : '☜';
     sidebarToggle.title = collapsed ? 'Expand sidebar' : 'Collapse sidebar';
+    sidebarToggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
   });
   els.shell.querySelector('.sidebar-footer')?.prepend(sidebarToggle);
 
@@ -577,6 +614,18 @@ export function render(opts = {}) {
   // sketch view (or on switching sketches) — detach its pointer listeners
   // so they don't linger on an element that's no longer in the DOM.
   if (activeView !== 'sketch') detachSketchDrawing();
+
+  // CR-44 — a view switch replaces a whole panel at once; sighted users
+  // see it, assistive tech hears silence. Announce the landed view on the
+  // shared polite live region. Only on an actual VIEW CHANGE (not on
+  // every re-render — typing re-renders constantly) and only when the
+  // view belongs to the nav (every render dispatch target does).
+  if (render._lastAnnouncedView !== activeView) {
+    render._lastAnnouncedView = activeView;
+    const group = Nav.NAV_GROUPS.find((g) => g.views.some((v) => v.id === activeView));
+    const viewLabel = group?.views.find((v) => v.id === activeView)?.label;
+    if (viewLabel) announce(`${viewLabel} view`);
+  }
 }
 
 function renderViewTabs() {

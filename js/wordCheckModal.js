@@ -122,7 +122,7 @@ function renderThesaurusModal(nameResult) {
                       (w) => html`
                     <span class="custom-thesaurus-chip" data-word="${w}">
                       ${w}: ${custom[w].join(', ')}
-                      <button class="custom-thesaurus-remove" data-word="${w}" title="Remove">✕</button>
+                      <button class="custom-thesaurus-remove" data-word="${w}" title="Remove" aria-label="Remove">✕</button>
                     </span>`
                     )}
                 </div>`

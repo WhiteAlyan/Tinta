@@ -75,7 +75,7 @@ export function renderSnapshotListPane(snapshots, _chapterId) {
           </div>
           <div class="snapshot-row-actions">
             <button class="snapshot-diff-btn">Compare</button>
-            <button class="snapshot-delete-btn" title="Delete">✕</button>
+            <button class="snapshot-delete-btn" title="Delete" aria-label="Delete">✕</button>
           </div>
         </div>`
         )
@@ -149,7 +149,7 @@ export function openEntityHistoryModal(entityId, compareSnapshotId = null) {
                     </div>
                     <div class="snapshot-row-actions">
                       <button class="snapshot-diff-btn">Compare</button>
-                      <button class="snapshot-delete-btn" title="Delete">✕</button>
+                      <button class="snapshot-delete-btn" title="Delete" aria-label="Delete">✕</button>
                     </div>
                   </div>`
                   )

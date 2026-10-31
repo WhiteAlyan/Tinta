@@ -141,7 +141,7 @@ export function renderImageLibraryGrid() {
       <input type="text" class="image-caption-input" placeholder="Caption" value="${img.caption}" />
       <div class="image-card-row">
         ${actionButton}
-        <button class="image-delete-btn" title="Delete image">✕</button>
+        <button class="image-delete-btn" title="Delete image" aria-label="Delete image">✕</button>
       </div>
     </div>`;
     })}`);

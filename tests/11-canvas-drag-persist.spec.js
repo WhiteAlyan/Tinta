@@ -1,14 +1,22 @@
 import { test, expect } from '@playwright/test';
 
 // Canvas drag end-to-end — drag a node to a new position, verify the
-// position is saved both in-memory and to localStorage, and survives a
-// full page reload.
+// position is saved both in-memory and to the persisted store, and
+// survives a full page reload.
+//
+// Since the storage epic (CR-41) the persisted store is the IndexedDB
+// primary ('tinta-db'); localStorage's 'tinta:db' key is only a
+// best-effort mirror written at page-pause points. "Landed" therefore
+// means the IDB transaction committed — getStoredPosition below reads
+// that primary directly.
 //
 // What this guards against:
 // 1. The debounced setEntityPosition save (200ms) — the position should
 //    land on disk within 200ms of the drag ending, and onDragEnd's
 //    flushPendingPositionSave() should make the final position land
-//    immediately rather than waiting out the debounce.
+//    immediately rather than waiting out the debounce. (save() now
+//    schedules a coalesced microtask flush; the IDB transaction commits
+//    within milliseconds.)
 // 2. The pagehide/beforeunload flush on the editor's flushPendingPositionSave
 //    hook — if a drag ends and the writer immediately closes the tab
 //    (before the 200ms debounce fires), the position shouldn't be lost.
@@ -16,9 +24,9 @@ import { test, expect } from '@playwright/test';
 //    doesn't have a clean way to simulate it, but the onDragEnd flush
 //    covers the common case.)
 // 3. The reload-restore cycle — the canvas's renderCanvasView reads
-//    canvasX/canvasY from the entity record, which is loaded from
-//    localStorage on boot. A position that didn't survive reload would
-//    be silently lost (the node would land at the default-layout
+//    canvasX/canvasY from the entity record, which is loaded from the
+//    IndexedDB primary on boot. A position that didn't survive reload
+//    would be silently lost (the node would land at the default-layout
 //    position instead of where the writer dragged it).
 // 4. The transform attribute reflecting the new position — the SVG <g>
 //    element's `transform` attribute should match the new canvasX/Y
@@ -60,19 +68,30 @@ async function getNodeCenter(page, entityName) {
 }
 
 async function getStoredPosition(page, entityName) {
-  // Read the entity's canvasX/canvasY directly from localStorage.
-  return page.evaluate((name) => {
-    const raw = localStorage.getItem('tinta:db');
-    if (!raw) return null;
-    const db = JSON.parse(raw);
-    const project = db.projects[db.activeProjectId];
-    const entity = Object.values(project.entities).find((e) => e.name === name);
+  // Read the entity's canvasX/canvasY directly from the IndexedDB primary.
+  return page.evaluate(async (name) => {
+    const openReq = indexedDB.open('tinta-db', 1);
+    const db = await new Promise((resolve, reject) => {
+      openReq.onsuccess = () => resolve(openReq.result);
+      openReq.onerror = () => reject(openReq.error);
+    });
+    const snap = await new Promise((resolve, reject) => {
+      const tx = db.transaction(['meta', 'projects'], 'readonly');
+      const metaReq = tx.objectStore('meta').get('db');
+      const projReq = tx.objectStore('projects').getAll();
+      tx.oncomplete = () => resolve({ meta: metaReq.result, projects: projReq.result });
+      tx.onerror = () => reject(tx.error);
+    });
+    db.close();
+    const activeId = snap.meta?.activeProjectId;
+    const project = (snap.projects || []).find((p) => p.id === activeId);
+    const entity = project ? Object.values(project.entities || {}).find((e) => e.name === name) : null;
     if (!entity) return null;
     return { x: entity.canvasX, y: entity.canvasY };
   }, entityName);
 }
 
-test('dragging a canvas node updates its position in localStorage immediately', async ({ page }) => {
+test('dragging a canvas node updates its persisted position immediately', async ({ page }) => {
   await createEntitiesAndOpenCanvas(page, ['Alice', 'Bob']);
 
   // Capture Alice's pre-drag position
@@ -93,7 +112,8 @@ test('dragging a canvas node updates its position in localStorage immediately', 
   await page.mouse.up();
 
   // Wait for the flushPendingPositionSave() that onDragEnd calls (it
-  // fires save() synchronously, so 300ms is plenty).
+  // fires save() → a coalesced microtask flush → an IDB transaction;
+  // 300ms is plenty for the commit).
   await page.waitForTimeout(300);
 
   // The stored position should have changed from `before` — exactly

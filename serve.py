@@ -18,6 +18,26 @@ import threading
 import webbrowser
 
 
+# CR-30 — the stock SimpleHTTPRequestHandler rendered a browsable directory
+# listing for any folder without an index (docs/, js/, tests/, node_modules/…)
+# and sent no cache or content-type-sniffing headers. This subclass 404s
+# directory paths (a directory WITH an index.html — the app root — still
+# serves normally), and stamps the two headers a local app server should
+# always send.
+class TintaRequestHandler(http.server.SimpleHTTPRequestHandler):
+    def send_head(self):
+        path = self.translate_path(self.path)
+        if os.path.isdir(path) and not os.path.exists(os.path.join(path, 'index.html')):
+            self.send_error(404, 'File not found')
+            return None
+        return super().send_head()
+
+    def end_headers(self):
+        self.send_header('X-Content-Type-Options', 'nosniff')
+        self.send_header('Cache-Control', 'no-cache')
+        super().end_headers()
+
+
 def find_free_port(start=8080, end=8180):
     for port in range(start, end):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -38,8 +58,10 @@ def main():
         sys.exit(1)
 
     socketserver.TCPServer.allow_reuse_address = True
-    handler = http.server.SimpleHTTPRequestHandler
-    httpd = socketserver.TCPServer(('127.0.0.1', port), handler)
+    # CR-30 — ThreadingHTTPServer, not the single-threaded TCPServer: one
+    # stalled connection (a hung download, a paused tab) used to freeze the
+    # whole launcher — every other request queued behind it.
+    httpd = http.server.ThreadingHTTPServer(('127.0.0.1', port), TintaRequestHandler)
 
     url = f'http://127.0.0.1:{port}/'
     print('=' * 50)

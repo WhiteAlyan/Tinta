@@ -16,6 +16,17 @@ import { requestRender } from './renderBus.js';
 import { applyMotionSpeed } from './theme.js';
 import { showStorageWarning } from './toast.js';
 
+// CR-25 — the font, ambience-track, and background-image handlers all
+// `await` their work and then called openSettingsModal() unconditionally.
+// Pressing Escape while a large file processed made Settings pop back open
+// on top of whatever the writer had moved on to. Every post-await re-render
+// now goes through this guard: only the still-open Settings modal gets
+// re-rendered.
+function reopenSettingsIfStillOpen() {
+  const panel = q('modal-root')?.querySelector('.modal-panel');
+  if (panel?.classList.contains('settings-modal')) openSettingsModal();
+}
+
 export function openSettingsModal() {
   const theme = Theme.currentTheme();
   const font = Store.getManuscriptFont();
@@ -116,7 +127,7 @@ export function openSettingsModal() {
             <span>Theme</span>
             <div class="theme-swatches">
               ${THEMES.map(
-                (t) => `<button class="theme-swatch theme-swatch-${t.id}${t.id === theme ? ' active' : ''}" data-theme="${t.id}" title="${t.label}"></button>`
+                (t) => `<button class="theme-swatch theme-swatch-${t.id}${t.id === theme ? ' active' : ''}" data-theme="${t.id}" title="${t.label}" aria-label="${t.label}"></button>`
               ).join('')}
             </div>
           </div>
@@ -398,6 +409,10 @@ export function openSettingsModal() {
       if (toggleBtn) {
         toggleBtn.textContent = collapsed ? '☰' : '☜';
         toggleBtn.title = collapsed ? 'Expand sidebar' : 'Collapse sidebar';
+        // CR-44 — keep the disclosure state honest when the Settings
+        // sidebar layout row changes it (app.js's click handler owns the
+        // same sync for the button's own path).
+        toggleBtn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
       }
     });
   });
@@ -445,7 +460,7 @@ export function openSettingsModal() {
     Store.setManuscriptFont('custom');
     // P2-11 — route through Theme.applyFont().
     Theme.applyFont('custom');
-    openSettingsModal();
+    reopenSettingsIfStillOpen(); // CR-25
   });
   const customFontRemoveBtn = q('custom-font-remove-btn');
   if (customFontRemoveBtn) {
@@ -459,7 +474,7 @@ export function openSettingsModal() {
         // P2-11 — route through Theme.applyFont().
         Theme.applyFont('literata');
       }
-      openSettingsModal();
+      reopenSettingsIfStillOpen(); // CR-25
     });
   }
 
@@ -538,7 +553,7 @@ export function openSettingsModal() {
           Store.setAmbienceSettings({ track: ok ? 'custom' : 'off', customTrackSource: 'file' });
         }
       }
-      openSettingsModal();
+      reopenSettingsIfStillOpen(); // CR-25
     });
 
     q('ambience-custom-track-input').addEventListener('change', async (e) => {
@@ -548,7 +563,7 @@ export function openSettingsModal() {
       const settings = Store.getAmbienceSettings();
       const ok = await Ambience.playCustomTrack(file, settings.volume);
       Store.setAmbienceSettings({ track: ok ? 'custom' : 'off', customTrackName: file.name, customTrackSource: 'file' });
-      openSettingsModal();
+      reopenSettingsIfStillOpen(); // CR-25
     });
 
     const removeCustomTrackBtn = q('ambience-custom-track-remove');
@@ -557,7 +572,7 @@ export function openSettingsModal() {
         if (Ambience.getCurrentTrack() === 'custom') Ambience.stop();
         await AssetStore.deleteBlob(AssetStore.KEYS.AMBIENCE_TRACK);
         Store.setAmbienceSettings({ track: 'off', customTrackName: '' });
-        openSettingsModal();
+        reopenSettingsIfStillOpen(); // CR-25
       });
     }
 
@@ -581,7 +596,7 @@ export function openSettingsModal() {
           showStorageWarning(`Couldn't play that URL: either it's not a direct audio link, or the site doesn't allow this kind of playback.`);
         }
         Store.setAmbienceSettings({ track: ok ? 'custom' : 'off', customTrackSource: 'url', customTrackUrl: url });
-        openSettingsModal();
+        reopenSettingsIfStillOpen(); // CR-25
       });
     }
   }
@@ -591,7 +606,7 @@ export function openSettingsModal() {
     btn.addEventListener('click', async () => {
       Store.setBackgroundSettings({ mode: btn.dataset.bgMode });
       await Theme.applyBackground();
-      openSettingsModal();
+      reopenSettingsIfStillOpen(); // CR-25
     });
   });
 
@@ -623,7 +638,7 @@ export function openSettingsModal() {
     await AssetStore.putBlob(AssetStore.KEYS.BACKGROUND_IMAGE, prepared);
     Store.setBackgroundSettings({ mode: 'image', imageName: file.name });
     await Theme.applyBackground();
-    openSettingsModal();
+    reopenSettingsIfStillOpen(); // CR-25
   });
   q('bg-image-dim').addEventListener('input', async (e) => {
     Store.setBackgroundSettings({ imageDim: Number(e.target.value) });
@@ -635,7 +650,7 @@ export function openSettingsModal() {
       await AssetStore.deleteBlob(AssetStore.KEYS.BACKGROUND_IMAGE);
       Store.setBackgroundSettings({ mode: 'none', imageName: '' });
       await Theme.applyBackground();
-      openSettingsModal();
+      reopenSettingsIfStillOpen(); // CR-25
     });
   }
 

@@ -8,6 +8,7 @@ import {
   save,
   uid,
 } from './store-core.js';
+import { containsCjk } from './format.js';
 
 // Roadmap #9 — every save re-serializes the whole db, so an unbounded
 // array is unbounded quota growth, and the decision log was exactly that:
@@ -178,12 +179,34 @@ export function deleteStyleGuideRule(ruleId) {
 }
 
 // Historical context: see docs/CODEBASE_NOTES.md#jsstore-craft-js
+
 export function scanTextForStyleViolations(text = '', rules = []) {
   if (!text || !rules.length) return [];
   const sorted = [...rules].sort((a, b) => b.incorrect.length - a.incorrect.length);
   const found = [];
   sorted.forEach((rule) => {
-    const re = new RegExp(`\\b${escapeRegExp(rule.incorrect)}\\b`, 'gi');
+    // CR-18 — \b is a LATIN word boundary: it can never match between two
+    // CJK characters, so a style-guide rule never fired on Chinese or
+    // Japanese prose (there is no whitespace for \b to anchor to). Rules
+    // whose "incorrect" text contains CJK characters get explicit
+    // lookarounds instead. The boundary deliberately guards ONLY against
+    // ASCII word characters (\w): CJK characters must NOT block each
+    // other — prose like 但是误差仍在 has no separators, and requiring a
+    // non-CJK neighbor would make almost every real match impossible. The
+    // guard still stops a CJK rule from firing inside a Latin word
+    // ("误差less"). Lookbehind needs a modern engine; a context that can't
+    // compile it falls back to the legacy \b pattern rather than breaking
+    // the scan.
+    let re;
+    if (containsCjk(rule.incorrect)) {
+      try {
+        re = new RegExp(`(?<!\\w)${escapeRegExp(rule.incorrect)}(?!\\w)`, 'gi');
+      } catch {
+        re = new RegExp(`\\b${escapeRegExp(rule.incorrect)}\\b`, 'gi');
+      }
+    } else {
+      re = new RegExp(`\\b${escapeRegExp(rule.incorrect)}\\b`, 'gi');
+    }
     let m;
     while ((m = re.exec(text))) {
       found.push({

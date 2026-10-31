@@ -1041,18 +1041,29 @@ install prompt if you want it in its own window.
 
 ## Data
 
-Everything lives in `localStorage` under the key `tinta:db` — a single
-JSON blob holding the active project, its chapters (with scenes and now
-revision snapshots), the entities table, relationship edges, and sketches,
-plus the app-level grammar-check settings from Session 8.
+The primary database lives in **IndexedDB** (database `tinta-db`): one
+metadata record plus one record per project, written in a single
+transaction per flush, as native structured clones rather than a JSON
+string. This is where your chapters (with scenes and revision snapshots),
+the entities table, relationship edges, sketches, and the app-level
+grammar-check settings live. IndexedDB's quota is tens of megabytes to
+hundreds, versus localStorage's ~5 MB — the original single-JSON-blob
+localStorage design is what capped library size.
 
-If a project was saved before this rename, it's under the old key
-`scriptorium:db` instead. `store.js`'s `load()` checks for that automatically
-the first time it doesn't find anything under `tinta:db`, and immediately
-re-saves it under the new key — the old key is left in place afterward
-(untouched, not deleted) as an extra safety copy rather than something you
-need to clean up. Nothing is lost either way; this only matters if you're
-digging through dev tools directly and wondering why there are two keys.
+A best-effort **localStorage mirror** under the key `tinta:db` is written
+at natural pause points (tab hidden, page closing). It is a fallback
+copy — bounded to ~4 MB, and it is not the source of truth. On boot the
+revision numbers arbitrate: the fresher of the two wins, so an
+IndexedDB-wiped accident can still be recovered from the mirror and vice
+versa. (If a project was saved before the key rename, the old
+`scriptorium:db` key is migrated in automatically on first boot; the
+import files and recovery snapshots — images, custom fonts, ambience
+tracks, quota-recovery snapshots, and quarantine copies — live in their
+own IndexedDB stores, not in that key.)
+
+Nothing is lost either way; this only matters if you're digging through
+dev tools directly and wondering why storage shows both a `tinta-db`
+database and a `tinta:db` local-storage key.
 
 The one exception to "nothing leaves the browser": if you turn on the
 Session 8 grammar/style check, that chapter's text is sent to whatever

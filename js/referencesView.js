@@ -155,7 +155,14 @@ function renderReferenceMain(project) {
   q('reference-title').addEventListener('input', (e) => {
     Store.updateReference(ref.id, { title: e.target.value });
 // Historical context: see docs/CODEBASE_NOTES.md#jsreferencesview-js
-    const item = document.querySelector('.sketch-list-col .notes-entity-item.active');
+    // CR-16 — this selector used to be document-wide. The Map and Sketch
+    // panels keep HIDDEN content whose rows also carry
+    // .notes-entity-item.active (the Map auto-selects its first row on
+    // render), so typing in References rewrote a hidden Map/Sketch row's
+    // innerHTML while the visible References row never live-updated.
+    // Scoping to this view's panel root fixes both halves.
+    const panelRoot = mainEl.closest('.view-panel');
+    const item = panelRoot?.querySelector('.sketch-list-col .notes-entity-item.active');
     if (item) item.innerHTML = toBridge(html`<span class="reference-type-tag">${ref.refType}</span> ${e.target.value}`);
   });
 

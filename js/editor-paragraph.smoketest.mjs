@@ -116,6 +116,48 @@ ok('combined paragraph renders all three elements',
   combined.includes('class="mention-chip mention-chip-resolved"') &&
   combined.includes('<figure class="fmt-image fmt-image-right">'));
 
+// ── CR-04 — metric-parity (keepMarkers) mode for the editor overlay ─────
+// The overlay paints on top of a transparent textarea whose caret
+// geometry comes from laying out the RAW text. In keepMarkers mode the
+// rendered output must therefore contain EVERY raw character — the
+// invariant is: strip all tags from the rendered HTML and you get back
+// the exact input text. Any mismatch here is a caret-drift regression.
+section('CR-04 — keepMarkers metric parity (tags stripped → raw text back)');
+const parityInputs = [
+  'plain paragraph',
+  '**bold** and *italic* side by side',
+  '{{u:underlined}} plus {{blue:colored}} text',
+  '**b** *i* {{u:u}} all three',
+  'a [[Mara]] mention between words',
+  '**bold with [[Alice]] mention inside**',
+  'no trailing newline markers',
+];
+for (const raw of parityInputs) {
+  const rendered = renderEditorParagraph(raw, {
+    mentionResolver: () => ({ id: 'e1' }),
+    keepMarkers: true,
+  });
+  const textContent = rendered.replace(/<[^>]+>/g, '');
+  ok(`parity: "${raw}"`, textContent === raw, `got: "${textContent}"`);
+}
+const withMarkers = renderEditorParagraph('**b** *i* {{u:u}} {{blue:c}}', { keepMarkers: true });
+ok('markers are present, wrapped in fmt-marker spans',
+  (withMarkers.match(/class="fmt-marker"/g) || []).length === 8, // ** ×2, * ×2, {{u: + }}, {{blue: + }}
+  `got ${(withMarkers.match(/class="fmt-marker"/g) || []).length}`);
+ok('italic pass does not bleed across the bold marker spans (sentinel isolation)',
+  withMarkers.includes('<em>i</em>') && withMarkers.includes('<strong>b</strong>') &&
+  !/<em>[^]*fmt-marker[^]*<\/em>/.test(withMarkers));
+ok('underline marker keeps the {{u: prefix and }} suffix verbatim',
+  withMarkers.includes('<span class="fmt-marker">{{u:</span>') &&
+  withMarkers.includes('<span class="fmt-marker">}}</span>'));
+ok('color marker keeps the named prefix ({{blue:) verbatim',
+  withMarkers.includes('<span class="fmt-marker">{{blue:</span>'));
+ok('default mode (no flag) still strips markers for read-only views',
+  !renderEditorParagraph('**b**').includes('fmt-marker') &&
+  renderEditorParagraph('**b**').includes('<strong>b</strong>'));
+ok('default mode output is unchanged (markers fully removed)',
+  renderEditorParagraph('*i* {{u:u}}').replace(/<[^>]+>/g, '') === 'i u');
+
 // ── summary ──────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed${fail === 0 ? ' — all green.' : ''}`);
 if (fail > 0) {

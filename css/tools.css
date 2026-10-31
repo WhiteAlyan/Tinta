@@ -264,6 +264,10 @@
 
 /* ── quick-wins: regex error + category filter chips ── */
 .search-regex-error { color: var(--status-draft); }
+/* CR-43 — honest search-status notes. A stopped/capped run must look
+   different from a quiet "no matches", and the same warning tone the
+   regex error uses is right for it. */
+.search-stopped-note { color: var(--status-draft); }
 .search-regex-replace-note { margin-bottom: var(--space-5); }
 .search-category-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: var(--space-6); }
 .search-category-chip {

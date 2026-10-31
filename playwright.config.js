@@ -50,7 +50,13 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './tests',
   fullyParallel: false, // each test drives its own fresh browser context/localStorage, but the dev server is one shared process — keep it simple and serial for now
-  retries: 0,
+  // CR-31 — retries sat at 0 UNDER a comment documenting a ~1-in-3 sandbox
+  // flake ("browser-closed-at-newContext", zero assertion failures, green
+  // on re-run) — a flake this audit then observed live. CI runs get one
+  // retry so an infra kill doesn't red a pipeline that has no real failure;
+  // local runs stay at 0 so a genuine flaky spec is still visible to a
+  // developer watching the terminal.
+  retries: process.env.CI ? 1 : 0,
   reporter: 'list',
   use: {
     baseURL: 'http://localhost:8420',
@@ -65,13 +71,23 @@ export default defineConfig({
   },
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    // CR-31 — the Mac launcher targets Safari/WebKit users, but the suite
+    // only ever ran one Chromium project. WebKit runs when its binary is
+    // present (`npx playwright install webkit`); CI that doesn't install
+    // it can scope with `--project=chromium`. Same specs, same gate — the
+    // point is that engine-specific render/behavior drift stops being
+    // invisible.
+    { name: 'webkit', use: { ...devices['Desktop Safari'] } },
   ],
   // Same local-serving convention this project already uses elsewhere
   // (python -m http.server) — index.html loads its scripts as ES modules,
   // which real browsers refuse to fetch over file://, so a static server
   // is required, not optional.
+  // CR-31 — --bind 127.0.0.1: stock http.server binds ALL interfaces,
+  // which serve.py deliberately does not (see its own header). The test
+  // server shouldn't be more exposed than the launcher.
   webServer: {
-    command: 'python3 -m http.server 8420',
+    command: 'python3 -m http.server 8420 --bind 127.0.0.1',
     url: 'http://localhost:8420',
     reuseExistingServer: !process.env.CI,
     timeout: 10_000,

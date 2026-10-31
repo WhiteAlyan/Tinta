@@ -5,17 +5,77 @@ const MAX_MATCHES_PER_FIELD = 20; // a runaway "e" search on a full chapter
 // shouldn't return hundreds of hits — cap per field, not per project, so a
 // long chapter doesn't crowd out every other result type.
 
+// CR-43 — user-supplied regex must never be able to freeze the app. JS
+// regex has no built-in execution limit, so a pattern like (a+)+$ against
+// the wrong manuscript line backtracks exponentially. A cooperative
+// budget between match iterations handles the "slow pattern over a big
+// project" case gracefully (partial results + an honest "stopped" flag);
+// the pathological single-exec() hang — where no cooperative check can
+// ever run — is handled one layer up by the search worker's hard
+// watchdog terminate (see searchService.js / search-worker.js). The
+// budget constants here are the engine-level half of that design.
+// Exported for searchService.js — the main-thread watchdog is armed at
+// budget + grace, so it needs the same default the engine runs with.
+export const SEARCH_TIME_BUDGET_MS = 2000; // cooperative wall-clock budget per search run
+const MAX_TOTAL_MATCHES = 2000; // global result cap across the whole project
+
+// performance.now() is monotonic and sub-ms (Date.now() can round to 0
+// elapsed on fast fixtures, which would make budget-0 tests flaky).
+const nowMs = () => (typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now());
+
+// One shared budget for a whole search run. findOccurrences consults it
+// per loop iteration; searchProject consults it between categories. When
+// the budget trips, scanning stops and the run reports WHY it stopped —
+// the UI surfaces that honestly instead of pretending results are total.
+function createSearchBudget({ budgetMs = SEARCH_TIME_BUDGET_MS, maxMatches = MAX_TOTAL_MATCHES } = {}) {
+  const startedAt = nowMs();
+  const budget = {
+    deadline: budgetMs == null ? Infinity : startedAt + budgetMs,
+    stopped: null, // null = ran to completion; else { reason: 'time' | 'matches', elapsedMs }
+    elapsedMs() { return nowMs() - startedAt; },
+    // Called once per match-iteration. Cheap by design: the deadline
+    // comparison only runs when a match attempt is about to happen, never
+    // per scanned character (indexOf/exec do the scanning in C). When
+    // budgetMs is 0 the very first iteration stops — deterministic for tests.
+    tick() {
+      if (budget.stopped) return true;
+      if (nowMs() >= budget.deadline) {
+        budget.stopped = { reason: 'time', elapsedMs: budget.elapsedMs() };
+      }
+      return budget.stopped !== null;
+    },
+    addMatches(n) {
+      if (budget.stopped || n <= 0) return;
+      budget._count += n;
+      if (budget._count >= budget._maxMatches) {
+        budget.stopped = { reason: 'matches', elapsedMs: budget.elapsedMs() };
+      }
+    },
+    _count: 0,
+    _maxMatches: maxMatches == null ? Infinity : maxMatches,
+  };
+  return budget;
+}
+
 // Historical context: see docs/CODEBASE_NOTES.md#jssearch-js
-function findOccurrences(text, query, caseSensitive, useRegex = false) {
+// budget (CR-43) is the run-wide createSearchBudget() instance — checked
+// once per match ATTEMPT (loop iteration), which is what bounds a runaway
+// "e*"-style pattern without taxing the C-speed scan between matches.
+function findOccurrences(text, query, caseSensitive, useRegex = false, budget = null) {
   if (!text || !query) return [];
+  if (budget && budget.stopped) return [];
   if (useRegex) {
     const pattern = new RegExp(query, caseSensitive ? 'g' : 'gi');
     const indices = [];
     let match;
     // A pattern that can match the empty string (e.g. "a*") would loop
     // forever without this — advance manually past zero-length matches.
-    while (indices.length < MAX_MATCHES_PER_FIELD && (match = pattern.exec(text))) {
+    while (indices.length < MAX_MATCHES_PER_FIELD) {
+      if (budget && budget.tick()) break;
+      match = pattern.exec(text);
+      if (!match) break;
       indices.push({ index: match.index, length: match[0].length || 1 });
+      if (budget) budget.addMatches(1);
       if (match[0].length === 0) pattern.lastIndex++;
     }
     return indices.map(({ index, length }) => ({ index, snippet: excerpt(text, index, length) }));
@@ -25,9 +85,11 @@ function findOccurrences(text, query, caseSensitive, useRegex = false) {
   const indices = [];
   let from = 0;
   while (indices.length < MAX_MATCHES_PER_FIELD) {
+    if (budget && budget.tick()) break;
     const idx = haystack.indexOf(needle, from);
     if (idx === -1) break;
     indices.push(idx);
+    if (budget) budget.addMatches(1);
     from = idx + needle.length;
   }
   return indices.map((index) => ({ index, snippet: excerpt(text, index, query.length) }));
@@ -180,19 +242,29 @@ function ruleSystemMatchesFilter(system, filter) {
 }
 
 // Historical context: see docs/CODEBASE_NOTES.md#jssearch-js
-export function searchProject(project, query, { caseSensitive = false, useRegex = false } = {}) {
+export function searchProject(project, query, { caseSensitive = false, useRegex = false, budgetMs = SEARCH_TIME_BUDGET_MS, maxMatches = MAX_TOTAL_MATCHES, onlyCategories = null } = {}) {
   const rawTrimmed = (query || '').trim();
-  const empty = { chapters: [], entities: [], scenes: [], snippets: [], timelineEvents: [], references: [], annotations: [], ruleSystems: [], maps: [], regexError: null, filterConflict: false, filters: [] };
+  const empty = { chapters: [], entities: [], scenes: [], snippets: [], timelineEvents: [], references: [], annotations: [], ruleSystems: [], maps: [], regexError: null, filterConflict: false, filters: [], stopped: null };
   if (!rawTrimmed) return empty;
 
   const { filters, freeText } = parseQuery(rawTrimmed);
   const inScope = categoriesForFilters(filters);
   if (filters.length > 0 && inScope.size === 0) {
-    return { ...empty, filterConflict: true, filters };
+    return { ...empty, filterConflict: true, filters, stopped: null };
   }
 // Historical context: see docs/CODEBASE_NOTES.md#jssearch-js
   const trimmed = freeText;
   const hasFreeText = trimmed.length > 0;
+
+  // CR-43 — the run-wide budget and the category slicer. `onlyCategories`
+  // lets a driver (the search worker's yield loop, or the main-thread
+  // fallback) run one category per slice and yield to the event loop
+  // between slices — that's what makes a cancel message land MID-search
+  // instead of after it, and what keeps the fallback path's main thread
+  // mostly responsive. Every slice shares this one wall-clock budget.
+  const budget = createSearchBudget({ budgetMs, maxMatches });
+  const wanted = (cat) => !onlyCategories || onlyCategories.includes(cat);
+  const stopped = () => budget.stopped !== null;
 
   // Regex mode — validate once up front. An invalid pattern shouldn't
   // throw halfway through scanning entities after chapters already
@@ -201,14 +273,14 @@ export function searchProject(project, query, { caseSensitive = false, useRegex 
     try {
       new RegExp(trimmed);
     } catch (err) {
-      return { ...empty, regexError: err.message, filters };
+      return { ...empty, regexError: err.message, filters, stopped: null };
     }
   }
-  const find = (text) => findOccurrences(text, trimmed, caseSensitive, useRegex);
+  const find = (text) => findOccurrences(text, trimmed, caseSensitive, useRegex, budget);
 // Historical context: see docs/CODEBASE_NOTES.md#jssearch-js
   const passesFilters = (matchFn, ...args) => filters.every((f) => matchFn(...args, f));
 
-  const chapters = inScope.has('chapters')
+  const chapters = inScope.has('chapters') && wanted('chapters') && !stopped()
     ? project.chapters
         .filter((c) => passesFilters(chapterMatchesFilter, project, c))
         .map((c) => ({ id: c.id, title: c.title, matches: find(c.content) }))
@@ -216,7 +288,7 @@ export function searchProject(project, query, { caseSensitive = false, useRegex 
         .sort((a, b) => a.title.localeCompare(b.title))
     : [];
 
-  const entities = inScope.has('entities')
+  const entities = inScope.has('entities') && wanted('entities') && !stopped()
     ? Object.values(project.entities)
         .filter((e) => passesFilters(entityMatchesFilter, e))
         .map((e) => ({
@@ -234,7 +306,7 @@ export function searchProject(project, query, { caseSensitive = false, useRegex 
 
 // Historical context: see docs/CODEBASE_NOTES.md#jssearch-js
   const scenes = [];
-  if (inScope.has('scenes')) {
+  if (inScope.has('scenes') && wanted('scenes') && !stopped()) {
     project.chapters.forEach((c) => {
       (c.scenes || []).forEach((s) => {
         if (!passesFilters(sceneMatchesFilter, s)) return;
@@ -261,14 +333,14 @@ export function searchProject(project, query, { caseSensitive = false, useRegex 
     scenes.sort((a, b) => a.title.localeCompare(b.title));
   }
 
-  const snippets = inScope.has('snippets')
+  const snippets = inScope.has('snippets') && wanted('snippets') && !stopped()
     ? Object.values(project.snippets)
         .map((s) => ({ id: s.id, createdAt: s.createdAt, matches: find(s.text) }))
         .filter((r) => r.matches.length > 0)
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
     : [];
 
-  const timelineEvents = inScope.has('timelineEvents')
+  const timelineEvents = inScope.has('timelineEvents') && wanted('timelineEvents') && !stopped()
     ? Object.values(project.timelineEvents)
         .map((ev) => ({
           id: ev.id,
@@ -284,7 +356,7 @@ export function searchProject(project, query, { caseSensitive = false, useRegex 
   // Session 24 — research vault. title/content/annotation/source are all
   // free text a writer might be trying to relocate; url gets its own
   // matches too since a half-remembered domain is a plausible search.
-  const references = inScope.has('references')
+  const references = inScope.has('references') && wanted('references') && !stopped()
     ? Object.values(project.references || {})
         .map((r) => ({
           id: r.id,
@@ -301,7 +373,7 @@ export function searchProject(project, query, { caseSensitive = false, useRegex 
     : [];
 
 // Historical context: see docs/CODEBASE_NOTES.md#jssearch-js
-  const annotations = inScope.has('annotations')
+  const annotations = inScope.has('annotations') && wanted('annotations') && !stopped()
     ? Object.values(project.annotations || {})
         .filter((a) => find(a.note).length > 0)
         .map((a) => ({ id: a.id, note: a.note, type: a.type, chapterId: a.chapterId, sceneId: a.sceneId }))
@@ -309,7 +381,7 @@ export function searchProject(project, query, { caseSensitive = false, useRegex 
     : [];
 
 // Historical context: see docs/CODEBASE_NOTES.md#jssearch-js
-  const ruleSystems = inScope.has('ruleSystems')
+  const ruleSystems = inScope.has('ruleSystems') && wanted('ruleSystems') && !stopped()
     ? Object.values(project.ruleSystems || {})
         .filter((sys) => passesFilters(ruleSystemMatchesFilter, sys))
         .map((sys) => {
@@ -332,7 +404,7 @@ export function searchProject(project, query, { caseSensitive = false, useRegex 
     : [];
 
   // Session 24 — maps. Map name + every marker's label/note text on it.
-  const maps = inScope.has('maps')
+  const maps = inScope.has('maps') && wanted('maps') && !stopped()
     ? Object.values(project.maps || {})
         .map((map) => {
           const nameMatches = find(map.name);
@@ -344,7 +416,7 @@ export function searchProject(project, query, { caseSensitive = false, useRegex 
         .sort((a, b) => a.name.localeCompare(b.name))
     : [];
 
-  return { chapters, entities, scenes, snippets, timelineEvents, references, annotations, ruleSystems, maps, regexError: null, filterConflict: false, filters };
+  return { chapters, entities, scenes, snippets, timelineEvents, references, annotations, ruleSystems, maps, regexError: null, filterConflict: false, filters, stopped: budget.stopped };
 }
 
 export function countTotalMatches(results) {
@@ -378,9 +450,15 @@ export function countResultRows(results) {
 }
 
 // Historical context: see docs/CODEBASE_NOTES.md#jssearch-js
-export function planChapterReplace(project, query, replacement, { caseSensitive = false, useRegex = false } = {}) {
+// CR-43 — budgeted replace planning. The plan is what the search worker
+// evaluates (so the same ReDoS pattern can't freeze the app through the
+// Replace door either); `stopped` tells the caller the counts are PARTIAL
+// and a replace must not be offered off them. planChapterReplace below
+// stays the legacy thin wrapper — same return shape as always — for the
+// Node smoketests and any store-layer caller.
+export function buildReplacePlan(project, query, replacement, { caseSensitive = false, useRegex = false, budgetMs = SEARCH_TIME_BUDGET_MS, maxMatches = Infinity, countsOnly = false } = {}) {
   const trimmed = (query || '').trim();
-  if (!trimmed) return [];
+  if (!trimmed) return { plan: [], stopped: null };
   let pattern;
   if (useRegex) {
     try {
@@ -389,18 +467,32 @@ export function planChapterReplace(project, query, replacement, { caseSensitive 
       // Defensive only — the UI validates the pattern via searchProject's
       // regexError first and never offers Replace while that's set. A
       // caller that skips that check gets a no-op plan instead of a throw.
-      return [];
+      return { plan: [], stopped: null };
     }
   } else {
     pattern = new RegExp(escapeRegExp(trimmed), caseSensitive ? 'g' : 'gi');
   }
-  return project.chapters
-    .map((c) => {
-      const matches = c.content.match(pattern);
-      if (!matches) return null;
-      return { chapterId: c.id, title: c.title, count: matches.length, newContent: c.content.replace(pattern, replacement) };
-    })
-    .filter(Boolean);
+  // maxMatches defaults to Infinity here, deliberately: replace counts
+  // must be exact or the confirm dialog would lie ("Replace 3 matches"
+  // then silently change 40). The time budget is the guard that matters;
+  // a single pathological chapter can still stall one match() call, and
+  // that residual risk is what the worker watchdog exists for.
+  const budget = createSearchBudget({ budgetMs, maxMatches });
+  const plan = [];
+  for (const c of project.chapters) {
+    if (budget.tick()) break;
+    const matches = c.content ? c.content.match(pattern) : null;
+    if (!matches) continue;
+    // countsOnly (CR-43): the per-keystroke replace preview only needs
+    // counts — building newContent for every hit chapter would do the
+    // full replacement pass for strings the preview never shows.
+    plan.push({ chapterId: c.id, title: c.title, count: matches.length, newContent: countsOnly ? null : c.content.replace(pattern, replacement) });
+  }
+  return { plan, stopped: budget.stopped };
+}
+
+export function planChapterReplace(project, query, replacement, options = {}) {
+  return buildReplacePlan(project, query, replacement, options).plan;
 }
 
 function escapeRegExp(str) {
