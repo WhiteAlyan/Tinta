@@ -1,4 +1,4 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jsambience-js-1-13
+// Historical context: see docs/CODEBASE_NOTES.md#jsambience-js
 
 export const TRACKS = [
   { id: 'off', label: 'Off' },
@@ -8,7 +8,7 @@ export const TRACKS = [
 ];
 
 let ctx = null;
-// Historical context: see docs/CODEBASE_NOTES.md#jsambience-js-23-27
+// Historical context: see docs/CODEBASE_NOTES.md#jsambience-js
 let graph = null;
 let currentTrack = 'off';
 
@@ -20,7 +20,7 @@ function ensureContext() {
   return ctx;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsambience-js-39-43
+// Historical context: see docs/CODEBASE_NOTES.md#jsambience-js
 function makeNoiseBuffer(audioCtx, seconds, colorize) {
   const length = Math.floor(audioCtx.sampleRate * seconds);
   const buffer = audioCtx.createBuffer(1, length, audioCtx.sampleRate);
@@ -98,7 +98,7 @@ export function stop() {
       graph.source.disconnect();
       graph.filter.disconnect();
     } else if (graph.el) {
-// Historical context: see docs/CODEBASE_NOTES.md#jsambience-js-121-125
+// Historical context: see docs/CODEBASE_NOTES.md#jsambience-js
       graph.el.pause();
       graph.el.src = '';
       graph.source.disconnect();
@@ -110,7 +110,7 @@ export function stop() {
   currentTrack = 'off';
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsambience-js-137-142
+// Historical context: see docs/CODEBASE_NOTES.md#jsambience-js
 export async function playCustomTrack(blob, volume = 0.4) {
   stop();
   const audioCtx = ensureContext();
@@ -122,7 +122,7 @@ export async function playCustomTrack(blob, volume = 0.4) {
   el.loop = true;
 
   try {
-// Historical context: see docs/CODEBASE_NOTES.md#jsambience-js-154-158
+// Historical context: see docs/CODEBASE_NOTES.md#jsambience-js
     const source = audioCtx.createMediaElementSource(el);
     const gain = audioCtx.createGain();
     gain.gain.value = clampVolume(volume);
@@ -137,7 +137,7 @@ export async function playCustomTrack(blob, volume = 0.4) {
   }
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsambience-js-173-181
+// Historical context: see docs/CODEBASE_NOTES.md#jsambience-js
 export async function playFromUrl(url, volume = 0.4) {
   stop();
   const audioCtx = ensureContext();

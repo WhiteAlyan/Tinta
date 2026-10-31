@@ -1,4 +1,4 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jswordcheckmodal-js-1-5
+// Historical context: see docs/CODEBASE_NOTES.md#jswordcheckmodal-js
 
 import * as Store from './store.js';
 import * as WordTools from './wordtools.js';
@@ -13,8 +13,10 @@ export function openWordCheckModal(chapter) {
   openModal({
     title: `Word Check · ${escapeHtml(chapter.title)}`,
     className: 'wordcheck-modal',
-    body: toBridge(
-      total === 0
+    // Roadmap #6 — was toBridge(...), which flattened the SafeHtml into a
+    // plain string; openModal escapes plain strings now, so the html``
+    // SafeHtml passes through untouched instead.
+    body: total === 0
         ? html`<p class="empty-note">Nothing to check yet. Write something first.</p>`
         : html`
         <p class="wordcheck-summary">${total.toLocaleString()} words · top repeated words below, common function words excluded</p>
@@ -30,11 +32,10 @@ export function openWordCheckModal(chapter) {
         </div>
         <p class="wordcheck-legend">Highlighted rows appear often enough relative to chapter length that they're worth a second look, not necessarily wrong, just worth knowing about.</p>
         `
-    ),
   });
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jswordcheckmodal-js-41-52
+// Historical context: see docs/CODEBASE_NOTES.md#jswordcheckmodal-js
 
 let nameGenMode = 'classic';
 let nameGenType = '';
@@ -51,11 +52,11 @@ function renderThesaurusModal(nameResult) {
   const customWords = Object.keys(custom).sort();
   const entityTypes = Store.getEntityTypes();
 
-// Historical context: see docs/CODEBASE_NOTES.md#jswordcheckmodal-js-69-73
+// Historical context: see docs/CODEBASE_NOTES.md#jswordcheckmodal-js
   const root = openModal({
     title: 'Names &amp; Archeshic Records',
     className: 'thesaurus-modal',
-    body: toBridge(html`
+    body: html`
         <div class="thesaurus-section">
           <div class="thesaurus-section-head">
             <span class="sb-label">Name Generator</span>
@@ -128,7 +129,7 @@ function renderThesaurusModal(nameResult) {
               : html`<p class="thesaurus-hint">Nothing added yet; anything you add here shows up in the lookup above, and in the suggestions as you type.</p>`
           }
         </div>
-    `),
+    `,
   });
 
   function reroll(seed = null) {

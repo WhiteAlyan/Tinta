@@ -1,4 +1,4 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jsmentions-js-1-10
+// Historical context: see docs/CODEBASE_NOTES.md#jsmentions-js
 import { MENTION_RE } from './store.js';
 
 // If the caret sits inside an unclosed "[[" on the current line, returns
@@ -38,7 +38,7 @@ export function renderMentionsHtml(text, resolver, escapeHtml) {
   });
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsmentions-js-50-58
+// Historical context: see docs/CODEBASE_NOTES.md#jsmentions-js
 export function splitParagraphs(text) {
   const boundary = /\n[ \t]*\n[ \t\n]*/g;
   const paragraphs = [];

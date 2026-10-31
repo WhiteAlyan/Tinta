@@ -22,7 +22,7 @@ test('quota-exceeded save shows retry banner', async ({ page }) => {
   await page.evaluate(() => {
     const real = localStorage.setItem.bind(localStorage);
     Object.defineProperty(localStorage, 'setItem', {
-      value: function(key, value) {
+      value: function() {
         const err = new Error('quota exceeded');
         err.name = 'QuotaExceededError';
         throw err;
@@ -59,7 +59,7 @@ test('quota-exceeded banner clears once a save succeeds after space is freed', a
   await page.evaluate(() => {
     const real = localStorage.setItem.bind(localStorage);
     Object.defineProperty(localStorage, 'setItem', {
-      value: function(key, value) {
+      value: function() {
         const err = new Error('quota exceeded');
         err.name = 'QuotaExceededError';
         throw err;

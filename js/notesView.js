@@ -1,7 +1,7 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jsnotesview-js-1-40
+// Historical context: see docs/CODEBASE_NOTES.md#jsnotesview-js
 
 import * as Store from './store.js';
-import { html, raw, toBridge, q, capitalize } from './dom-utils.js';
+import { html, raw, toBridge, q } from './dom-utils.js';
 import { openWorldbuildingDraftModal, activeEntityIdFromGenerator, clearActiveEntityIdFromGenerator } from './generatorModal.js';
 import { requestRender } from './renderBus.js';
 import { revokeEntityPortraitUrls, resolveEntityAvatar } from './portraits.js';
@@ -15,15 +15,15 @@ import { confirmDialog } from './modal.js';
 import { activeEntityId, setActiveEntityId } from './context.js';
 import { vocabularyLabel, vocabularyOrder } from './vocabulary.js';
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsnotesview-js-57-65
+// Historical context: see docs/CODEBASE_NOTES.md#jsnotesview-js
 let entityTagFilters = new Set();
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsnotesview-js-68-74
+// Historical context: see docs/CODEBASE_NOTES.md#jsnotesview-js
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsnotesview-js-76-80
+// Historical context: see docs/CODEBASE_NOTES.md#jsnotesview-js
 export function resetEntityTagFilters() {
   entityTagFilters = new Set();
-// Historical context: see docs/CODEBASE_NOTES.md#jsnotesview-js-83-88
+// Historical context: see docs/CODEBASE_NOTES.md#jsnotesview-js
   setActiveEntityId(null);
 }
 
@@ -33,7 +33,7 @@ export function resetEntityTagFilters() {
 import { registerViewReset } from './viewLifecycle.js';
 registerViewReset('notes', resetEntityTagFilters);
 
-export function renderNotesView(project) {
+export function renderNotesView(_project) {
   const panel = document.querySelector('.view-panel[data-view="notes"]');
   const entities = Store.getEntityList();
   const activeSeries = Store.getSeriesForActiveProject();
@@ -52,7 +52,7 @@ export function renderNotesView(project) {
   if (!activeEntityId && entities.length) setActiveEntityId(entities[0].id);
   if (activeEntityId && !Store.getEntity(activeEntityId)) setActiveEntityId(entities[0]?.id || null);
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsnotesview-js-117-121
+// Historical context: see docs/CODEBASE_NOTES.md#jsnotesview-js
   const filterFn = (list) => filterByTagSet(list, entityTagFilters);
   const filteredEntities = filterFn(entities);
   const filteredSeriesEntities = filterFn(seriesEntities);
@@ -89,7 +89,7 @@ export function renderNotesView(project) {
   wireTagFilterBar('entity', entityTagFilters, () => renderNotesView(Store.getActiveProject()));
   q('manage-entity-types-btn').addEventListener('click', () => openEntityTypeManager());
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsnotesview-js-158-162
+// Historical context: see docs/CODEBASE_NOTES.md#jsnotesview-js
   function renderEntityGroup(groupsEl, items, { shared }) {
     let anyGroup = false;
     Store.getEntityTypes().forEach((typeDef) => {
@@ -122,10 +122,10 @@ export function renderNotesView(project) {
           setActiveEntityId(entity.id);
           renderNotesView(Store.getActiveProject());
         });
-// Historical context: see docs/CODEBASE_NOTES.md#jsnotesview-js-195-202
+// Historical context: see docs/CODEBASE_NOTES.md#jsnotesview-js
         li.querySelector('.notes-entity-delete').addEventListener('click', async (e) => {
           e.stopPropagation();
-// Historical context: see docs/CODEBASE_NOTES.md#jsnotesview-js-205-211
+// Historical context: see docs/CODEBASE_NOTES.md#jsnotesview-js
           const warning = shared
             ? `Delete "${entity.name}" from ${activeSeries.title}? This removes it from every book in the series, not just this one. Existing [[mentions]] in any book's text won't be removed.`
             : `Delete "${entity.name}"? Existing [[mentions]] in your text won't be removed.`;
@@ -192,7 +192,7 @@ export function renderNotesView(project) {
   renderEntityDetail(panel);
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsnotesview-js-278-288
+// Historical context: see docs/CODEBASE_NOTES.md#jsnotesview-js
 let entityFieldSaveTimer = null;
 let entityFieldSavePending = null; // { entityId, patch } — the merged, not-yet-written edit
 
@@ -207,7 +207,7 @@ export function flushEntityFieldSave() {
 }
 
 function scheduleEntityFieldSave(entityId, patch) {
-// Historical context: see docs/CODEBASE_NOTES.md#jsnotesview-js-303-306
+// Historical context: see docs/CODEBASE_NOTES.md#jsnotesview-js
   if (entityFieldSavePending && entityFieldSavePending.entityId !== entityId) flushEntityFieldSave();
   entityFieldSavePending = {
     entityId,
@@ -220,7 +220,7 @@ function scheduleEntityFieldSave(entityId, patch) {
 }
 
 function renderEntityDetail(panel) {
-// Historical context: see docs/CODEBASE_NOTES.md#jsnotesview-js-319-324
+// Historical context: see docs/CODEBASE_NOTES.md#jsnotesview-js
   flushEntityFieldSave();
   const detail = panel.querySelector('.notes-detail');
   const entity = activeEntityId ? Store.getEntity(activeEntityId) : null;
@@ -234,7 +234,7 @@ function renderEntityDetail(panel) {
   const linkedSketches = Store.getSketchesForEntity(entity.id);
   const portraitId = Store.getEntityPortraitId(entity);
   const typeDef = Store.getEntityType(entity.type);
-// Historical context: see docs/CODEBASE_NOTES.md#jsnotesview-js-338-344
+// Historical context: see docs/CODEBASE_NOTES.md#jsnotesview-js
   const parentCandidates = Store.getEntityList().filter((e) => e.id !== entity.id && !Store.wouldCreateCycle(entity.id, e.id));
   const activeSeries = Store.getSeriesForActiveProject();
   const isShared = Store.isSeriesEntity(entity.id);
@@ -388,7 +388,7 @@ function renderEntityDetail(panel) {
     });
   });
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsnotesview-js-498-503
+// Historical context: see docs/CODEBASE_NOTES.md#jsnotesview-js
   const shareToggleBtn = detail.querySelector('#entity-share-toggle-btn');
   if (shareToggleBtn) {
     shareToggleBtn.addEventListener('click', async () => {
@@ -449,7 +449,7 @@ function renderEntityDetail(panel) {
   detail.querySelector('#entity-description').addEventListener('input', (e) => {
     scheduleEntityFieldSave(entity.id, { description: e.target.value });
   });
-// Historical context: see docs/CODEBASE_NOTES.md#jsnotesview-js-564-571
+// Historical context: see docs/CODEBASE_NOTES.md#jsnotesview-js
   const splitCsv = (v) => v.split(',').map((s) => s.trim()).filter(Boolean);
   detail.querySelector('#entity-canon-select').addEventListener('change', (e) => {
     Store.setCanonStatus('entity', entity.id, e.target.value);
@@ -480,7 +480,7 @@ function renderEntityDetail(panel) {
   });
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsnotesview-js-602-607
+// Historical context: see docs/CODEBASE_NOTES.md#jsnotesview-js
 function renderEntityStatusList(panel, entityId) {
   const detail = panel.querySelector('.notes-detail');
   const listEl = detail?.querySelector('#entity-status-list');

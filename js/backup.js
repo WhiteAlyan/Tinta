@@ -1,4 +1,4 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jsbackup-js-1-33
+// Historical context: see docs/CODEBASE_NOTES.md#jsbackup-js
 
 import * as Store from './store.js';
 import * as ImageStore from './imagestore.js';
@@ -13,7 +13,7 @@ import * as Theme from './theme.js';
 import { html, raw, toBridge, q, escapeHtml } from './dom-utils.js';
 import { exportTintaProject, importTintaProject, checkTintaFile } from './tintaPackage.js';
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsbackup-js-48-52
+// Historical context: see docs/CODEBASE_NOTES.md#jsbackup-js
 export async function exportFullBackupWithImages() {
   const db = JSON.parse(Store.exportFullBackup());
 
@@ -34,7 +34,7 @@ export async function exportFullBackupWithImages() {
     }
   }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsbackup-js-73-81
+// Historical context: see docs/CODEBASE_NOTES.md#jsbackup-js
   let customFont = null;
   if (db.customFont && db.customFont.fileName) {
     try {
@@ -46,7 +46,7 @@ export async function exportFullBackupWithImages() {
     }
   }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsbackup-js-93-99
+// Historical context: see docs/CODEBASE_NOTES.md#jsbackup-js
   return JSON.stringify({ tintaBackupVersion: 2, db, images, customFont }, null, 2);
 }
 
@@ -66,7 +66,7 @@ function base64ToBlob(base64, mimeType) {
   return new Blob([new Uint8Array(byteNumbers)], { type: mimeType });
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsbackup-js-119-128
+// Historical context: see docs/CODEBASE_NOTES.md#jsbackup-js
 export async function importFullBackupWithImages(jsonText) {
   const parsed = JSON.parse(jsonText);
   // Backward compatible with Session 13-18 backups: those were the raw db
@@ -76,7 +76,7 @@ export async function importFullBackupWithImages(jsonText) {
   const images = isBundled ? parsed.images || {} : {};
   const bundledFont = isBundled ? parsed.customFont || null : null;
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsbackup-js-138-156
+// Historical context: see docs/CODEBASE_NOTES.md#jsbackup-js
   const previousImageIds = Store.listProjects().flatMap((p) => Store.getProjectImageIds(p));
   const incomingIds = new Set(Object.keys(images));
 
@@ -102,7 +102,7 @@ export async function importFullBackupWithImages(jsonText) {
     }
   }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsbackup-js-182-203
+// Historical context: see docs/CODEBASE_NOTES.md#jsbackup-js
   let fontRestored = false;
   const incomingFont = Store.getCustomFont();
   if (incomingFont && incomingFont.fileName) {
@@ -111,7 +111,7 @@ export async function importFullBackupWithImages(jsonText) {
         const restoredBlob = base64ToBlob(bundledFont.base64, bundledFont.mimeType);
         await AssetStore.putBlob(AssetStore.KEYS.CUSTOM_FONT, restoredBlob);
         fontRestored = true;
-// Historical context: see docs/CODEBASE_NOTES.md#jsbackup-js-212-219
+// Historical context: see docs/CODEBASE_NOTES.md#jsbackup-js
         try {
           await Theme.registerCustomFont(restoredBlob, incomingFont.family);
         } catch {
@@ -138,7 +138,7 @@ export async function importFullBackupWithImages(jsonText) {
 export async function openBackupModal() {
   const root = q('modal-root');
   const sizeKb = Math.round(Store.estimateDbSizeBytes() / 1024);
-// Historical context: see docs/CODEBASE_NOTES.md#jsbackup-js-246-249
+// Historical context: see docs/CODEBASE_NOTES.md#jsbackup-js
   const fsApiSupported = AutoBackup.isAutoBackupSupported();
 
   root.innerHTML = toBridge(html`
@@ -213,7 +213,7 @@ export async function openBackupModal() {
     }
   });
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsbackup-js-324-328
+// Historical context: see docs/CODEBASE_NOTES.md#jsbackup-js
   q('tinta-export-btn').addEventListener('click', async (e) => {
     const btn = e.currentTarget;
     const originalLabel = btn.textContent;
@@ -221,7 +221,7 @@ export async function openBackupModal() {
     btn.textContent = 'Preparing .tinta…';
     try {
       const result = await exportTintaProject();
-// Historical context: see docs/CODEBASE_NOTES.md#jsbackup-js-336-348
+// Historical context: see docs/CODEBASE_NOTES.md#jsbackup-js
       const url = URL.createObjectURL(result.blob);
       const a = document.createElement('a');
       a.href = url;
@@ -238,7 +238,7 @@ export async function openBackupModal() {
     }
   });
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsbackup-js-365-379
+// Historical context: see docs/CODEBASE_NOTES.md#jsbackup-js
   q('tinta-import-input').addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -296,7 +296,7 @@ export async function openBackupModal() {
     q('tinta-import-confirm-btn').addEventListener('click', runImport);
   });
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsbackup-js-437-441
+// Historical context: see docs/CODEBASE_NOTES.md#jsbackup-js
   const autoPickBtn = q('tinta-autobackup-pick');
   const autoClearBtn = q('tinta-autobackup-clear');
   const autoNowBtn = q('tinta-autobackup-now');
@@ -325,7 +325,7 @@ export async function openBackupModal() {
       try {
         const handle = await window.showDirectoryPicker({ mode: 'readwrite' });
         await AutoBackup.setBackupFolderHandle(handle);
-// Historical context: see docs/CODEBASE_NOTES.md#jsbackup-js-470-473
+// Historical context: see docs/CODEBASE_NOTES.md#jsbackup-js
         refreshAutoStatus();
         // Trigger one immediate .tinta write so the writer sees
         // something in the folder right away rather than waiting for

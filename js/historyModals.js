@@ -4,8 +4,8 @@
 import * as Diff from './diff.js';
 import * as ModalShell from './modal.js';
 import * as Store from './store.js';
-import { escapeHtml, html, q } from './dom-utils.js';
-import { closeModal, confirmDialog, openModal } from './modal.js';
+import { escapeHtml, escapeAttr, q, raw } from './dom-utils.js';
+import { closeModal } from './modal.js';
 import { renderNotesView } from './notesView.js';
 import { renderWriteView } from './writeView.js';
 
@@ -18,7 +18,7 @@ export function openHistoryModal(chapterId, diffAgainstSnapshotId = null) {
   const root = ModalShell.openModal({
     title: `Revision History · ${escapeHtml(chapter.title)}`,
     className: 'history-modal',
-    body: `
+    body: raw(`
         <div class="history-save-row">
           <input type="text" id="snapshot-label" placeholder="Snapshot name (optional)" />
           <button id="snapshot-save">Save Snapshot</button>
@@ -29,7 +29,7 @@ export function openHistoryModal(chapterId, diffAgainstSnapshotId = null) {
             ? renderDiffPane(diffTarget, chapter)
             : renderSnapshotListPane(snapshots, chapterId)
         }
-    `,
+    `),
   });
 
   q('snapshot-save').addEventListener('click', () => {
@@ -58,8 +58,8 @@ export function openHistoryModal(chapterId, diffAgainstSnapshotId = null) {
   }
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jshistorymodals-js-61-68
-export function renderSnapshotListPane(snapshots, chapterId) {
+// Historical context: see docs/CODEBASE_NOTES.md#jshistorymodals-js
+export function renderSnapshotListPane(snapshots, _chapterId) {
   if (snapshots.length === 0) {
     return '<p class="empty-note">No snapshots yet. Save one above before a big rewrite, so you can always come back.</p>';
   }
@@ -68,7 +68,7 @@ export function renderSnapshotListPane(snapshots, chapterId) {
       ${snapshots
         .map(
           (s) => `
-        <div class="snapshot-row" data-snapshot="${s.id}">
+        <div class="snapshot-row" data-snapshot="${escapeAttr(s.id)}">
           <div class="snapshot-row-main">
             <strong>${escapeHtml(s.label)}</strong>
             <span class="snapshot-meta">${new Date(s.createdAt).toLocaleString()} · ${s.wordCount} words</span>
@@ -112,7 +112,7 @@ export function renderDiffPane(snapshot, chapter) {
   `;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jshistorymodals-js-122-134
+// Historical context: see docs/CODEBASE_NOTES.md#jshistorymodals-js
 export function openEntityHistoryModal(entityId, compareSnapshotId = null) {
   const entity = Store.getEntity(entityId);
   if (!entity) return;
@@ -122,7 +122,7 @@ export function openEntityHistoryModal(entityId, compareSnapshotId = null) {
   const root = ModalShell.openModal({
     title: `Revision History · ${escapeHtml(entity.name)}`,
     className: 'history-modal',
-    body: `
+    body: raw(`
         ${
           compareSnapshot
             ? ''
@@ -141,7 +141,7 @@ export function openEntityHistoryModal(entityId, compareSnapshotId = null) {
                 ${snapshots
                   .map(
                     (s) => `
-                  <div class="snapshot-row" data-snapshot="${s.id}">
+                  <div class="snapshot-row" data-snapshot="${escapeAttr(s.id)}">
                     <div class="snapshot-row-main">
                       <strong>${escapeHtml(s.label)}</strong>
                       ${s.auto ? '<span class="entity-status-item-badge">auto</span>' : ''}
@@ -156,7 +156,7 @@ export function openEntityHistoryModal(entityId, compareSnapshotId = null) {
                   .join('')}
               </div>`
         }
-    `,
+    `),
   });
 
   if (compareSnapshot) {
@@ -219,5 +219,5 @@ export function renderEntityComparePane(entity, snapshot) {
   `;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jshistorymodals-js-241-245
+// Historical context: see docs/CODEBASE_NOTES.md#jshistorymodals-js
 

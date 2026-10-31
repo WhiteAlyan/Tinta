@@ -1,16 +1,16 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jsdom-utils-js-1-42
+// Historical context: see docs/CODEBASE_NOTES.md#jsdom-utils-js
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsdom-utils-js-44-51
+// Historical context: see docs/CODEBASE_NOTES.md#jsdom-utils-js
 class SafeHtml {
   constructor(value) {
     this.value = value;
   }
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsdom-utils-js-58-64
+// Historical context: see docs/CODEBASE_NOTES.md#jsdom-utils-js
 
 function escapeHtmlImpl(str = '') {
-// Historical context: see docs/CODEBASE_NOTES.md#jsdom-utils-js-67-75
+// Historical context: see docs/CODEBASE_NOTES.md#jsdom-utils-js
   return String(str)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -19,11 +19,11 @@ function escapeHtmlImpl(str = '') {
     .replace(/'/g, '&#39;');
 }
 function escapeAttrImpl(str = '') {
-// Historical context: see docs/CODEBASE_NOTES.md#jsdom-utils-js-84-90
+// Historical context: see docs/CODEBASE_NOTES.md#jsdom-utils-js
   return escapeHtmlImpl(str);
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsdom-utils-js-94-110
+// Historical context: see docs/CODEBASE_NOTES.md#jsdom-utils-js
 
 export function html(strings, ...values) {
   let out = strings[0];
@@ -33,7 +33,7 @@ export function html(strings, ...values) {
     if (v instanceof SafeHtml) {
       piece = v.value;
     } else if (Array.isArray(v)) {
-// Historical context: see docs/CODEBASE_NOTES.md#jsdom-utils-js-120-123
+// Historical context: see docs/CODEBASE_NOTES.md#jsdom-utils-js
       const nonNull = v.find((x) => x != null);
       if (nonNull instanceof SafeHtml) {
         piece = v.map((x) => (x instanceof SafeHtml ? x.value : x == null ? '' : escapeHtmlImpl(String(x)))).join('');
@@ -43,7 +43,7 @@ export function html(strings, ...values) {
     } else if (v == null) {
       piece = '';
     } else if (typeof v === 'boolean') {
-// Historical context: see docs/CODEBASE_NOTES.md#jsdom-utils-js-133-136
+// Historical context: see docs/CODEBASE_NOTES.md#jsdom-utils-js
       piece = '';
     } else {
       piece = escapeHtmlImpl(String(v));
@@ -53,21 +53,21 @@ export function html(strings, ...values) {
   return new SafeHtml(out);
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsdom-utils-js-146-152
+// Historical context: see docs/CODEBASE_NOTES.md#jsdom-utils-js
 export function raw(htmlString) {
   return new SafeHtml(String(htmlString));
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsdom-utils-js-157-171
+// Historical context: see docs/CODEBASE_NOTES.md#jsdom-utils-js
 export function toBridge(safe) {
   if (safe instanceof SafeHtml) return safe.value;
-// Historical context: see docs/CODEBASE_NOTES.md#jsdom-utils-js-174-178
+// Historical context: see docs/CODEBASE_NOTES.md#jsdom-utils-js
   if (typeof safe === 'string') return escapeHtmlImpl(safe);
   if (safe == null) return '';
   return escapeHtmlImpl(String(safe));
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsdom-utils-js-184-191
+// Historical context: see docs/CODEBASE_NOTES.md#jsdom-utils-js
 
 export function escapeHtml(str = '') {
   return escapeHtmlImpl(str);
@@ -76,7 +76,7 @@ export function escapeAttr(str = '') {
   return escapeAttrImpl(str);
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsdom-utils-js-200-219
+// Historical context: see docs/CODEBASE_NOTES.md#jsdom-utils-js
 export function safeExternalUrl(url) {
   if (typeof url !== 'string') return null;
   const trimmed = url.trim();
@@ -89,7 +89,7 @@ export function safeExternalUrl(url) {
   }
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsdom-utils-js-232-242
+// Historical context: see docs/CODEBASE_NOTES.md#jsdom-utils-js
 
 export function q(id) {
   return document.getElementById(id);
@@ -101,13 +101,13 @@ export function qsa(selector, root = document) {
   return root.querySelectorAll ? Array.from(root.querySelectorAll(selector)) : [];
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsdom-utils-js-254-266
+// Historical context: see docs/CODEBASE_NOTES.md#jsdom-utils-js
 export function bindOutsideClick(handler, options) {
   document.removeEventListener('click', handler, options);
   document.addEventListener('click', handler, options);
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsdom-utils-js-272-275
+// Historical context: see docs/CODEBASE_NOTES.md#jsdom-utils-js
 export function capitalize(str = '') {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }

@@ -1,4 +1,4 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jsannotationsmodal-js-1-6
+// Historical context: see docs/CODEBASE_NOTES.md#jsannotationsmodal-js
 
 import * as Store from './store.js';
 import { requestRender } from './renderBus.js';
@@ -6,7 +6,7 @@ import { q, escapeHtml } from './dom-utils.js';
 import { openModal } from './modal.js';
 import { html, toBridge } from './dom-utils.js';
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsannotationsmodal-js-14-22
+// Historical context: see docs/CODEBASE_NOTES.md#jsannotationsmodal-js
 export function openAnnotationsModal(chapter) {
   const chapterScenes = chapter.scenes || [];
 
@@ -14,7 +14,7 @@ export function openAnnotationsModal(chapter) {
     title: `Annotations · ${escapeHtml(chapter.title)}`,
     className: 'annotations-modal',
     onClose: () => requestRender(),
-    body: toBridge(html`
+    body: html`
         <div class="annotations-add-row">
           <select id="anno-type">
             ${Store.ANNOTATION_TYPES.map((t) => html`<option value="${t.key}">${t.label}</option>`)}
@@ -27,7 +27,7 @@ export function openAnnotationsModal(chapter) {
           <button id="anno-add" class="toolbar-btn">+ Add</button>
         </div>
         <div class="annotations-list" id="annotations-list"></div>
-    `),
+    `,
   });
 
   const addNote = () => {

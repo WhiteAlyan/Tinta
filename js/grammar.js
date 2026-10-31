@@ -1,4 +1,4 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jsgrammar-js-1-26
+// Historical context: see docs/CODEBASE_NOTES.md#jsgrammar-js
 
 const REQUEST_TIMEOUT_MS = 15000;
 

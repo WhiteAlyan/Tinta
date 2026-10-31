@@ -1,4 +1,4 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jscanvas-js-1-5
+// Historical context: see docs/CODEBASE_NOTES.md#jscanvas-js
 
 const DRAG_THRESHOLD = 4; // px of movement before a pointerdown counts as a drag, not a click
 
@@ -21,7 +21,7 @@ export function computeDefaultLayout(entities, width, height) {
   });
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jscanvas-js-28-36
+// Historical context: see docs/CODEBASE_NOTES.md#jscanvas-js
 export function attachNodeDrag(nodeEl, svgEl, { onMove, onDragEnd, onClick }) {
   let dragging = false;
   let moved = false;

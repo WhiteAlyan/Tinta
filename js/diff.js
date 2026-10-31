@@ -1,11 +1,11 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jsdiff-js-1-7
+// Historical context: see docs/CODEBASE_NOTES.md#jsdiff-js
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsdiff-js-9-12
+// Historical context: see docs/CODEBASE_NOTES.md#jsdiff-js
 function tokenize(text = '') {
   return text.match(/\S+\s*|\s+/g) || [];
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsdiff-js-17-20
+// Historical context: see docs/CODEBASE_NOTES.md#jsdiff-js
 export function diffText(oldText = '', newText = '') {
   const a = tokenize(oldText);
   const b = tokenize(newText);

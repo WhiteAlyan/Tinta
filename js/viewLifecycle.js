@@ -1,4 +1,4 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jsviewlifecycle-js-1-28
+// Historical context: see docs/CODEBASE_NOTES.md#jsviewlifecycle-js
 
 const viewResets = [];
 

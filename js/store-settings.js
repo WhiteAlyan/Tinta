@@ -1,4 +1,4 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-settings-js-1-20
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-settings-js
 
 import { load, save } from './store-core.js';
 
@@ -81,7 +81,7 @@ export function getBackgroundSettings() {
   return load().background;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-settings-js-103-107
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-settings-js
 export function setBackgroundSettings(patch) {
   const db = load();
   const { gradient, ...rest } = patch;
@@ -113,13 +113,13 @@ export function setTypewriterSettings(patch) {
   return db.typewriter;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-settings-js-139-142
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-settings-js
 
 export function getCustomThesaurus() {
   return load().customThesaurus;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-settings-js-148-155
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-settings-js
 export function addThesaurusEntry(word, synonyms) {
   const key = (word || '').trim().toLowerCase();
   const list = (synonyms || []).map((s) => s.trim()).filter(Boolean);

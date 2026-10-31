@@ -1,4 +1,4 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jsmapview-js-1-23
+// Historical context: see docs/CODEBASE_NOTES.md#jsmapview-js
 
 import * as Store from './store.js';
 import * as ImageStore from './imagestore.js';
@@ -13,7 +13,7 @@ import { EmptyState } from './emptyState.js';
 // which one's open right now" shape as activeSketchId back in app.js.
 // 0.2.6 Pass 1 — activeMapId moved to context.js (import below).
 let selectedMarkerId = null;
-// Historical context: see docs/CODEBASE_NOTES.md#jsmapview-js-38-42
+// Historical context: see docs/CODEBASE_NOTES.md#jsmapview-js
 let mapImageUrl = null;
 
 // 0.2.6 Pass 1 — setActiveMapId moved to context.js (import below).
@@ -75,7 +75,7 @@ export function renderMapView(project) {
   renderMapMain(project);
 }
 
-function renderMapMain(project) {
+function renderMapMain(_project) {
   const mainEl = q('map-main');
   const map = activeMapId ? Store.getMap(activeMapId) : null;
   revokeMapImageUrl();
@@ -144,7 +144,7 @@ function renderMapCanvas(map) {
 
   ImageStore.getObjectUrl(map.imageId)
     .then((url) => {
-// Historical context: see docs/CODEBASE_NOTES.md#jsmapview-js-173-183
+// Historical context: see docs/CODEBASE_NOTES.md#jsmapview-js
       if (url) mapImageUrl = url;
       if (q('map-canvas-wrap') !== wrap) return; // view moved on before this resolved
       if (!url) {
@@ -158,7 +158,7 @@ function renderMapCanvas(map) {
       `);
       const stage = q('map-image-stage');
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsmapview-js-197-200
+// Historical context: see docs/CODEBASE_NOTES.md#jsmapview-js
       const img = q('map-image');
       const drawPins = () => renderMapPins(map, stage);
       if (img.complete) drawPins();
@@ -199,7 +199,7 @@ function renderMapPins(map, stage) {
     pin.style.left = `${marker.x * 100}%`;
     pin.style.top = `${marker.y * 100}%`;
     pin.title = marker.label;
-// Historical context: see docs/CODEBASE_NOTES.md#jsmapview-js-241-244
+// Historical context: see docs/CODEBASE_NOTES.md#jsmapview-js
     pin.innerHTML = toBridge(html`📍<span class="map-pin-label">${marker.label}</span>`);
     pin.addEventListener('click', (e) => {
       e.stopPropagation();

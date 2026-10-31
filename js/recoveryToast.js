@@ -25,7 +25,10 @@
 // only chance to recover is worse than a lingering UI element.
 
 import * as Store from './store.js';
-import { replaceDb, save, isCrossTabStale } from './store-core.js';
+// Roadmap #7 — clearUndoHistory joins the restore: the snapshot replaces the
+// entire db, so undo entries from before the restore describe mutations to a
+// document that no longer exists (same reasoning as importFullBackup).
+import { clearUndoHistory, replaceDb, save, isCrossTabStale } from './store-core.js';
 import { html, toBridge } from './dom-utils.js';
 import { requestRender } from './renderBus.js';
 
@@ -123,6 +126,11 @@ function renderToast({ snapshot, diskRev, snapshotRev }) {
         const ok = save();
         if (ok) {
           try { await Store.clearRecoverySnapshot(); } catch {}
+          // Roadmap #7 — undo entries predating the restore point at the
+          // pre-restore db; they must not survive it. Only on success: a
+          // failed save left the in-memory db untouched, so its history
+          // still matches reality.
+          clearUndoHistory();
           dismiss();
           requestRender(); // re-render all views with the restored state
         } else {

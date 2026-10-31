@@ -105,9 +105,6 @@ function assert(cond, msg) {
   if (cond) { pass++; }
   else { fail++; failures.push(msg); console.error(`  ✗ ${msg}`); }
 }
-function assertEqual(actual, expected, msg) {
-  assert(actual === expected, `${msg} — expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
-}
 
 console.log('Loading every browser-loadable module...\n');
 

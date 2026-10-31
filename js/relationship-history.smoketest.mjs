@@ -60,7 +60,7 @@ assertEqual(Store.getRelationshipHistory(rel.id).length, 1, 'the rejected blank 
 section('Sequence — the actual §10 gap this pass closes');
 
 const entry2 = Store.addRelationshipHistoryEntry(rel.id, { label: 'Rivals', status: 'estranged', note: 'The tournament incident.' });
-const entry3 = Store.addRelationshipHistoryEntry(rel.id, { label: 'Reconciled', note: 'Years later, at the reunion.' });
+Store.addRelationshipHistoryEntry(rel.id, { label: 'Reconciled', note: 'Years later, at the reunion.' });
 const sequence = Store.getRelationshipHistory(rel.id).map((e) => e.label);
 assertEqual(sequence.length, 3, 'all three entries are present');
 assertEqual(sequence.join(' → '), 'Strangers → Rivals → Reconciled', 'unlinked entries preserve insertion order — the actual "Friends → Rivals → Allies" shape §10 asked for');

@@ -1,4 +1,4 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jsrenderbus-js-1-5
+// Historical context: see docs/CODEBASE_NOTES.md#jsrenderbus-js
 let renderer = null;
 export function setRenderer(fn) {
   renderer = fn;

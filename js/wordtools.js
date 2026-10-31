@@ -1,9 +1,9 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jswordtools-js-1-5
+// Historical context: see docs/CODEBASE_NOTES.md#jswordtools-js
 
-// Historical context: see docs/CODEBASE_NOTES.md#jswordtools-js-7-15
+// Historical context: see docs/CODEBASE_NOTES.md#jswordtools-js
 import * as Generator from './generator.js';
 
-// Historical context: see docs/CODEBASE_NOTES.md#jswordtools-js-18-21
+// Historical context: see docs/CODEBASE_NOTES.md#jswordtools-js
 const STOPWORDS = new Set([
   'a','an','the','and','or','but','so','yet','nor','for','of','in','on','at','to','from','by',
   'with','without','into','onto','over','under','up','down','out','off','about','as','than',
@@ -17,7 +17,7 @@ const STOPWORDS = new Set([
   'above','below','between','against','during','around'
 ]);
 
-// Historical context: see docs/CODEBASE_NOTES.md#jswordtools-js-35-38
+// Historical context: see docs/CODEBASE_NOTES.md#jswordtools-js
 const CRUTCH_WORDS = new Set([
   'just','really','very','suddenly','somehow','actually','literally','basically','honestly',
   'definitely','absolutely','totally','simply','quite','rather','somewhat','seemed','felt',
@@ -49,7 +49,7 @@ export function computeWordFrequency(text = '', { limit = 20 } = {}) {
     .map(([word, count]) => {
       const share = total > 0 ? count / total : 0;
       const crutch = CRUTCH_WORDS.has(word);
-// Historical context: see docs/CODEBASE_NOTES.md#jswordtools-js-70-73
+// Historical context: see docs/CODEBASE_NOTES.md#jswordtools-js
       const overused = crutch ? count >= 4 && share > 0.003 : count >= 5 && share > 0.012;
       return { word, count, share, crutch, overused };
     })
@@ -81,7 +81,7 @@ export function generateNames(n = 8) {
   return Array.from(names);
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jswordtools-js-105-108
+// Historical context: see docs/CODEBASE_NOTES.md#jswordtools-js
 const THESAURUS = {
   said: ['stated', 'replied', 'murmured', 'answered', 'remarked', 'noted'],
   looked: ['gazed', 'glanced', 'stared', 'peered', 'eyed', 'studied'],

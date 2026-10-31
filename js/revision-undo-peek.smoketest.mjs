@@ -37,7 +37,7 @@ console.log('Undo/redo peek-before-pop — stale entry handling');
 localStorage.clear();
 Store.load();
 
-const project = Store.getActiveProject();
+Store.getActiveProject();
 
 // Create a chapter — this records a mutation in the undo stack
 const ch1 = Store.createChapter('Chapter 1');
@@ -74,7 +74,7 @@ let threw = false;
 let result;
 try {
   result = Store.undo();
-} catch (err) {
+} catch {
   threw = true;
 }
 ok('undo on empty stack returns null without throwing', !threw && result === null);
@@ -85,7 +85,7 @@ let redoThrew = false;
 let redoResult;
 try {
   redoResult = Store.redo();
-} catch (err) {
+} catch {
   redoThrew = true;
 }
 ok('redo on empty stack returns null without throwing', !redoThrew && redoResult === null);

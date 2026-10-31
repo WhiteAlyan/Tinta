@@ -1,4 +1,4 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jsgrammarmodal-js-1-14
+// Historical context: see docs/CODEBASE_NOTES.md#jsgrammarmodal-js
 
 import * as Store from './store.js';
 import * as Grammar from './grammar.js';
@@ -27,16 +27,16 @@ async function runGrammarCheck(chapter, settings) {
     renderGrammarErrorModal(chapter, result.error);
     return;
   }
-// Historical context: see docs/CODEBASE_NOTES.md#jsgrammarmodal-js-43-46
+// Historical context: see docs/CODEBASE_NOTES.md#jsgrammarmodal-js
   const filtered = result.matches.filter((m) => !Store.isDictionaryIgnored(chapter.content.slice(m.offset, m.offset + m.length)));
-// Historical context: see docs/CODEBASE_NOTES.md#jsgrammarmodal-js-48-52
+// Historical context: see docs/CODEBASE_NOTES.md#jsgrammarmodal-js
   const styleMatches = Store.scanTextForStyleViolations(chapter.content, Store.getStyleGuideRules()).filter(
     (m) => !Store.isDictionaryIgnored(chapter.content.slice(m.offset, m.offset + m.length))
   );
   renderGrammarResultsModal(chapter, [...filtered, ...styleMatches].sort((a, b) => a.offset - b.offset));
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsgrammarmodal-js-59-63
+// Historical context: see docs/CODEBASE_NOTES.md#jsgrammarmodal-js
 function runStyleGuideOnlyCheck(chapter) {
   const styleMatches = Store.scanTextForStyleViolations(chapter.content, Store.getStyleGuideRules()).filter(
     (m) => !Store.isDictionaryIgnored(chapter.content.slice(m.offset, m.offset + m.length))
@@ -45,8 +45,11 @@ function runStyleGuideOnlyCheck(chapter) {
 }
 
 function grammarModalShell(bodyHtml, { title = 'Grammar & Style Check' } = {}) {
-// Historical context: see docs/CODEBASE_NOTES.md#jsgrammarmodal-js-72-78
-  openModal({ title, className: 'grammar-modal', body: toBridge(bodyHtml) });
+// Historical context: see docs/CODEBASE_NOTES.md#jsgrammarmodal-js
+// Roadmap #6 — openModal escapes plain strings now, so the SafeHtml body
+// is passed through AS SafeHtml (toBridge here would have flattened it to
+// a plain string and the modal would have escaped it into visible source).
+  openModal({ title, className: 'grammar-modal', body: bodyHtml });
 }
 
 function renderGrammarLoadingModal(chapter) {
@@ -155,7 +158,7 @@ function renderDictionaryList() {
   const list = q('dictionary-list');
   if (!list) return;
   const words = Store.getCustomDictionary();
-// Historical context: see docs/CODEBASE_NOTES.md#jsgrammarmodal-js-188-191
+// Historical context: see docs/CODEBASE_NOTES.md#jsgrammarmodal-js
   list.innerHTML = toBridge(
     words.length
       ? html`${words.map(
@@ -223,11 +226,26 @@ function grammarMatchContext(content, match) {
   const before = content.slice(start, match.offset);
   const flagged = content.slice(match.offset, match.offset + match.length);
   const after = content.slice(match.offset + match.length, end);
-  return `${start > 0 ? '…' : ''}${escapeHtml(before)}<mark class="grammar-flag">${escapeHtml(flagged)}</mark>${escapeHtml(after)}${end < content.length ? '…' : ''}`;
+  // Code review P0 3.1 fix — was a hand-escaped plain string (escapeHtml
+  // was never imported, so the whole results path threw ReferenceError
+  // before it could render). Built through html`` now, which escapes
+  // before/flagged/after by construction and keeps the real <mark> tag.
+  return html`${start > 0 ? '…' : ''}${before}<mark class="grammar-flag">${flagged}</mark>${after}${end < content.length ? '…' : ''}`;
 }
 
-function renderGrammarResultsModal(chapter, matches) {
-  grammarModalShell(`
+// Code review P0 3.1 fix — this was the only grammarModal body built as a
+// plain string: it called escapeHtml()/escapeAttr() six times without ever
+// importing them (ReferenceError the moment a check returned results, and
+// an unhandled rejection because the caller is async), and the plain string
+// would ALSO have been escaped wholesale by grammarModalShell's toBridge()
+// even once the imports were added. Rebuilt on the html`` tagged template
+// like the other three modals in this file — every interpolated value
+// (category, message, ids, replacements) escapes automatically, and the
+// body reaches openModal() as SafeHtml so nothing double-escapes. Exported
+// for the render-path smoketest, same convention as historyModals.js's
+// renderSnapshotListPane.
+export function renderGrammarResultsModal(chapter, matches) {
+  grammarModalShell(html`
     <div class="grammar-results-header">
       <span class="grammar-results-count">${matches.length === 0 ? 'No issues found' : `${matches.length} item${matches.length === 1 ? '' : 's'} found`}</span>
       <div class="grammar-results-actions">
@@ -237,31 +255,29 @@ function renderGrammarResultsModal(chapter, matches) {
     </div>
     ${
       matches.length === 0
-        ? '<p class="empty-note">Nothing flagged, nice and clean.</p>'
-        : `<div class="grammar-match-list">
-      ${matches
-        .map(
-          (m) => `
+        ? html`<p class="empty-note">Nothing flagged, nice and clean.</p>`
+        : html`<div class="grammar-match-list">
+      ${matches.map(
+        (m) => html`
         <div class="grammar-match-card" data-match="${m.id}">
           <div class="grammar-match-head">
-            <span class="grammar-category-tag">${escapeHtml(m.category)}</span>
+            <span class="grammar-category-tag">${m.category}</span>
             <div class="grammar-match-head-actions">
               <button class="grammar-ignore-btn" title="Never flag this word again in this project">Ignore word</button>
               <button class="grammar-dismiss-btn" title="Dismiss">✕</button>
             </div>
           </div>
-          <p class="grammar-match-message">${escapeHtml(m.shortMessage)}</p>
+          <p class="grammar-match-message">${m.shortMessage}</p>
           <p class="grammar-match-context">${grammarMatchContext(chapter.content, m)}</p>
           ${
             m.replacements.length
-              ? `<div class="grammar-replacements">
-                ${m.replacements.map((r) => `<button class="grammar-replacement-chip" data-value="${escapeAttr(r)}">${escapeHtml(r)}</button>`).join('')}
+              ? html`<div class="grammar-replacements">
+                ${m.replacements.map((r) => html`<button class="grammar-replacement-chip" data-value="${r}">${r}</button>`)}
               </div>`
               : ''
           }
         </div>`
-        )
-        .join('')}
+      )}
     </div>`
     }
   `);
@@ -283,7 +299,7 @@ function renderGrammarResultsModal(chapter, matches) {
       if (!match) return;
       const flagged = chapter.content.slice(match.offset, match.offset + match.length);
       Store.addToCustomDictionary(flagged);
-// Historical context: see docs/CODEBASE_NOTES.md#jsgrammarmodal-js-319-323
+// Historical context: see docs/CODEBASE_NOTES.md#jsgrammarmodal-js
       q('modal-root').querySelectorAll('.grammar-match-card').forEach((otherCard) => {
         const otherMatch = matches.find((m) => m.id === otherCard.dataset.match);
         if (otherMatch && chapter.content.slice(otherMatch.offset, otherMatch.offset + otherMatch.length).trim().toLowerCase() === flagged.trim().toLowerCase()) {
@@ -300,13 +316,13 @@ function renderGrammarResultsModal(chapter, matches) {
       const match = matches.find((m) => m.id === matchId);
       if (!match) return;
       applyGrammarReplacement(chapter.id, match, btn.dataset.value);
-// Historical context: see docs/CODEBASE_NOTES.md#jsgrammarmodal-js-340-344
+// Historical context: see docs/CODEBASE_NOTES.md#jsgrammarmodal-js
       openGrammarModal(Store.getChapter(chapter.id));
     });
   });
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsgrammarmodal-js-350-357
+// Historical context: see docs/CODEBASE_NOTES.md#jsgrammarmodal-js
 function applyGrammarReplacement(chapterId, match, replacement) {
   const chapter = Store.getChapter(chapterId);
   if (!chapter) return;
@@ -318,7 +334,7 @@ function applyGrammarReplacement(chapterId, match, replacement) {
   if (activeView === 'write' && activeChapterId === chapterId && textarea) {
     textarea.value = newContent;
     textarea.dispatchEvent(new Event('input'));
-// Historical context: see docs/CODEBASE_NOTES.md#jsgrammarmodal-js-369-372
+// Historical context: see docs/CODEBASE_NOTES.md#jsgrammarmodal-js
     currentEditorHandle?.flush();
   } else {
     Store.updateChapterContent(chapterId, newContent);

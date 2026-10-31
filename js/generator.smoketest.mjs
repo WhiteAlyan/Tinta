@@ -84,7 +84,7 @@ assertEqual(wtBatch.length, 6, 'WordTools.generateNames(6) still returns 6 names
 assertEqual(new Set(wtBatch.map((n) => n.toLowerCase())).size, wtBatch.length, 'WordTools.generateNames() still de-duplicates within a batch');
 
 section('store.js — generateEntityNames, classic mode (default, zero behavior change)');
-const project = Store.getActiveProject();
+Store.getActiveProject();
 {
   const { names, modeUsed, fellBack } = Store.generateEntityNames({ mode: 'classic', count: 5 });
   assertEqual(modeUsed, 'classic', 'classic mode reports classic');

@@ -1,4 +1,4 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jsfile-utils-js-1-8
+// Historical context: see docs/CODEBASE_NOTES.md#jsfile-utils-js
 
 export function downloadTextFile(filename, content, mime = 'text/markdown;charset=utf-8') {
   const blob = new Blob([content], { type: mime });

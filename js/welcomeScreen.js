@@ -25,7 +25,7 @@ const FALLBACK_QUOTES = [
   { text: 'The first draft of anything is shit.', source: 'Ernest Hemingway' },
   { text: 'You can\'t edit a blank page.', source: 'Jodi Picoult' },
   { text: 'Writing is rewriting.', source: 'Michael Crichton' },
-  { text: 'Substitute "damn" every time you\'re inclined to write \"very\"; your editor will delete it and the writing will be just as it should be.', source: 'Mark Twain' },
+  { text: 'Substitute "damn" every time you\'re inclined to write "very"; your editor will delete it and the writing will be just as it should be.', source: 'Mark Twain' },
   { text: 'The road to hell is paved with adverbs.', source: 'Stephen King' },
   { text: 'Don\'t tell me the moon is shining; show me the glint of light on broken glass.', source: 'Anton Chekhov' },
   { text: 'If a story is in you, it has to come out.', source: 'William Faulkner' },

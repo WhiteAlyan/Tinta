@@ -1,4 +1,4 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jssystemsview-js-1-23
+// Historical context: see docs/CODEBASE_NOTES.md#jssystemsview-js
 
 import * as Store from './store.js';
 import * as ModalShell from './modal.js';
@@ -10,7 +10,7 @@ import { openStarterSystemModal, activeSystemIdFromGenerator, clearActiveSystemI
 
 // 0.2.6 Pass 1 — setActiveSystemId moved to context.js (import below).
 
-export function renderSystemsView(project) {
+export function renderSystemsView(_project) {
   const panel = document.querySelector('.view-panel[data-view="systems"]');
   const systems = Store.getRuleSystemList();
 
@@ -178,7 +178,7 @@ function renderSystemDetail(systemId) {
   });
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jssystemsview-js-203-207
+// Historical context: see docs/CODEBASE_NOTES.md#jssystemsview-js
 function openSystemNodeModal(systemId, nodeId) {
   const node = nodeId ? Store.getSystemNode(nodeId) : null;
   const allOtherNodes = Store.getSystemNodeList(systemId).filter((n) => n.id !== nodeId);
@@ -186,7 +186,7 @@ function openSystemNodeModal(systemId, nodeId) {
   ModalShell.openModal({
     title: node ? 'Edit node' : 'New node',
     className: 'annotations-modal system-node-modal',
-    body: `
+    body: raw(`
         <div class="wt-popover-field system-node-fields">
           <label>Name<input type="text" id="node-name" value="${escapeAttr(node?.name || '')}" placeholder="Firebolt, Optic Implant, Iron Body Technique…" /></label>
           <label>Category<input type="text" id="node-category" value="${escapeAttr(node?.category || '')}" placeholder="Elemental, Cybernetic, Internal…" /></label>
@@ -219,8 +219,8 @@ function openSystemNodeModal(systemId, nodeId) {
         <div class="annotations-add-row">
           <button id="node-save-btn" class="toolbar-btn">${node ? 'Save' : '+ Create'}</button>
         </div>
-    `,
-// Historical context: see docs/CODEBASE_NOTES.md#jssystemsview-js-249-252
+    `),
+// Historical context: see docs/CODEBASE_NOTES.md#jssystemsview-js
     onClose: () => renderSystemsView(Store.getActiveProject()),
   });
 

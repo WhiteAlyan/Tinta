@@ -1,4 +1,4 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-craft-js-1-25
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-craft-js
 
 import {
   escapeRegExp,
@@ -9,7 +9,16 @@ import {
   uid,
 } from './store-core.js';
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-craft-js-36-41
+// Roadmap #9 — every save re-serializes the whole db, so an unbounded
+// array is unbounded quota growth, and the decision log was exactly that:
+// entries went in, nothing ever aged out. Decisions are user-authored
+// records, so the cap is deliberately generous (250 — years of deliberate
+// logging) and only ever evicts the OLDEST entry once it's actually
+// exceeded; getDecisionList() orders newest-first, so eviction affects the
+// tail a writer hasn't touched in years, not the working set.
+export const MAX_DECISION_LOG = 250;
+
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-craft-js
 
 export function getSketchList() {
   const project = getActiveProject();
@@ -29,7 +38,7 @@ export function createSketch({ title = 'Untitled Sketch', mode = 'freeform' } = 
     mode, // 'freeform' | 'map' — map mode shows a grid overlay, same data underneath
     gridStyle: 'square', // 'square' | 'hex' — only relevant when mode === 'map'
     strokes: [],
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-craft-js-61-64
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-craft-js
     linkedEntityIds: [],
     createdAt: now(),
     updatedAt: now(),
@@ -87,9 +96,9 @@ export function clearSketch(sketchId) {
   save();
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-craft-js-122-127
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-craft-js
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-craft-js-129-135
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-craft-js
 export const SNIPPET_CATEGORIES = [
   { key: 'idea', label: 'Idea' },
   { key: 'dialogue', label: 'Dialogue' },
@@ -136,7 +145,7 @@ export function deleteSnippet(snippetId) {
   save();
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-craft-js-180-185
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-craft-js
 
 export function getStyleGuideRules() {
   const project = getActiveProject();
@@ -168,7 +177,7 @@ export function deleteStyleGuideRule(ruleId) {
   save();
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-craft-js-217-224
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-craft-js
 export function scanTextForStyleViolations(text = '', rules = []) {
   if (!text || !rules.length) return [];
   const sorted = [...rules].sort((a, b) => b.incorrect.length - a.incorrect.length);
@@ -190,7 +199,7 @@ export function scanTextForStyleViolations(text = '', rules = []) {
   return found.sort((a, b) => a.offset - b.offset);
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-craft-js-246-249
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-craft-js
 export function getStyleGuideReport() {
   const project = getActiveProject();
   const rules = project.styleGuide || [];
@@ -238,7 +247,7 @@ export function getSketchesForEntity(entityId) {
   return getSketchList().filter((s) => (s.linkedEntityIds || []).includes(entityId));
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-craft-js-297-303
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-craft-js
 
 export const SCENE_RELATIONSHIP_TYPES = [
   { key: 'follows', label: 'Follows' },
@@ -294,7 +303,7 @@ export function deleteSceneRelationship(relId) {
   save();
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-craft-js-359-363
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-craft-js
 
 export function getStoryQuestionList() {
   const project = getActiveProject();
@@ -339,7 +348,7 @@ export function deleteStoryQuestion(id) {
   save();
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-craft-js-408-414
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-craft-js
 export function getStoryQuestionsForScene(sceneId) {
   const all = getStoryQuestionList();
   return {
@@ -348,13 +357,13 @@ export function getStoryQuestionsForScene(sceneId) {
   };
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-craft-js-423-428
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-craft-js
 export function setStoryQuestionScene(id, role, sceneId) {
   if (role !== 'introducedSceneId' && role !== 'payoffSceneId') return;
   updateStoryQuestion(id, { [role]: sceneId });
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-craft-js-434-439
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-craft-js
 export const ANNOTATION_TYPES = [
   { key: 'todo', label: 'To-do' },
   { key: 'check', label: 'Check' },
@@ -423,7 +432,7 @@ export function deleteAnnotation(id) {
   save();
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-craft-js-508-511
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-craft-js
 export function getBookmarkList() {
   const project = getActiveProject();
   return Object.values(project.bookmarks || {}).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -464,7 +473,7 @@ export function deleteBookmark(id) {
   save();
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-craft-js-552-560
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-craft-js
 export function getQuoteList() {
   const project = getActiveProject();
   return Object.values(project.quotes || {}).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -492,7 +501,7 @@ export function deleteQuote(id) {
   save();
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-craft-js-588-597
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-craft-js
 export function getDecisionList() {
   const project = getActiveProject();
   return [...(project.decisionLog || [])].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -517,6 +526,11 @@ export function createDecision({ decision = '', reason = '', alternatives = '' }
     updatedAt: now(),
   };
   project.decisionLog.push(entry);
+  // Roadmap #9 — enforce the cap at the write path (not read time): the
+  // point is bounding what gets serialized on every save, forever.
+  if (project.decisionLog.length > MAX_DECISION_LOG) {
+    project.decisionLog = project.decisionLog.slice(-MAX_DECISION_LOG);
+  }
   save();
   return entry;
 }

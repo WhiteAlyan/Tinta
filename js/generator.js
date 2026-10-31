@@ -1,8 +1,8 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jsgenerator-js-1-50
+// Historical context: see docs/CODEBASE_NOTES.md#jsgenerator-js
 
 // ── seeded RNG ───────────────────────────────────────────────────────────
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsgenerator-js-54-57
+// Historical context: see docs/CODEBASE_NOTES.md#jsgenerator-js
 function hashSeed(str) {
   let h = 0x811c9dc5;
   for (let i = 0; i < str.length; i++) {
@@ -12,7 +12,7 @@ function hashSeed(str) {
   return h >>> 0;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsgenerator-js-67-71
+// Historical context: see docs/CODEBASE_NOTES.md#jsgenerator-js
 function mulberry32(seedInt) {
   let a = seedInt >>> 0;
   return function rng() {
@@ -41,7 +41,7 @@ export function randomSeed() {
   return Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsgenerator-js-100-105
+// Historical context: see docs/CODEBASE_NOTES.md#jsgenerator-js
 export const CLASSIC_FANTASY_POOL = {
   starts: [
     'Ar','Bel','Cor','Dar','El','Fen','Gal','Hal','Is','Jor','Kel','Lor','Mir','Nor','Or','Pel',
@@ -68,7 +68,7 @@ export function generateFromSyllablePool({ starts, mids, ends, minSyllables = 2,
   return name;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsgenerator-js-132-145
+// Historical context: see docs/CODEBASE_NOTES.md#jsgenerator-js
 const FRAGMENT_QUALITIES = [
   'ancient', 'insular', 'expansionist', 'secretive', 'devout', 'mercantile', 'fractured',
   'rigidly hierarchical', 'egalitarian in name only', 'nomadic', 'isolationist', 'militarized',
@@ -127,7 +127,7 @@ export function generateFromPattern({ pattern, consonants = DEFAULT_CONSONANTS, 
   return name;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsgenerator-js-204-215
+// Historical context: see docs/CODEBASE_NOTES.md#jsgenerator-js
 export function buildMarkovModel(seedWords, order = 2) {
   const START = '\u0000';
   const END = '\u0001';
@@ -144,7 +144,7 @@ export function buildMarkovModel(seedWords, order = 2) {
   return { model, order, START, END };
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsgenerator-js-232-239
+// Historical context: see docs/CODEBASE_NOTES.md#jsgenerator-js
 export function generateFromMarkov(markov, { minLength = 3, maxLength = 10, capitalize = true, rng = Math.random } = {}) {
   const { model, order, START, END } = markov;
   let context = START.repeat(order);
@@ -166,7 +166,7 @@ export function generateFromMarkov(markov, { minLength = 3, maxLength = 10, capi
   return capitalize ? out.charAt(0).toUpperCase() + out.slice(1) : out;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsgenerator-js-261-272
+// Historical context: see docs/CODEBASE_NOTES.md#jsgenerator-js
 export function generateNames({
   seedWords = [],
   count = 8,

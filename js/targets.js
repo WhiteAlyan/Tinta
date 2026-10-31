@@ -1,4 +1,4 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jstargets-js-1-34
+// Historical context: see docs/CODEBASE_NOTES.md#jstargets-js
 
 import * as Store from './store.js';
 import {
@@ -19,7 +19,7 @@ const TARGET_ROUTING = {
   questions: { view: 'questions', setState: null },
 };
 
-// Historical context: see docs/CODEBASE_NOTES.md#jstargets-js-55-63
+// Historical context: see docs/CODEBASE_NOTES.md#jstargets-js
 export function resolveTarget(target) {
   const { type, id } = target || {};
   const routing = TARGET_ROUTING[type];
@@ -43,7 +43,7 @@ export function resolveTarget(target) {
   };
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jstargets-js-87-91
+// Historical context: see docs/CODEBASE_NOTES.md#jstargets-js
 export function openTarget(target, { render } = {}) {
   const resolved = resolveTarget(target);
   if (!resolved) {

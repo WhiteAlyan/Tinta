@@ -1,4 +1,4 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jsemptystate-js-1-33
+// Historical context: see docs/CODEBASE_NOTES.md#jsemptystate-js
 import { raw } from './dom-utils.js';
 
 // Bug-report fix — return a SafeHtml object (via raw()) instead of a plain

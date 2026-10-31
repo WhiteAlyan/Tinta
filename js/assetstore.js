@@ -1,4 +1,4 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jsassetstore-js-1-17
+// Historical context: see docs/CODEBASE_NOTES.md#jsassetstore-js
 //
 // P2-9 fix — imagestore.js and assetstore.js used to implement
 // byte-for-byte near-identical openDb / putBlob / getBlob / deleteBlob /
@@ -14,7 +14,7 @@ export const KEYS = {
   AMBIENCE_TRACK: 'ambience-custom-track',
   BACKGROUND_IMAGE: 'background-custom-image',
   CUSTOM_FONT: 'custom-manuscript-font',
-// Historical context: see docs/CODEBASE_NOTES.md#jsassetstore-js-23-27
+// Historical context: see docs/CODEBASE_NOTES.md#jsassetstore-js
   BACKUP_FOLDER_HANDLE: 'tinta-backup-folder-handle',
 };
 

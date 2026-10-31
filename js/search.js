@@ -1,11 +1,11 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jssearch-js-1-6
+// Historical context: see docs/CODEBASE_NOTES.md#jssearch-js
 
 const SNIPPET_RADIUS = 40; // chars of context on each side of a match
 const MAX_MATCHES_PER_FIELD = 20; // a runaway "e" search on a full chapter
 // shouldn't return hundreds of hits — cap per field, not per project, so a
 // long chapter doesn't crowd out every other result type.
 
-// Historical context: see docs/CODEBASE_NOTES.md#jssearch-js-13-18
+// Historical context: see docs/CODEBASE_NOTES.md#jssearch-js
 function findOccurrences(text, query, caseSensitive, useRegex = false) {
   if (!text || !query) return [];
   if (useRegex) {
@@ -43,7 +43,7 @@ function excerpt(text, index, matchLength) {
   return prefix + text.slice(start, end) + suffix;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jssearch-js-56-89
+// Historical context: see docs/CODEBASE_NOTES.md#jssearch-js
 export const QUERY_FILTER_FIELDS = {
   type: { categories: ['entities'] },
   tag: { categories: ['entities'] },
@@ -61,10 +61,10 @@ export const QUERY_FILTER_FIELDS = {
 
 const ALL_CATEGORIES = ['chapters', 'entities', 'scenes', 'snippets', 'timelineEvents', 'references', 'annotations', 'ruleSystems', 'maps'];
 
-// Historical context: see docs/CODEBASE_NOTES.md#jssearch-js-107-112
+// Historical context: see docs/CODEBASE_NOTES.md#jssearch-js
 const FIELD_ALIASES = Object.fromEntries(Object.keys(QUERY_FILTER_FIELDS).map((k) => [k.toLowerCase(), k]));
 
-// Historical context: see docs/CODEBASE_NOTES.md#jssearch-js-115-118
+// Historical context: see docs/CODEBASE_NOTES.md#jssearch-js
 export function parseQuery(raw) {
   const filters = [];
   let freeText = (raw || '').replace(/(\w+):(?:"([^"]*)"|(\S+))/g, (whole, field, quoted, plain) => {
@@ -79,7 +79,7 @@ export function parseQuery(raw) {
   return { filters, freeText };
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jssearch-js-133-136
+// Historical context: see docs/CODEBASE_NOTES.md#jssearch-js
 function categoriesForFilters(filters) {
   if (filters.length === 0) return new Set(ALL_CATEGORIES);
   return filters.reduce((set, f) => {
@@ -88,7 +88,7 @@ function categoriesForFilters(filters) {
   }, new Set(ALL_CATEGORIES));
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jssearch-js-145-149
+// Historical context: see docs/CODEBASE_NOTES.md#jssearch-js
 function chapterRole(project, chapter) {
   const type = (project.chapterTypes || []).find((t) => t.key === chapter.docType);
   return type ? type.role : 'content';
@@ -109,7 +109,7 @@ function folderName(project, folderId) {
 // needs for "show me what's NOT tagged," not just "what is."
 const NONE_VALUES = new Set(['none', 'unassigned']);
 
-// Historical context: see docs/CODEBASE_NOTES.md#jssearch-js-170-176
+// Historical context: see docs/CODEBASE_NOTES.md#jssearch-js
 function matchesDateFilter(actualIso, spec) {
   if (!actualIso || !spec) return false;
   const actual = new Date(actualIso);
@@ -179,7 +179,7 @@ function ruleSystemMatchesFilter(system, filter) {
   return true;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jssearch-js-246-253
+// Historical context: see docs/CODEBASE_NOTES.md#jssearch-js
 export function searchProject(project, query, { caseSensitive = false, useRegex = false } = {}) {
   const rawTrimmed = (query || '').trim();
   const empty = { chapters: [], entities: [], scenes: [], snippets: [], timelineEvents: [], references: [], annotations: [], ruleSystems: [], maps: [], regexError: null, filterConflict: false, filters: [] };
@@ -190,7 +190,7 @@ export function searchProject(project, query, { caseSensitive = false, useRegex 
   if (filters.length > 0 && inScope.size === 0) {
     return { ...empty, filterConflict: true, filters };
   }
-// Historical context: see docs/CODEBASE_NOTES.md#jssearch-js-264-268
+// Historical context: see docs/CODEBASE_NOTES.md#jssearch-js
   const trimmed = freeText;
   const hasFreeText = trimmed.length > 0;
 
@@ -199,14 +199,13 @@ export function searchProject(project, query, { caseSensitive = false, useRegex 
   // scanned fine; the caller gets a clean "here's what's wrong" instead.
   if (useRegex) {
     try {
-      // eslint-disable-next-line no-new
       new RegExp(trimmed);
     } catch (err) {
       return { ...empty, regexError: err.message, filters };
     }
   }
   const find = (text) => findOccurrences(text, trimmed, caseSensitive, useRegex);
-// Historical context: see docs/CODEBASE_NOTES.md#jssearch-js-284-287
+// Historical context: see docs/CODEBASE_NOTES.md#jssearch-js
   const passesFilters = (matchFn, ...args) => filters.every((f) => matchFn(...args, f));
 
   const chapters = inScope.has('chapters')
@@ -226,14 +225,14 @@ export function searchProject(project, query, { caseSensitive = false, useRegex 
           type: e.type,
           nameMatches: find(e.name),
           descMatches: find(e.description),
-// Historical context: see docs/CODEBASE_NOTES.md#jssearch-js-307-310
+// Historical context: see docs/CODEBASE_NOTES.md#jssearch-js
           tagMatches: (e.tags || []).filter((t) => find(t).length > 0),
         }))
         .filter((r) => !hasFreeText || r.nameMatches.length > 0 || r.descMatches.length > 0 || r.tagMatches.length > 0)
         .sort((a, b) => a.name.localeCompare(b.name))
     : [];
 
-// Historical context: see docs/CODEBASE_NOTES.md#jssearch-js-317-323
+// Historical context: see docs/CODEBASE_NOTES.md#jssearch-js
   const scenes = [];
   if (inScope.has('scenes')) {
     project.chapters.forEach((c) => {
@@ -301,7 +300,7 @@ export function searchProject(project, query, { caseSensitive = false, useRegex 
         .sort((a, b) => a.title.localeCompare(b.title))
     : [];
 
-// Historical context: see docs/CODEBASE_NOTES.md#jssearch-js-391-394
+// Historical context: see docs/CODEBASE_NOTES.md#jssearch-js
   const annotations = inScope.has('annotations')
     ? Object.values(project.annotations || {})
         .filter((a) => find(a.note).length > 0)
@@ -309,7 +308,7 @@ export function searchProject(project, query, { caseSensitive = false, useRegex 
         .sort((a, b) => new Date(project.annotations[b.id]?.createdAt || 0) - new Date(project.annotations[a.id]?.createdAt || 0))
     : [];
 
-// Historical context: see docs/CODEBASE_NOTES.md#jssearch-js-402-405
+// Historical context: see docs/CODEBASE_NOTES.md#jssearch-js
   const ruleSystems = inScope.has('ruleSystems')
     ? Object.values(project.ruleSystems || {})
         .filter((sys) => passesFilters(ruleSystemMatchesFilter, sys))
@@ -363,7 +362,7 @@ export function countTotalMatches(results) {
   );
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jssearch-js-459-464
+// Historical context: see docs/CODEBASE_NOTES.md#jssearch-js
 export function countResultRows(results) {
   return (
     results.chapters.length +
@@ -378,7 +377,7 @@ export function countResultRows(results) {
   );
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jssearch-js-479-506
+// Historical context: see docs/CODEBASE_NOTES.md#jssearch-js
 export function planChapterReplace(project, query, replacement, { caseSensitive = false, useRegex = false } = {}) {
   const trimmed = (query || '').trim();
   if (!trimmed) return [];

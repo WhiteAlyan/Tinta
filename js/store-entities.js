@@ -1,4 +1,4 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js-1-28
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js
 
 import {
   AUTHORITY_SOURCES,
@@ -19,21 +19,21 @@ import {
   uid,
 } from './store-core.js';
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js-47-50
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js
 
 export function getEntityList() {
   const project = getActiveProject();
   return Object.values(project.entities).sort((a, b) => a.name.localeCompare(b.name));
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js-57-64
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js
 export function getSeriesEntityList() {
   const series = getSeriesForActiveProject();
   if (!series) return [];
   return Object.values(series.entities).sort((a, b) => a.name.localeCompare(b.name));
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js-71-77
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js
 export function getEntity(entityId) {
   const project = getActiveProject();
   // ownGet, not a bare index — see store-core.js. `getEntity('constructor')`
@@ -47,7 +47,7 @@ export function getEntity(entityId) {
   return null;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js-86-90
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js
 export function isSeriesEntity(entityId) {
   const project = getActiveProject();
   if (project.entities[entityId]) return false;
@@ -55,7 +55,7 @@ export function isSeriesEntity(entityId) {
   return !!(series && series.entities[entityId]);
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js-98-113
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js
 export function findEntityByName(name) {
   const target = (name || '').trim().toLowerCase();
   if (!target) return null;
@@ -65,14 +65,14 @@ export function findEntityByName(name) {
   return list.find((e) => (e.aliases || []).some((a) => a.trim().toLowerCase() === target)) || null;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js-123-128
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js
 export function getEntityChildren(parentId) {
   return [...getEntityList(), ...getSeriesEntityList()]
     .filter((e) => e.parentId === parentId)
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js-135-141
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js
 export function wouldCreateCycle(entityId, candidateParentId) {
   if (!candidateParentId) return false;
   if (entityId === candidateParentId) return true;
@@ -86,13 +86,13 @@ export function wouldCreateCycle(entityId, candidateParentId) {
   return false;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js-155-175
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js
 
 export function getCanonStatuses() {
   return CANON_STATUSES;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js-181-212
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js
 
 export function getAuthoritySources() {
   return AUTHORITY_SOURCES;
@@ -110,16 +110,16 @@ export function createEntity({ name, type = 'character', description = '', tags 
     parentId: null, // another entity's id — lets a City nest under a Country, a sub-faction under a Faction, etc. Never validated against cycles here; see wouldCreateCycle() below, which callers (app.js's parent picker) are expected to consult before calling updateEntity with a new parentId.
     aliases: [], // nicknames/titles/alternate names — findEntityByName() and the [[mention]] linker below both check these alongside `name`, so "El" or "the Duchess" can resolve to the same entity as "Elena" without the prose needing to spell out the canonical name every time.
     customFields: {}, // keyed by this type's template.fields[].key — freeform values for whatever this entity's type template defines (a Deity's domain, a Species' lifespan, etc.)
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js-230-241
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js
     statusEvents: [],
     imageIds: [], // gallery — reuses the shared project.images catalog, same blobs as inline/cover art
     primaryImageId: null, // which imageIds entry is the "portrait" shown in sidebar/detail/canvas; falls back to imageIds[0] when null
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js-245-249
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js
     canonStatus: 'canon',
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js-251-255
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js
     authoritySource: 'Author decision',
     generation: null,
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js-258-264
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js
     snapshots: [],
     lastAutoCheckpointAt: now(),
     createdAt: now(),
@@ -136,7 +136,7 @@ export function createEntity({ name, type = 'character', description = '', tags 
   return entity;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js-281-286
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js
 export function createSeriesEntity({ name, type = 'character', description = '', tags = [] } = {}) {
   const series = getSeriesForActiveProject();
   if (!series) return null;
@@ -166,7 +166,7 @@ export function createSeriesEntity({ name, type = 'character', description = '',
   return entity;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js-316-322
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js
 export function promoteEntityToSeries(entityId) {
   const project = getActiveProject();
   const series = getSeriesForActiveProject();
@@ -182,7 +182,7 @@ export function promoteEntityToSeries(entityId) {
   return entity;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js-338-345
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js
 export function demoteEntityToProject(entityId) {
   const project = getActiveProject();
   const series = getSeriesForActiveProject();
@@ -198,9 +198,9 @@ export function demoteEntityToProject(entityId) {
   return entity;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js-361-367
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js-369-374
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js
 export function deleteSeriesEntity(entityId) {
   const db = load();
   const series = getSeriesForActiveProject();
@@ -221,13 +221,13 @@ export function deleteSeriesEntity(entityId) {
       if (!rel) return;
       if (rel.fromId === entityId || rel.toId === entityId) delete project.relationships[relId];
     });
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js-394-402
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js
   });
   save();
   return true;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js-408-418
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js
 export function getEntityTypes() {
   const project = getActiveProject();
   const builtins = project.entityTypes.filter((t) => t.builtin);
@@ -248,7 +248,7 @@ export function createEntityType({ label, color = '#8B6F47', fields = [] } = {})
   return type;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js-439-443
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js
 export function updateEntityType(key, patch) {
   const project = getActiveProject();
   const type = project.entityTypes.find((t) => t.key === key);
@@ -262,7 +262,7 @@ export function updateEntityType(key, patch) {
   save();
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js-457-463
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js
 export function deleteEntityType(key) {
   const project = getActiveProject();
   const type = project.entityTypes.find((t) => t.key === key);
@@ -275,7 +275,7 @@ export function deleteEntityType(key) {
   return true;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js-476-479
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js
 export function getDistinctEntityTags() {
   const values = new Set();
   getEntityList().forEach((e) => (e.tags || []).forEach((t) => {
@@ -324,7 +324,7 @@ export function updateEntity(entityId, patch) {
   maybeAutoCheckpointEntity(entity);
   const before = cloneWithoutSnapshots(entity);
   Object.assign(entity, patch, { updatedAt: now() });
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js-528-536
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js
   if (project.entities[entityId]) {
     recordMutation({
       type: 'update', targetType: 'entity', targetId: entityId, projectId: project.id,
@@ -340,7 +340,7 @@ export function updateEntity(entityId, patch) {
   return save();
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js-547-556
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js
 
 function maybeAutoCheckpointEntity(entity) {
   const msSinceCheckpoint = Date.now() - new Date(entity.lastAutoCheckpointAt || 0).getTime();
@@ -356,7 +356,7 @@ export function getEntitySnapshots(entityId) {
   return [...(entity.snapshots || [])].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js-572-577
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js
 export function createEntitySnapshot(entityId, label = '', auto = false) {
   const entity = getEntity(entityId);
   if (!entity) return null;
@@ -389,7 +389,7 @@ export function deleteEntitySnapshot(entityId, snapshotId) {
   save();
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js-610-624
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js
 const ENTITY_SNAPSHOT_COMPARE_SKIP_KEYS = new Set(['id', 'createdAt', 'updatedAt', 'snapshots']);
 function formatSnapshotCompareValue(v) {
   if (v === undefined || v === null || v === '') return '(empty)';
@@ -440,7 +440,7 @@ export function restoreEntitySnapshot(entityId, snapshotId) {
   save();
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js-675-682
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js
 
 export function getEntityStatusEvents(entityId) {
   const entity = getEntity(entityId);
@@ -449,7 +449,7 @@ export function getEntityStatusEvents(entityId) {
   return [...(entity.statusEvents || [])].sort((a, b) => {
     const ea = project.timelineEvents[a.timelineEventId];
     const eb = project.timelineEvents[b.timelineEventId];
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js-691-694
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js
     if (!ea && !eb) return 0;
     if (!ea) return 1;
     if (!eb) return -1;
@@ -487,7 +487,7 @@ export function deleteEntityStatusEvent(entityId, statusEventId) {
   save();
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js-732-750
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js
 let _positionSaveTimer = null;
 const POSITION_SAVE_DEBOUNCE_MS = 200;
 
@@ -531,8 +531,8 @@ if (typeof window !== 'undefined') {
   window.addEventListener('beforeunload', flushPendingPositionSave);
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js-794-804
-export const MENTION_RE = /\[\[([^\[\]]+)\]\]/g;
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js
+export const MENTION_RE = /\[\[([^\][]+)\]\]/g;
 
 // v0.2.9 — passive entity recognition. When project.passiveRecognition
 // is true, extractMentions also scans for entity names + aliases at word
@@ -663,7 +663,7 @@ export function getBacklinksFor(entityId) {
     });
   });
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js-859-862
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-entities-js
   Object.values(project.timelineEvents || {}).forEach((event) => {
     scan(event.description, { eventId: event.id, eventTitle: event.title, field: 'description' });
   });

@@ -39,7 +39,7 @@ console.log('Canvas preset delete — Store-side coverage');
 localStorage.clear();
 Store.load();
 
-const project = Store.getActiveProject();
+Store.getActiveProject();
 
 // Create a preset
 const preset = Store.createGraphPreset({ name: 'Family tree', hiddenTypes: ['location'], statusFilter: 'active' });
@@ -67,9 +67,9 @@ const rejected = Store.createGraphPreset({ name: '   ', hiddenTypes: [], statusF
 ok('createGraphPreset rejects empty/whitespace name', rejected === null);
 
 // Multiple presets — make sure delete only removes the targeted one
-const p1 = Store.createGraphPreset({ name: 'A' });
+Store.createGraphPreset({ name: 'A' });
 const p2 = Store.createGraphPreset({ name: 'B' });
-const p3 = Store.createGraphPreset({ name: 'C' });
+Store.createGraphPreset({ name: 'C' });
 Store.deleteGraphPreset(p2.id);
 const remaining = Store.getGraphPresetList().map((p) => p.name);
 ok('delete removed only the targeted preset', remaining.length === 2 && remaining.includes('A') && remaining.includes('C') && !remaining.includes('B'));

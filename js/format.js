@@ -1,4 +1,4 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jsformat-js-1-19
+// Historical context: see docs/CODEBASE_NOTES.md#jsformat-js
 
 export const COLOR_NAMES = ['red', 'amber', 'green', 'blue', 'purple'];
 export const IMAGE_ALIGNMENTS = ['left', 'right', 'center'];
@@ -10,7 +10,7 @@ export const IMAGE_ALIGNMENTS = ['left', 'right', 'center'];
 // both create ambiguity. The {{u:...}} token is unambiguous.
 export const UNDERLINE_TOKEN_PATTERN = /\{\{u:([^}]+?)\}\}/g;
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsformat-js-24-27
+// Historical context: see docs/CODEBASE_NOTES.md#jsformat-js
 export const IMAGE_TOKEN_PATTERN = /\{\{img:([a-zA-Z0-9_-]+)(?:\|(left|right|center))?\}\}/g;
 
 // Builds a token for the insert-image UI, so the toolbar/library never
@@ -20,19 +20,19 @@ export function buildImageToken(id, align = null) {
   return align && IMAGE_ALIGNMENTS.includes(align) ? `{{img:${id}|${align}}}` : `{{img:${id}}}`;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsformat-js-37-40
+// Historical context: see docs/CODEBASE_NOTES.md#jsformat-js
 export function stripImageTokens(text) {
   return (text || '').replace(IMAGE_TOKEN_PATTERN, '');
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsformat-js-45-50
+// Historical context: see docs/CODEBASE_NOTES.md#jsformat-js
 export function wordCount(text) {
   const trimmed = stripImageTokens(text || '').trim();
   if (!trimmed) return 0;
   return trimmed.split(/\s+/).length;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsformat-js-57-63
+// Historical context: see docs/CODEBASE_NOTES.md#jsformat-js
 export function extractImageIds(text) {
   const ids = [];
   const seen = new Set();
@@ -57,11 +57,11 @@ function escapeHtml(str = '') {
     .replace(/'/g, '&#39;');
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsformat-js-88-98
+// Historical context: see docs/CODEBASE_NOTES.md#jsformat-js
 export function renderFormattedHtml(text, { images = {} } = {}) {
   let html = escapeHtml(text || '');
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsformat-js-102-105
+// Historical context: see docs/CODEBASE_NOTES.md#jsformat-js
   html = html.replace(/\*\*([^*]+?)\*\*/g, '<strong>$1</strong>');
   html = html.replace(/\*([^*]+?)\*/g, '<em>$1</em>');
 
@@ -115,7 +115,7 @@ export function renderEditorParagraph(text, { images = {}, mentionResolver = nul
   // before chip wrapping — the chip then shows the formatted name.
   // Brackets stay in the HTML (transparent via .mention-bracket CSS) so
   // overlay character positions match the textarea's.
-  html = html.replace(/\[\[([^\[\]]+)\]\]/g, (whole, name) => {
+  html = html.replace(/\[\[([^\][]+)\]\]/g, (whole, name) => {
     const trimmed = name.trim();
     const exists = mentionResolver ? Boolean(mentionResolver(trimmed)) : false;
     const cls = exists ? 'mention-chip mention-chip-resolved' : 'mention-chip mention-chip-unresolved';
@@ -132,7 +132,7 @@ export function renderEditorParagraph(text, { images = {}, mentionResolver = nul
   return html;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsformat-js-129-133
+// Historical context: see docs/CODEBASE_NOTES.md#jsformat-js
 
 function toggleSymmetricWrap(text, start, end, marker) {
   const before = text.slice(0, start);
@@ -159,7 +159,7 @@ export function toggleBold(text, start, end) {
 }
 
 export function toggleItalic(text, start, end) {
-// Historical context: see docs/CODEBASE_NOTES.md#jsformat-js-160-164
+// Historical context: see docs/CODEBASE_NOTES.md#jsformat-js
   const before = text.slice(0, start);
   const after = text.slice(end);
   if (before.endsWith('**') || after.startsWith('**')) {
@@ -172,7 +172,7 @@ export function toggleItalic(text, start, end) {
   return toggleSymmetricWrap(text, start, end, '*');
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsformat-js-177-182
+// Historical context: see docs/CODEBASE_NOTES.md#jsformat-js
 export function toggleColor(text, start, end, colorName) {
   if (!COLOR_NAMES.includes(colorName)) return { text, selStart: start, selEnd: end };
 

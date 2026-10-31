@@ -1,8 +1,8 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-projects-js-1-18
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-projects-js
 
-import { getActiveProject, load, makeProject, makeSeries, now, save } from './store-core.js';
+import { getActiveProject, getSeries, load, makeProject, makeSeries, now, save } from './store-core.js';
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-projects-js-22-27
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-projects-js
 
 export function listProjects() {
   const db = load();
@@ -24,13 +24,13 @@ export function switchProject(projectId) {
   const db = load();
   if (!db.projects[projectId] || projectId === db.activeProjectId) return null;
   db.activeProjectId = projectId;
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-projects-js-49-52
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-projects-js
   if (db.projects[projectId]) db.projects[projectId].lastOpenedAt = now();
   save();
   return db.projects[projectId];
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-projects-js-58-66
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-projects-js
 export function markProjectOpened() {
   const db = load();
   const project = db.projects[db.activeProjectId];
@@ -40,7 +40,7 @@ export function markProjectOpened() {
   }
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-projects-js-76-80
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-projects-js
 export function deleteProject(projectId) {
   const db = load();
   const ids = Object.keys(db.projects);
@@ -72,14 +72,14 @@ export function deleteProject(projectId) {
   return true;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-projects-js-112-118
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-projects-js
 
 export function listSeries() {
   const db = load();
   return Object.values(db.series).sort((a, b) => a.title.localeCompare(b.title));
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-projects-js-125-130
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-projects-js
 export function createSeries(title = 'Untitled Series') {
   const db = load();
   const series = makeSeries(title);
@@ -97,7 +97,7 @@ export function renameSeries(seriesId, title) {
   return series;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-projects-js-148-153
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-projects-js
 export function addActiveProjectToSeries(seriesId) {
   const db = load();
   const project = getActiveProject();
@@ -131,7 +131,7 @@ export function removeActiveProjectFromSeries() {
   return true;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-projects-js-187-193
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-projects-js
 export function deleteSeries(seriesId) {
   const db = load();
   const series = db.series[seriesId];
@@ -151,7 +151,7 @@ export function updateProjectMeta(patch) {
   save();
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-projects-js-213-219
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-projects-js
 export function getDistinctProjectValues(field) {
   const db = load();
   const values = new Set();
@@ -162,7 +162,7 @@ export function getDistinctProjectValues(field) {
   return [...values].sort((a, b) => a.localeCompare(b));
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-projects-js-230-236
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-projects-js
 export function setCoverImage(imageId) {
   const project = getActiveProject();
   project.coverImageId = imageId || null;

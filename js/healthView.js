@@ -1,15 +1,15 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jshealthview-js-1-26
+// Historical context: see docs/CODEBASE_NOTES.md#jshealthview-js
 import * as Store from './store.js';
 import { html, raw, toBridge, escapeAttr } from './dom-utils.js';
 import { requestRender } from './renderBus.js';
 import { openTarget } from './targets.js';
 
-// Historical context: see docs/CODEBASE_NOTES.md#jshealthview-js-32-36
+// Historical context: see docs/CODEBASE_NOTES.md#jshealthview-js
 let healthChangesRange = 'week';
 
-// Historical context: see docs/CODEBASE_NOTES.md#jshealthview-js-39-42
+// Historical context: see docs/CODEBASE_NOTES.md#jshealthview-js
 
-// Historical context: see docs/CODEBASE_NOTES.md#jshealthview-js-44-47
+// Historical context: see docs/CODEBASE_NOTES.md#jshealthview-js
 function healthChangesSinceIso(range) {
   const d = new Date();
   d.setHours(0, 0, 0, 0);
@@ -18,7 +18,7 @@ function healthChangesSinceIso(range) {
   return d.toISOString();
 }
 
-export function renderHealthView(project) {
+export function renderHealthView(_project) {
   const panel = document.querySelector('.view-panel[data-view="health"]');
   const report = Store.getProjectHealthReport();
   const changes = Store.getChangesSince(healthChangesSinceIso(healthChangesRange));
@@ -156,7 +156,7 @@ export function renderHealthView(project) {
       renderHealthView(Store.getActiveProject());
     });
   });
-// Historical context: see docs/CODEBASE_NOTES.md#jshealthview-js-194-197
+// Historical context: see docs/CODEBASE_NOTES.md#jshealthview-js
   panel.addEventListener('click', (e) => {
     const jump = e.target.closest('[data-jump-entity], [data-jump-chapter], [data-jump-timeline], [data-jump-questions], [data-jump-system], [data-jump-reference], [data-jump-map]');
     if (!jump) return;

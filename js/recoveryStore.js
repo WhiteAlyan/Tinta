@@ -77,3 +77,50 @@ export async function clearRecoverySnapshot() {
     // because the rev comparison will re-detect staleness.
   }
 }
+
+// Roadmap #5 — downgrade quarantine. When an OLD Tinta build finds a
+// database written by a NEWER one (schema version above what it knows),
+// store-core.js refuses to load it, boots on an empty db, and locks all
+// writes so the newer data is never clobbered. This store keeps a pristine
+// copy of the raw JSON as a second line of defense — IndexedDB is a
+// separate quota universe from the localStorage key being protected, so
+// the copy lands even when the main key is over quota.
+const quarantineStore = makeBlobStore('tinta-quarantine');
+const QUARANTINE_KEY = 'newer-schema-db';
+
+// Save the raw (unparsed) db JSON. Takes the string, not an object — the
+// whole point is preserving bytes exactly as the newer binary wrote them.
+export async function saveDowngradeQuarantine(rawJson) {
+  if (typeof rawJson !== 'string') return false;
+  try {
+    await quarantineStore.putBlob(QUARANTINE_KEY, rawJson);
+    return true;
+  } catch {
+    // Best-effort by design — the write lock on tinta:db is the primary
+    // protection; this copy is redundancy, not the plan.
+    return false;
+  }
+}
+
+// Read the quarantined raw JSON back (string or null). Surfaced for a
+// future "restore onto a newer Tinta" flow and for diagnostics.
+export async function getDowngradeQuarantine() {
+  try {
+    const json = await quarantineStore.getBlob(QUARANTINE_KEY);
+    if (typeof json !== 'string') return null;
+    return json;
+  } catch {
+    return null;
+  }
+}
+
+// Delete the quarantine copy — for when the writer confirms the newer
+// data was recovered (or deliberately abandons it).
+export async function clearDowngradeQuarantine() {
+  try {
+    await quarantineStore.deleteBlob(QUARANTINE_KEY);
+  } catch {
+    // Same best-effort posture as clearRecoverySnapshot.
+  }
+}
+

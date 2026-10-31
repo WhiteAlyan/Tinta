@@ -1,4 +1,4 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jstoast-js-1-39
+// Historical context: see docs/CODEBASE_NOTES.md#jstoast-js
 
 import { html, toBridge, q } from './dom-utils.js';
 import { els } from './els.js';
@@ -30,7 +30,7 @@ function renderToast(bodyHtml, { icon, actionLabel = null, onAction = null, dura
   toastDismissTimer = setTimeout(dismiss, duration);
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jstoast-js-71-76
+// Historical context: see docs/CODEBASE_NOTES.md#jstoast-js
 export function showGoalCelebration(project) {
   const streak = Store.getCurrentStreak();
   renderToast(
@@ -47,16 +47,28 @@ export function showToast(message, { icon = '✓', actionLabel = null, onAction 
 }
 
 export function showStorageWarning(message, options = {}) {
-  const { actionLabel = null, onAction = null, persistent = false } = options;
+  // Roadmap #4 — actions:[] joins (and absorbs) the legacy single-action
+  // shape: the cross-tab banner needs TWO actions ("Copy unsaved text" +
+  // "Reload now"), and the old actionLabel/onAction pair only had room for
+  // one. Each action's onClick receives its own button element so the
+  // handler can give inline feedback ("Copied ✓").
+  const { actionLabel = null, onAction = null, actions = null, persistent = false } = options;
+  const actionList = Array.isArray(actions) && actions.length > 0
+    ? actions
+    : (actionLabel && onAction ? [{ label: actionLabel, onClick: onAction }] : []);
   els.storageWarningRoot.innerHTML = toBridge(html`
     <div class="storage-warning-banner">
       <span>${message}</span>
-      ${actionLabel ? html`<button id="storage-warning-action">${actionLabel}</button>` : ''}
+      ${actionList.map((a, i) => html`<button class="storage-warning-action" data-sw-action="${i}">${a.label}</button>`)}
       ${persistent ? '' : html`<button id="storage-warning-dismiss" title="Dismiss">✕</button>`}
     </div>
   `);
   q('storage-warning-dismiss')?.addEventListener('click', () => {
     els.storageWarningRoot.innerHTML = '';
   });
-  q('storage-warning-action')?.addEventListener('click', () => onAction?.());
+  els.storageWarningRoot.querySelectorAll('[data-sw-action]').forEach((btn) => {
+    const action = actionList[Number(btn.dataset.swAction)];
+    if (!action) return;
+    btn.addEventListener('click', () => action.onClick?.(btn));
+  });
 }

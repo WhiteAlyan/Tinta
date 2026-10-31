@@ -91,7 +91,7 @@ globalThis.localStorage.clear();
   });
 
   const survivingAutoLabels = snaps.filter((s) => s.auto).map((s) => s.label).sort();
-  const expectedSurviving = autoIds.slice(5).length; // the 10 newest auto ones
+
   assertEqual(survivingAutoLabels.length, 10, 'exactly 10 auto snapshots survive');
   assert(!snaps.some((s) => s.label === 'Auto 0'), 'the very oldest auto snapshot ("Auto 0") was evicted');
   assert(!snaps.some((s) => s.label === 'Auto 4'), 'the 5th-oldest auto snapshot ("Auto 4") was evicted (5 evicted total)');

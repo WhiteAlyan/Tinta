@@ -1,4 +1,4 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jscommands-js-1-39
+// Historical context: see docs/CODEBASE_NOTES.md#jscommands-js
 
 import { q } from './dom-utils.js';
 
@@ -6,7 +6,7 @@ import { q } from './dom-utils.js';
 // reordering entries in COMMANDS can't silently reorder section headers.
 export const SHORTCUT_GROUP_ORDER = ['Navigation', 'Editing', 'Writing', 'Views'];
 
-// Historical context: see docs/CODEBASE_NOTES.md#jscommands-js-47-70
+// Historical context: see docs/CODEBASE_NOTES.md#jscommands-js
 export const COMMANDS = [
   // Undo/redo entries below share isTextEditingField() — see its comment for
   // why the guard is load-bearing, not a nicety.
@@ -57,7 +57,7 @@ export const COMMANDS = [
     group: 'Views', keys: ['←', '→'], match: { keys: ['ArrowLeft', 'ArrowRight'] },
     pd: false, palette: false, when: (ctx) => ctx.getActiveView() === 'book',
     run: (ctx, e) => {
-// Historical context: see docs/CODEBASE_NOTES.md#jscommands-js-121-124
+// Historical context: see docs/CODEBASE_NOTES.md#jscommands-js
       const btn = q(e.key === 'ArrowRight' ? 'book-next-page-btn' : 'book-prev-page-btn');
       if (!btn || btn.disabled) return false;
       e.preventDefault();
@@ -125,7 +125,7 @@ export function commandKeysLabel(entry) {
 
 let boundCtx = null;
 
-// Historical context: see docs/CODEBASE_NOTES.md#jscommands-js-192-203
+// Historical context: see docs/CODEBASE_NOTES.md#jscommands-js
 function isTextEditingField() {
   const active = typeof document !== 'undefined' ? document.activeElement : null;
   return !!active && (
@@ -138,11 +138,11 @@ function matchCombo(e, m) {
   if (m.mod && !(e.metaKey || e.ctrlKey)) return false;
   if (m.shift !== undefined && !!e.shiftKey !== !!m.shift) return false;
   if (m.keys) return m.keys.includes(e.key);
-// Historical context: see docs/CODEBASE_NOTES.md#jscommands-js-216-219
+// Historical context: see docs/CODEBASE_NOTES.md#jscommands-js
   return e.key.toLowerCase() === m.key.toLowerCase();
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jscommands-js-223-227
+// Historical context: see docs/CODEBASE_NOTES.md#jscommands-js
 export function handleGlobalShortcut(e, ctx = boundCtx) {
   if (!ctx) return false;
   for (const entry of COMMANDS) {
@@ -157,13 +157,13 @@ export function handleGlobalShortcut(e, ctx = boundCtx) {
   return false;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jscommands-js-242-245
+// Historical context: see docs/CODEBASE_NOTES.md#jscommands-js
 export function attachGlobalShortcuts(ctx) {
   boundCtx = ctx;
   document.addEventListener('keydown', (e) => handleGlobalShortcut(e, ctx));
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jscommands-js-251-254
+// Historical context: see docs/CODEBASE_NOTES.md#jscommands-js
 export function getPaletteCommands() {
   if (!boundCtx) return [];
   return COMMANDS.filter((c) => c.palette && typeof c.run === 'function').map((c) => ({

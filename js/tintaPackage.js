@@ -1,10 +1,10 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jstintapackage-js-1-32
+// Historical context: see docs/CODEBASE_NOTES.md#jstintapackage-js
 
 import * as Store from './store.js';
 import * as ImageStore from './imagestore.js';
 import { createZip } from './zip.js';
 
-// Historical context: see docs/CODEBASE_NOTES.md#jstintapackage-js-38-43
+// Historical context: see docs/CODEBASE_NOTES.md#jstintapackage-js
 export const TINTA_FORMAT_VERSION = 1;
 
 // ── hostile-input hardening (resource limits) ───────────────────────────
@@ -38,6 +38,33 @@ export const MAX_PROJECT_JSON_BYTES = 100 * 1024 * 1024;         // project.json
 export const MAX_MANIFEST_JSON_BYTES = 1 * 1024 * 1024;          // manifest.json — a small metadata object, no legitimate reason to be large
 const EOCD_SEARCH_WINDOW_BYTES = 65557; // ZIP spec: 22-byte EOCD record + max 65535-byte comment — real readers never search further back than this
 
+// Roadmap #11 — CRC-32 (the zip spec's checksum: IEEE polynomial
+// 0xEDB88320, reflected). parseZipEntries used to validate an archive's
+// STRUCTURE exhaustively and its CONTENT not at all: a corrupt-but-
+// structurally-valid file (truncated download, bad disk sector, a byte
+// flipped in transit) imported silently wrong bytes. Every zip entry
+// carries a CRC-32 of its uncompressed data, and Tinta's writer is
+// STORE-only (no compression), so the entry bytes ARE the final content —
+// the checksum can be verified directly over what was just sliced out.
+// Table built once, lazily; standard 256-entry half-byte table.
+let _crc32Table = null;
+function crc32Table() {
+  if (_crc32Table) return _crc32Table;
+  _crc32Table = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    _crc32Table[n] = c >>> 0;
+  }
+  return _crc32Table;
+}
+function crc32(bytes) {
+  const table = crc32Table();
+  let c = 0xffffffff;
+  for (let i = 0; i < bytes.length; i++) c = table[(c ^ bytes[i]) & 0xff] ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
+}
+
 function formatBytes(bytes) {
   if (bytes >= 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
   if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
@@ -57,7 +84,7 @@ function fileSizeError(file) {
 
 // ── helpers ────────────────────────────────────────────────────────────
 
-// Historical context: see docs/CODEBASE_NOTES.md#jstintapackage-js-48-51
+// Historical context: see docs/CODEBASE_NOTES.md#jstintapackage-js
 function safeFilename(name) {
   return (name || 'untitled')
     .trim()
@@ -66,7 +93,7 @@ function safeFilename(name) {
     .slice(0, 80) || 'untitled';
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jstintapackage-js-60-63
+// Historical context: see docs/CODEBASE_NOTES.md#jstintapackage-js
 function collectProjectImageIds(project) {
   const ids = new Set();
   if (project.coverImageId) ids.add(project.coverImageId);
@@ -183,6 +210,103 @@ function remapImageIds(value, idMap) {
   return value;
 }
 
+// ── Roadmap #6 — systemic: regenerate every record identifier on import ──
+//
+// remapImageIds above fixed the image namespace the hard way — one
+// shared-blob bug report at a time. This pass applies the same
+// fresh-identity principle to every record id the project carries:
+// chapters, scenes, snapshots (chapter + entity), entities,
+// relationships (+ their types and history entries), timeline events,
+// maps and markers, references, rule systems and their nodes, sketches
+// and strokes, snippets, style-guide rules, scene-relationships, story
+// questions, notes, bookmarks, quotes, decisions, folders, parts,
+// collections, saved searches, and templates.
+//
+// Why import must do this at all: a .tinta is mistake- AND
+// attacker-controlled data. Preserving its ids verbatim means (a) two
+// imports of the same file produce two projects that agree on every id —
+// the same delete-from-A-yanks-from-B shape the image remap fixed, ready
+// to bite on any future shared keyspace — and (b) those ids interpolate
+// into data-* attributes and modal bodies at render sites; the escaping
+// fixes make them inert, but attacker-chosen identity still shouldn't
+// survive import at all.
+//
+// Mechanics mirror remapImageIds exactly: collect uid-shaped ids by
+// WALKING the project tree (not a field list, so a future id-bearing
+// field is covered automatically), mint fresh ids of the same prefix in
+// the same shape natively-created records use, then re-walk with exact
+// whole-string-value + object-key replacement. Exact equality keeps prose
+// that merely CONTAINS an id-like substring untouched. The {{img:}}
+// token namespace is image ids (remapped above) and is deliberately not
+// part of this map. Entity/chapter TYPE keys are also out of scope: they
+// are slug labels (`name-abc12`), not uid-shaped ids, they are
+// project-scoped lookups with no cross-project identity to collide, and
+// their safety at render sites is the escaping bridge's job, not
+// identity's.
+
+const RECORD_ID_PREFIXES = [
+  'chap', 'scene', 'snap', 'esnap', 'ent', 'rel', 'relhist', 'reltype', 'se',
+  'evt', 'map', 'mrk', 'ref', 'rsys', 'snode', 'sketch', 'stroke', 'snip',
+  'sg', 'screl', 'sq', 'note', 'bm', 'quote', 'dec', 'fold', 'part', 'coll',
+  'svsrch', 'tpl',
+];
+// uid()'s shape is `${prefix}_${Date.now().toString(36)}_${rand36}` — both
+// variable segments are lowercase base36, so the whole-id form is exactly
+// matchable and cannot collide with freeform prose.
+const RECORD_ID_RE = new RegExp(`^(?:${RECORD_ID_PREFIXES.join('|')})_[a-z0-9]+_[a-z0-9]+$`);
+
+// Same shape as store-core's uid() and imageLibrary's newImageId(), so
+// imported ids are indistinguishable from natively-created ones.
+function freshRecordId(oldId) {
+  const prefix = oldId.slice(0, oldId.indexOf('_'));
+  return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function collectRecordIds(value, out) {
+  if (typeof value === 'string') {
+    if (RECORD_ID_RE.test(value)) out.add(value);
+    return;
+  }
+  if (Array.isArray(value)) {
+    for (const item of value) collectRecordIds(item, out);
+    return;
+  }
+  if (value && typeof value === 'object') {
+    for (const [key, child] of Object.entries(value)) {
+      if (RECORD_ID_RE.test(key)) out.add(key);
+      collectRecordIds(child, out);
+    }
+  }
+}
+
+// Builds old→new for every record id found anywhere in the project tree.
+function buildProjectRecordIdMap(project) {
+  const found = new Set();
+  collectRecordIds(project, found);
+  const idMap = Object.create(null);
+  for (const oldId of found) idMap[oldId] = freshRecordId(oldId);
+  return idMap;
+}
+
+// Same walk as remapImageIds, minus the {{img:}} token handling — record
+// ids are never embedded in prose (mentions are name-based; only image
+// tokens ride inside content strings).
+function remapRecordIds(value, idMap) {
+  if (typeof value === 'string') {
+    return Object.hasOwn(idMap, value) ? idMap[value] : value;
+  }
+  if (Array.isArray(value)) return value.map((item) => remapRecordIds(item, idMap));
+  if (value && typeof value === 'object') {
+    const out = {};
+    for (const [key, child] of Object.entries(value)) {
+      const newKey = Object.hasOwn(idMap, key) ? idMap[key] : key;
+      out[newKey] = remapRecordIds(child, idMap);
+    }
+    return out;
+  }
+  return value;
+}
+
 // Builds the manifest object that goes at the top of every .tinta
 // file (JSON or ZIP). The manifest is what importTintaProject reads
 // first to decide how to handle the rest of the file.
@@ -198,11 +322,11 @@ function buildManifest(project, imageCount) {
   };
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jstintapackage-js-98-107
+// Historical context: see docs/CODEBASE_NOTES.md#jstintapackage-js
 
 export async function exportTintaProject(projectId = null) {
   const project = projectId ? Store.getActiveProject() : Store.getActiveProject();
-// Historical context: see docs/CODEBASE_NOTES.md#jstintapackage-js-111-116
+// Historical context: see docs/CODEBASE_NOTES.md#jstintapackage-js
   if (!project) throw new Error('No active project to export');
 
   const imageIds = collectProjectImageIds(project);
@@ -261,7 +385,7 @@ function mimeToExt(mime) {
   return map[mime] || 'bin';
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jstintapackage-js-175-201
+// Historical context: see docs/CODEBASE_NOTES.md#jstintapackage-js
 export async function checkTintaFile(file) {
   const errors = [];
   const warnings = [];
@@ -377,6 +501,15 @@ export async function checkTintaFile(file) {
         `This .tinta was made with a newer version of Tinta (format v${manifest.tintaFormatVersion}). This Tinta only understands v${TINTA_FORMAT_VERSION} and earlier.`
       );
     }
+    // Roadmap #5 — same downgrade guard as the import path, surfaced as a
+    // check error so the import UI's preview rejects the file before the
+    // importer ever gets a chance to throw.
+    if (typeof manifest.schemaVersion === 'number' && manifest.schemaVersion > Store.SCHEMA_VERSION) {
+      err(
+        'schema-too-new',
+        `This .tinta was made with a newer version of Tinta (schema v${manifest.schemaVersion}; this build understands up to v${Store.SCHEMA_VERSION}).`
+      );
+    }
     if (!manifest.projectTitle) warn('missing-title-in-manifest', "The manifest has no project title recorded; the imported project would show as untitled until you rename it.");
   }
 
@@ -387,7 +520,7 @@ export async function checkTintaFile(file) {
     if (!project.title) warn('missing-project-title', 'The project itself has no title set.');
   }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jstintapackage-js-294-297
+// Historical context: see docs/CODEBASE_NOTES.md#jstintapackage-js
   if (format === 'zip' && manifest && typeof manifest.imageCount === 'number') {
     if (imageEntries.length < manifest.imageCount) {
       warn(
@@ -412,7 +545,7 @@ export async function checkTintaFile(file) {
   return { valid: errors.length === 0, format, errors, warnings, summary };
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jstintapackage-js-322-335
+// Historical context: see docs/CODEBASE_NOTES.md#jstintapackage-js
 
 export async function importTintaProject(file) {
   // Same file.size gate as checkTintaFile, and for the same reason: reject
@@ -461,17 +594,31 @@ export async function importTintaProject(file) {
     );
   }
 
+  // Roadmap #5 — schema downgrade guard, companion to the format check
+  // above. tintaFormatVersion versions the CONTAINER; schemaVersion versions
+  // the project record shape the manifest was written against. A project
+  // whose schema is newer than this binary's would import with a version
+  // tag claiming migrations this build never ran, so refuse before anything
+  // is mutated. (Exports from builds older than the SCHEMA_VERSION export
+  // fix carry no schemaVersion at all — that's fine, migrate() backfills.)
+  if (typeof manifest.schemaVersion === 'number' && manifest.schemaVersion > Store.SCHEMA_VERSION) {
+    throw new Error(
+      `This .tinta was made with a newer version of Tinta (schema v${manifest.schemaVersion}). ` +
+      `This build understands up to v${Store.SCHEMA_VERSION}. Update Tinta and import it there.`
+    );
+  }
+
   if (manifest.kind !== 'project') {
     throw new Error(`This .tinta is a "${manifest.kind}", not a project. Tinta can only import project .tinta files.`);
   }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jstintapackage-js-370-380
+// Historical context: see docs/CODEBASE_NOTES.md#jstintapackage-js
   const preMigrateJson = JSON.stringify(project);
   const wrapperDb = { ...emptyDbShell(), projects: { [project.id]: project } };
   Store.migrate(wrapperDb);
   const migrated = JSON.stringify(project) !== preMigrateJson;
 
-// Historical context: see docs/CODEBASE_NOTES.md#jstintapackage-js-386-391
+// Historical context: see docs/CODEBASE_NOTES.md#jstintapackage-js
   const oldProjectId = project.id;
   const newProjectId = `proj_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
   project.id = newProjectId;
@@ -488,9 +635,26 @@ export async function importTintaProject(file) {
   project = remapImageIds(project, imageIdMap);
   project.id = newProjectId; // remap rebuilds the object; re-pin the id defensively
 
-// Historical context: see docs/CODEBASE_NOTES.md#jstintapackage-js-396-399
+  // Roadmap #6 — fresh identity for every record id (see the block comment
+  // above buildProjectRecordIdMap). Runs after the image remap; the two
+  // namespaces are disjoint (img_ vs the record prefixes).
+  const recordIdMap = buildProjectRecordIdMap(project);
+  project = remapRecordIds(project, recordIdMap);
+  project.id = newProjectId; // re-pin defensively — proj_ ids aren't in the map
+
+// Historical context: see docs/CODEBASE_NOTES.md#jstintapackage-js
   let restoredImages = 0;
   let failedImages = 0;
+  // Roadmap #11 — every blob this import actually lands in the image
+  // store, remembered so a failure AFTER this point can roll them back.
+  // The keys are this import's freshly minted ids (imageIdMap values), so
+  // if the project never lands, nothing in the db references these keys
+  // and they become permanent orphans in the shared IndexedDB store —
+  // invisible in the UI, unrecoverable by any cleanup pass, pure quota
+  // loss. Deleting exactly the keys written by THIS call is safe: a
+  // successful import never reaches the cleanup (it returns below), and
+  // the same file re-imported mints different ids.
+  const writtenImageIds = [];
   for (const entry of imageEntries) {
     // Blobs land under the NEW id. An archive entry whose id the project
     // never references has no mapping — skip it rather than writing an
@@ -500,34 +664,58 @@ export async function importTintaProject(file) {
     try {
       const blob = new Blob([entry.bytes], { type: entry.mimeType });
       await ImageStore.putBlob(newId, blob);
+      writtenImageIds.push(newId);
       restoredImages++;
     } catch {
       failedImages++;
     }
   }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jstintapackage-js-412-415
-  // P1-1 fix — mirror store-backup.js:32-43: check isCrossTabStale() first
-  // and honor Store.save()'s boolean return. Previously this called save()
-  // and discarded the result, so a paused tab (cross-tab conflict) or a
-  // quota-exceeded write would leave the new project in memory but not on
-  // disk, and switchProject() would proceed as if everything had landed.
-  // On reload the imported project vanished silently.
-  if (Store.isCrossTabStale()) {
-    throw new Error('This tab is paused because another tab just saved. Reload this tab, then try the import again.');
+  // Roadmap #11 — if anything fails between the blob writes and the
+  // import actually landing (cross-tab pause, quota-refused save), roll
+  // back the blobs this import already wrote, then rethrow the original
+  // error. Best-effort: a cleanup failure must not mask the real cause,
+  // and any blob that survives cleanup is no worse than the pre-#11
+  // behavior rather than a new one.
+  try {
+// Historical context: see docs/CODEBASE_NOTES.md#jstintapackage-js
+    // P1-1 fix — mirror store-backup.js:32-43: check isCrossTabStale() first
+    // and honor Store.save()'s boolean return. Previously this called save()
+    // and discarded the result, so a paused tab (cross-tab conflict) or a
+    // quota-exceeded write would leave the new project in memory but not on
+    // disk, and switchProject() would proceed as if everything had landed.
+    // On reload the imported project vanished silently.
+    if (Store.isCrossTabStale()) {
+      throw new Error('This tab is paused because another tab just saved. Reload this tab, then try the import again.');
+    }
+    const db = Store.getActiveDb();
+    const previousProjectSlot = db.projects[newProjectId];
+    db.projects[newProjectId] = project;
+    const saved = Store.save(); // persist the new project before switching to it
+    if (!saved) {
+      // Roll back the in-memory mutation so a failed save can't leave a
+      // half-imported project slot. Mirrors store-backup.js:39-43.
+      if (previousProjectSlot === undefined) delete db.projects[newProjectId];
+      else db.projects[newProjectId] = previousProjectSlot;
+      throw new Error('The .tinta file was read, but saving it locally failed (storage may be full or this tab is paused). The current project was not changed.');
+    }
+    Store.switchProject(newProjectId);
+    // Roadmap #7 — same undo-stack discipline as importFullBackup and the
+    // recovery restore: undo entries recorded before the import describe
+    // mutations to the pre-import db (usually a different project entirely).
+    // The import landed and was saved, so the stack is cleared.
+    Store.clearUndoHistory();
+  } catch (err) {
+    for (const id of writtenImageIds) {
+      try {
+        await ImageStore.deleteBlob(id);
+      } catch {
+        // Best-effort — never mask the import's own error with a
+        // cleanup error; see the comment above.
+      }
+    }
+    throw err;
   }
-  const db = Store.getActiveDb();
-  const previousProjectSlot = db.projects[newProjectId];
-  db.projects[newProjectId] = project;
-  const saved = Store.save(); // persist the new project before switching to it
-  if (!saved) {
-    // Roll back the in-memory mutation so a failed save can't leave a
-    // half-imported project slot. Mirrors store-backup.js:39-43.
-    if (previousProjectSlot === undefined) delete db.projects[newProjectId];
-    else db.projects[newProjectId] = previousProjectSlot;
-    throw new Error('The .tinta file was read, but saving it locally failed (storage may be full or this tab is paused). The current project was not changed.');
-  }
-  Store.switchProject(newProjectId);
 
   return {
     projectId: newProjectId,
@@ -536,6 +724,7 @@ export async function importTintaProject(file) {
     restoredImages,
     failedImages,
     migrated,
+    regeneratedIds: Object.keys(recordIdMap).length,
     originalProjectId: oldProjectId,
   };
 }
@@ -549,7 +738,7 @@ function isZip(bytes) {
   return bytes.length >= 4 && bytes[0] === 0x50 && bytes[1] === 0x4b && bytes[2] === 0x03 && bytes[3] === 0x04;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jstintapackage-js-441-445
+// Historical context: see docs/CODEBASE_NOTES.md#jstintapackage-js
 function readTintaZip(bytes) {
   const entries = parseZipEntries(bytes);
   const manifestEntry = entries.find((e) => e.name === 'manifest.json');
@@ -594,7 +783,7 @@ function readTintaZip(bytes) {
   return { manifest, project, imageEntries };
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jstintapackage-js-472-477
+// Historical context: see docs/CODEBASE_NOTES.md#jstintapackage-js
 //
 // HARDENING PASS — every offset and length below is archive-controlled,
 // i.e. it comes from the file itself, not from Tinta. The original version
@@ -671,18 +860,32 @@ function parseZipEntries(bytes) {
 
   for (let i = 0; i < totalEntries; i++) {
     requireMagic(pos, [0x50, 0x4b, 0x01, 0x02], 'central directory entry');
+    const nameLen = u16(pos + 28, 'filename length');
+    requireRange(pos + 46, nameLen, 'filename');
+    const name = decoder.decode(bytes.subarray(pos + 46, pos + 46 + nameLen));
+
+    // Roadmap #11 — reject encrypted entries BEFORE reading anything else
+    // from them. General-purpose bit 0 is the zip spec's "encrypted" flag
+    // (ZipCrypto; AES entries set it too). An encrypted entry can't be
+    // read as STORE data — without this check its ciphertext would be
+    // handed to JSON.parse / the image store as if it were plaintext.
+    // Checked in BOTH headers: the central directory (authoritative) and
+    // the local header (some tools let them disagree; either one claiming
+    // encryption is reason enough to refuse).
+    const centralFlags = u16(pos + 8, 'general purpose flags');
+    if (centralFlags & 0x0001) {
+      throw new Error(`Encrypted zip: entry "${name}" is encrypted. Tinta can't open encrypted archives — export the project again without a password.`);
+    }
     const compressionMethod = u16(pos + 10, 'compression method');
     if (compressionMethod !== 0) {
       throw new Error(`Unsupported zip: entry uses compression method ${compressionMethod}, only STORE (0) is supported`);
     }
-    const nameLen = u16(pos + 28, 'filename length');
+    const crcExpected = u32(pos + 16, 'crc-32');
     const extraLen = u16(pos + 30, 'extra field length');
     const commentLen = u16(pos + 32, 'comment length');
     const localHeaderOffset = u32(pos + 42, 'local header offset');
     const size = u32(pos + 24, 'entry size');
 
-    requireRange(pos + 46, nameLen, 'filename');
-    const name = decoder.decode(bytes.subarray(pos + 46, pos + 46 + nameLen));
     if (seenNames.has(name)) {
       throw new Error(`Malformed zip: duplicate entry name "${name}".`);
     }
@@ -690,6 +893,10 @@ function parseZipEntries(bytes) {
 
     // Read the local file header to get the actual data offset + size.
     requireMagic(localHeaderOffset, [0x50, 0x4b, 0x03, 0x04], 'local file header');
+    const localFlags = u16(localHeaderOffset + 6, 'local general purpose flags');
+    if (localFlags & 0x0001) {
+      throw new Error(`Encrypted zip: entry "${name}" is encrypted. Tinta can't open encrypted archives — export the project again without a password.`);
+    }
     const localNameLen = u16(localHeaderOffset + 26, 'local filename length');
     const localExtraLen = u16(localHeaderOffset + 28, 'local extra field length');
     const dataOffset = localHeaderOffset + 30 + localNameLen + localExtraLen;
@@ -708,6 +915,22 @@ function parseZipEntries(bytes) {
     }
     requireRange(dataOffset, size, `data for "${name}"`);
     const entryBytes = bytes.subarray(dataOffset, dataOffset + size);
+
+    // Roadmap #11 — verify the entry's CRC-32 against the central
+    // directory's stored value. The central directory value is used (not
+    // the local header's) because streaming writers legitimately zero the
+    // local copy when a data descriptor follows; the central record is
+    // always final. STORE-only means these bytes are the content itself,
+    // so a mismatch is damaged data, not a decode artifact — refuse the
+    // whole archive rather than import silently-wrong prose or images.
+    const crcActual = crc32(entryBytes);
+    if (crcActual !== crcExpected) {
+      throw new Error(
+        `Corrupt zip: entry "${name}" fails its checksum check ` +
+        `(stored crc32 ${crcExpected.toString(16)}, computed ${crcActual.toString(16)}). ` +
+        'The file’s bytes don’t match its own bookkeeping — it was likely damaged in transit or storage. Re-export the project and try again.'
+      );
+    }
 
     entries.push({ name, bytes: new Uint8Array(entryBytes) });
 
@@ -739,7 +962,7 @@ function extToMime(ext) {
   return map[ext] || 'application/octet-stream';
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jstintapackage-js-557-565
+// Historical context: see docs/CODEBASE_NOTES.md#jstintapackage-js
 function emptyDbShell() {
   return {
     version: Store.SCHEMA_VERSION,

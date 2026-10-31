@@ -54,7 +54,7 @@ assertEqual(depsOfChild[0].id, grandchild.id, "Fireball's dependent is Meteor");
 
 section('getDependentNodes — returns multiple when several nodes require this one');
 const branch2 = Store.createSystemNode({ systemId: sys.id, name: 'Fire Wall', requirement: [root.id] });
-const branch3 = Store.createSystemNode({ systemId: sys.id, name: 'Flame Strike', requirement: [root.id] });
+Store.createSystemNode({ systemId: sys.id, name: 'Flame Strike', requirement: [root.id] });
 const depsOfRootNow = Store.getDependentNodes(root.id);
 assertEqual(depsOfRootNow.length, 3, 'three direct dependents after adding Fire Wall + Flame Strike');
 const depNames = depsOfRootNow.map((n) => n.name).sort();

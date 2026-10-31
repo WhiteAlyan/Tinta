@@ -1,4 +1,4 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jsmodal-js-1-39
+// Historical context: see docs/CODEBASE_NOTES.md#jsmodal-js
 //
 // P2-10 documentation — modal.js and drawer.js implement parallel
 // open/close logic for two different overlay concepts:
@@ -24,7 +24,7 @@ import * as TTS from './tts.js';
 let activeOnClose = null;
 // The currently-pending confirmDialog, if any — one at a time, like native.
 let activeConfirm = null;
-// Historical context: see docs/CODEBASE_NOTES.md#jsmodal-js-47-54
+// Historical context: see docs/CODEBASE_NOTES.md#jsmodal-js
 let openGeneration = 0;
 
 function handleOutsideClick(e) {
@@ -59,13 +59,13 @@ function unbindGlobalListeners() {
 }
 
 function bindGlobalListeners() {
-// Historical context: see docs/CODEBASE_NOTES.md#jsmodal-js-75-80
+// Historical context: see docs/CODEBASE_NOTES.md#jsmodal-js
   unbindGlobalListeners();
   document.addEventListener('click', handleOutsideClick, { capture: true });
   document.addEventListener('keydown', handleEscape);
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsmodal-js-86-92
+// Historical context: see docs/CODEBASE_NOTES.md#jsmodal-js
 export function teardown() {
   const root = q('modal-root');
   if (!root) return false;
@@ -74,14 +74,25 @@ export function teardown() {
   const generationBeforeCb = openGeneration;
   activeOnClose = null;
   if (wasOpen && typeof cb === 'function') cb();
-// Historical context: see docs/CODEBASE_NOTES.md#jsmodal-js-101-105
+// Historical context: see docs/CODEBASE_NOTES.md#jsmodal-js
   if (openGeneration !== generationBeforeCb) return wasOpen;
   root.innerHTML = '';
   unbindGlobalListeners();
   return wasOpen;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsmodal-js-112-137
+// Historical context: see docs/CODEBASE_NOTES.md#jsmodal-js
+// Roadmap #6 — escape-by-default body contract. toBridge() is the whole
+// change: SafeHtml (html``/raw()) passes through verbatim; a plain string
+// is now escaped like any other interpolated value instead of being
+// injected raw. Before this, ANY openModal caller that passed a plain
+// string containing user-controlled data was a stored-XSS sink by default
+// (the S-1 settingsModal stopword class); the caller had to know to
+// escape. Now the unsafe thing is the opt-in: pre-built markup must arrive
+// as SafeHtml (html`` or raw()), which keeps the escaping bridge's rule —
+// "escaped unless the caller explicitly says otherwise" — true at the modal
+// boundary too. Callers that legitimately pass pre-built HTML strings were
+// migrated to raw(...) in the same pass.
 export function openModal({ title = '', body = '', className = '', showHeader = true, onClose = null } = {}) {
   const root = q('modal-root');
   if (!root) return null;
@@ -100,7 +111,7 @@ export function openModal({ title = '', body = '', className = '', showHeader = 
     <div class="modal-backdrop">
       <div class="modal-panel${className ? ' ' + className : ''}">
         ${headerHtml}
-        ${raw(body)}
+        ${body}
       </div>
     </div>
   `);
@@ -113,26 +124,26 @@ export function openModal({ title = '', body = '', className = '', showHeader = 
   return root;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsmodal-js-167-193
+// Historical context: see docs/CODEBASE_NOTES.md#jsmodal-js
 const closeCleanupHooks = [];
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsmodal-js-196-200
+// Historical context: see docs/CODEBASE_NOTES.md#jsmodal-js
 export function onModalCloseCleanup(fn) {
   closeCleanupHooks.push(fn);
 }
 
 export function closeModal() {
   const modalRoot = q('modal-root');
-// Historical context: see docs/CODEBASE_NOTES.md#jsmodal-js-207-210
+// Historical context: see docs/CODEBASE_NOTES.md#jsmodal-js
   const wasOpen = modalRoot ? modalRoot.innerHTML.trim() !== '' : false;
-// Historical context: see docs/CODEBASE_NOTES.md#jsmodal-js-94-102
+// Historical context: see docs/CODEBASE_NOTES.md#jsmodal-js
   if (activeConfirm) activeConfirm.finish(activeConfirm.cancelledValue);
   if (TTS.isSpeaking() || TTS.isPaused()) TTS.stop();
   closeCleanupHooks.forEach((fn) => fn(wasOpen));
   teardown();
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsmodal-js-217-252
+// Historical context: see docs/CODEBASE_NOTES.md#jsmodal-js
 export function confirmDialog({ title = 'Are you sure?', message = '', confirmLabel = 'Confirm', cancelLabel = 'Cancel', danger = false } = {}) {
   // Supersede any pending dialog first — its awaiter gets that dialog's
   // own cancelled value (false for a confirm/notice, null for a prompt).
@@ -170,7 +181,7 @@ export function confirmDialog({ title = 'Are you sure?', message = '', confirmLa
       document.removeEventListener('keydown', escapeHandler, { capture: true });
       document.removeEventListener('click', outsideHandler, { capture: true });
       root.innerHTML = '';
-// Historical context: see docs/CODEBASE_NOTES.md#jsmodal-js-290-295
+// Historical context: see docs/CODEBASE_NOTES.md#jsmodal-js
       try {
         if (previouslyFocused && typeof previouslyFocused.focus === 'function') {
           previouslyFocused.focus();
@@ -211,9 +222,9 @@ export function confirmDialog({ title = 'Are you sure?', message = '', confirmLa
   });
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsmodal-js-336-350
+// Historical context: see docs/CODEBASE_NOTES.md#jsmodal-js
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsmodal-js-352-357
+// Historical context: see docs/CODEBASE_NOTES.md#jsmodal-js
 export function promptDialog({ title = 'Your answer', message = '', defaultValue = '', placeholder = '', okLabel = 'Save', cancelLabel = 'Cancel' } = {}) {
   if (activeConfirm) activeConfirm.finish(activeConfirm.cancelledValue);
 
@@ -248,7 +259,7 @@ export function promptDialog({ title = 'Your answer', message = '', defaultValue
       document.removeEventListener('keydown', escapeHandler, { capture: true });
       document.removeEventListener('click', outsideHandler, { capture: true });
       root.innerHTML = '';
-// Historical context: see docs/CODEBASE_NOTES.md#jsmodal-js-392-397
+// Historical context: see docs/CODEBASE_NOTES.md#jsmodal-js
       try {
         if (previouslyFocused && typeof previouslyFocused.focus === 'function') {
           previouslyFocused.focus();
@@ -285,7 +296,7 @@ export function promptDialog({ title = 'Your answer', message = '', defaultValue
   });
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsmodal-js-434-437
+// Historical context: see docs/CODEBASE_NOTES.md#jsmodal-js
 export function noticeDialog({ title = 'Notice', message = '', okLabel = 'OK' } = {}) {
   if (activeConfirm) activeConfirm.finish(activeConfirm.cancelledValue);
 
@@ -318,7 +329,7 @@ export function noticeDialog({ title = 'Notice', message = '', okLabel = 'OK' } 
       document.removeEventListener('keydown', escapeHandler, { capture: true });
       document.removeEventListener('click', outsideHandler, { capture: true });
       root.innerHTML = '';
-// Historical context: see docs/CODEBASE_NOTES.md#jsmodal-js-470-475
+// Historical context: see docs/CODEBASE_NOTES.md#jsmodal-js
       try {
         if (previouslyFocused && typeof previouslyFocused.focus === 'function') {
           previouslyFocused.focus();

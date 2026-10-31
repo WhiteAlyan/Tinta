@@ -4,9 +4,9 @@
 import * as ModalShell from './modal.js';
 import * as Store from './store.js';
 import { activeChapterId, setActiveChapterId, setActiveView } from './context.js';
-import { escapeAttr, escapeHtml } from './dom-utils.js';
+import { escapeAttr, escapeHtml, raw } from './dom-utils.js';
 import { openSceneInspector } from './drawer.js';
-import { closeModal, openModal } from './modal.js';
+import { closeModal } from './modal.js';
 import { requestRender } from './renderBus.js';
 
 export function openTemplatePicker() {
@@ -16,12 +16,12 @@ export function openTemplatePicker() {
   const root = ModalShell.openModal({
     title: 'New from Template',
     className: 'export-modal',
-    body: `
+    body: raw(`
         <p class="backup-note">Chapter templates create a new chapter. Scene templates add a scene to your current chapter${activeChapter ? ` (“${escapeHtml(activeChapter.title)}”)` : '. Open or create a chapter first'}.</p>
         <div class="template-list">
           ${templates.map((t) => templateRowHtml(t, activeChapter)).join('')}
         </div>
-    `,
+    `),
   });
 
   root.querySelectorAll('.template-use-btn:not([disabled])').forEach((btn) => {
@@ -68,5 +68,5 @@ export function templateRowHtml(template, activeChapter) {
   `;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jstemplatepicker-js-71-82
+// Historical context: see docs/CODEBASE_NOTES.md#jstemplatepicker-js
 

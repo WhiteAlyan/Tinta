@@ -1,4 +1,4 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js-1-5
+// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js
 import * as AutoBackup from './autoBackup.js';
 import * as Commands from './commands.js';
 import * as Nav from './nav.js';
@@ -9,7 +9,7 @@ import { renderBookView, revokeBookModeUrls } from './bookView.js';
 import { cancelCanvasLinkMode, renderCanvasView } from './canvasView.js';
 import { renderChecklistView } from './checklistView.js';
 import { openCommandPalette } from './commandPalette.js';
-import { activeView, navHandle, setActiveChapterId, setActiveEntityId, setActiveView, setNavHandle } from './context.js';
+import { activeView, activeChapterId, navHandle, setActiveChapterId, setActiveEntityId, setActiveView, setNavHandle } from './context.js';
 import { renderCorkboardView } from './corkboardView.js';
 import { renderDecisionsView } from './decisionsView.js';
 import { q } from './dom-utils.js';
@@ -50,22 +50,54 @@ import * as RecoveryToast from './recoveryToast.js';
 // Tinta — app wiring.
 // Sidebar (chapter hierarchy + status dots) + three views: Write, Corkboard, Outline.
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js-54-104
+// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js-106-110
-
-
-// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js-113-145
-
-// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js-147-167
-
-// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js-169-172
+// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js
 
 
+// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js-176-179
+// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js-181-184
+// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js
+
+
+
+// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js
+
+// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js
+
+// Roadmap #4 — copy-out for the cross-tab banner. The Clipboard API needs a
+// focused, permission-granted document; when it refuses (denied permission,
+// background tab edge cases), fall back to the deprecated-but-universal
+// select+execCommand path rather than silently doing nothing — the writer
+// clicked the button to save their last keystrokes, and a quiet failure
+// there is exactly the class of loss this banner exists to prevent.
+async function copyUnsavedTextToClipboard(text, btn) {
+  let copied = false;
+  try {
+    await navigator.clipboard.writeText(text);
+    copied = true;
+  } catch {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      copied = document.execCommand('copy');
+      ta.remove();
+    } catch {
+      copied = false;
+    }
+  }
+  if (btn) {
+    const original = btn.textContent;
+    btn.textContent = copied ? 'Copied ✓' : "Copy failed — select the text in the editor";
+    setTimeout(() => { btn.textContent = original; }, 2500);
+  }
+}
 
 function init() {
   Theme.initTheme();
@@ -79,18 +111,18 @@ function init() {
   registerLibraryCleanup();
   bindGlobalControls();
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js-198-204
+// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js
   Store.onSaveSuccess(() => AutoBackup.scheduleAutoBackupTinta());
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js-207-217
+// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js
   const markProjectOpenedOnLeave = () => Store.markProjectOpened();
   window.addEventListener('pagehide', markProjectOpenedOnLeave);
   window.addEventListener('beforeunload', markProjectOpenedOnLeave);
-// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js-221-225
+// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js
   window.addEventListener('pagehide', flushEntityFieldSave);
   window.addEventListener('beforeunload', flushEntityFieldSave);
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js-229-232
+// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js
   setNavHandle(Nav.attachNavTabs(els.navTabsGroups, {
     getActiveView: () => activeView,
     getNavStyle: () => Store.getNavStyle(),
@@ -101,7 +133,7 @@ function init() {
     },
   }));
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js-242-250
+// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js
   Commands.attachGlobalShortcuts({
     openCommandPalette,
     performUndo,
@@ -125,23 +157,23 @@ function init() {
     q('details-popover')?.classList.add('hidden');
     q('more-menu')?.classList.add('hidden');
     navHandle.closeFlyout();
-// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js-274-279
+// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js
     if (getFocusLevel(els.shell) !== 'off') {
       setFocusLevel(els.shell, 'off');
       updateFocusButtons();
     }
-// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js-284-289
+// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js
     cancelCanvasLinkMode();
   }
 
 
   const project = Store.getActiveProject();
-// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js-295-303
+// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js
   const lastActive = Store.getLastActiveChapter(project);
   if (lastActive) {
     setActiveChapterId(lastActive.chapterId);
   } else {
-// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js-308-311
+// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js
     setActiveChapterId(firstOpenChapterId(project));
   }
 
@@ -149,20 +181,50 @@ function init() {
   // so instead of the reset happening silently. Checked once, right after
   // the first load() call above (via getActiveProject()) actually ran.
   const loadWarning = Store.consumeLoadWarning();
-  if (loadWarning) showStorageWarning(loadWarning.message);
+  if (loadWarning) {
+    // Roadmap #5 — a schema-downgrade warning explains why saving is
+    // paused, so it must not be dismissible; every other load warning
+    // stays dismissible as before.
+    showStorageWarning(loadWarning.message, { persistent: loadWarning.type === 'downgrade' });
+  }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js-321-330
+// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js
+// Roadmap #4 — the cross-tab banner now handles the case tests/14 sketches:
+// this tab's editor can hold unsaved debounced content when the storage
+// event lands. A "last flush" is impossible by design — save() refuses
+// while stale, and bypassing the refusal would clobber the newer tab — so
+// the banner instead NAMES the loss and offers a copy-out action that puts
+// the unsaved text on the clipboard before the reload.
   Store.onCrossTabConflict(() => {
-    showStorageWarning(
-      'This project was just updated in another tab. To avoid overwriting that newer version, saving is paused here. Reload this tab to pick it up before continuing.',
-      { actionLabel: 'Reload now', onAction: () => window.location.reload(), persistent: true }
-    );
+    const editor = document.querySelector('#chapter-editor');
+    const savedChapter = Store.getChapter(activeChapterId);
+    const unsavedText = editor && savedChapter && editor.value !== savedChapter.content ? editor.value : '';
+    const actions = [{ label: 'Reload now', onClick: () => window.location.reload() }];
+    let message = 'This project was just updated in another tab. To avoid overwriting that newer version, saving is paused here. Reload this tab to pick it up before continuing.';
+    if (unsavedText) {
+      message = "This project was just updated in another tab, and this tab's editor still holds unsaved text (the last keystrokes before the pause). Saving is paused here so the newer version isn't overwritten — copy the unsaved text out before reloading, or reload to discard it.";
+      actions.unshift({ label: 'Copy unsaved text', onClick: (btn) => copyUnsavedTextToClipboard(unsavedText, btn) });
+    }
+    showStorageWarning(message, { actions, persistent: true });
   });
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js-338-355
+// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js
   let retryBannerActive = false;
+  let lockedBannerShown = false;
   Store.onSaveError((detail) => {
     if (detail.type === 'stale') return; // onCrossTabConflict above already showed this
+    // Roadmap #5 — this session booted on a database written by a newer
+    // Tinta; every save refuses by design. One persistent banner instead
+    // of a fresh one per refused save.
+    if (detail.type === 'locked') {
+      if (lockedBannerShown) return;
+      lockedBannerShown = true;
+      showStorageWarning(
+        'This database was written by a newer version of Tinta, so this build cannot save over it. Nothing is being modified — please continue in the newer version of Tinta, or update this copy first.',
+        { persistent: true }
+      );
+      return;
+    }
     retryBannerActive = true;
     showStorageWarning(
       detail.type === 'quota'
@@ -171,7 +233,7 @@ function init() {
     );
   });
   Store.onSaveSuccess(() => {
-// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js-367-378
+// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js
     if (retryBannerActive) {
       const currentText = (els.storageWarningRoot.textContent || '').toLowerCase();
       if (currentText.includes('keep trying') || currentText.includes("couldn't be saved")) {
@@ -186,7 +248,7 @@ function init() {
     }
   });
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js-393-398
+// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js
   Store.onStorageHeadroom(({ bytes }) => {
     showStorageWarning(`This project's local storage is getting large (~${Math.round(bytes / (1024 * 1024))}MB). Consider exporting a .tinta backup and trimming old snapshots before it gets tight.`);
   });
@@ -470,13 +532,13 @@ function bindGlobalControls() {
 }
 
 export function render(opts = {}) {
-// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js-463-467
+// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js
   const { skipModalClose = false } = opts;
   const project = Store.getActiveProject();
   if (!skipModalClose) closeModal();
-// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js-471-477
+// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js
   if (activeView !== 'book') revokeBookModeUrls();
-// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js-479-482
+// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js
   if (activeView !== 'notes' && activeView !== 'canvas' && activeView !== 'references') revokeEntityPortraitUrls();
   // Tier 4 pass — same reasoning: the map background's object URL is only
   // needed while the Map view is actually showing it.
@@ -522,7 +584,7 @@ function renderViewTabs() {
   els.viewPanels.forEach((panel) => {
     panel.classList.toggle('active', panel.dataset.view === activeView);
   });
-// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js-525-534
+// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js
   if (activeView !== 'write' && getFocusLevel(els.shell) !== 'off') {
     setFocusLevel(els.shell, 'off');
     updateFocusButtons();
@@ -534,12 +596,12 @@ function renderViewTabs() {
 
 
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js-546-551
+// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js-553-566
+// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js
 function navigateToMutationTarget(result) {
   const project = Store.getActiveProject();
-// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js-569-572
+// Historical context: see docs/CODEBASE_NOTES.md#jsapp-js
   if (!project || project.id !== result.projectId) return;
   if (result.targetType === 'chapter') {
     const chapter = Store.getChapter(result.targetId);

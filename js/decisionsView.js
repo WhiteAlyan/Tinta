@@ -1,8 +1,8 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jsdecisionsview-js-1-15
+// Historical context: see docs/CODEBASE_NOTES.md#jsdecisionsview-js
 import * as Store from './store.js';
 import { q, html, toBridge } from './dom-utils.js';
 
-export function renderDecisionsView(project) {
+export function renderDecisionsView(_project) {
   const panel = document.querySelector('.view-panel[data-view="decisions"]');
   const decisions = Store.getDecisionList();
 

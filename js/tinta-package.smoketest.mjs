@@ -8,11 +8,19 @@
 
 // ── localStorage shim ───────────────────────────────────────────────────
 class LocalStorageShim {
-  constructor() { this.store = new Map(); }
+  constructor() { this.store = new Map(); this.failNextSet = false; }
   getItem(key) { return this.store.has(key) ? this.store.get(key) : null; }
-  setItem(key, value) { this.store.set(key, String(value)); }
+  setItem(key, value) {
+    // Roadmap #11 test hook — one-shot simulated quota failure so the
+    // import path's save() can be made to fail deterministically.
+    if (this.failNextSet) {
+      this.failNextSet = false;
+      throw new Error('QuotaExceededError (simulated by smoketest)');
+    }
+    this.store.set(key, String(value));
+  }
   removeItem(key) { this.store.delete(key); }
-  clear() { this.store.clear(); }
+  clear() { this.store.clear(); this.failNextSet = false; }
 }
 globalThis.localStorage = new LocalStorageShim();
 
@@ -30,7 +38,13 @@ class InMemImageStore {
   async getBlob(id) {
     return this.blobs.has(id) ? this.blobs.get(id).blob : null;
   }
-  async getObjectUrl(id) {
+  async deleteBlob(id) {
+    // Roadmap #11 — the import-failure rollback calls this; the shim must
+    // actually delete so the "orphans were rolled back" assertions mean
+    // something.
+    this.blobs.delete(id);
+  }
+  async getObjectUrl(_id) {
     return null; // not used by the smoketest
   }
 }
@@ -72,6 +86,7 @@ writeFileSync(origImageStorePath, `
 // stubbed by tinta-package.smoketest.mjs for in-memory testing
 export async function putBlob(id, blob) { globalThis.__imageStoreShim.putBlob(id, blob); }
 export async function getBlob(id) { return globalThis.__imageStoreShim.getBlob(id); }
+export async function deleteBlob(id) { globalThis.__imageStoreShim.deleteBlob(id); }
 export async function getObjectUrl() { return null; }
 export const KEYS = { CUSTOM_FONT: 'custom-font', AMBIENCE_TRACK: 'ambience-track', BACKGROUND_IMAGE: 'background-image' };
 export function initOnStoreReady() {}
@@ -136,13 +151,13 @@ assertEqual(parsed.project.title, 'Test Novel', 'project.title matches');
 
 // ── 2. importTintaProject — round-trip from JSON ───────────────────────
 section('importTintaProject — round-trip from JSON variant');
-const file = new FileShim(new Uint8Array(jsonText.split('').map((c) => c.charCodeAt(0))), 'Test_Novel.tinta');
+
 // Hmm, that won't be valid UTF-8. Use TextEncoder instead.
 const properBytes = new TextEncoder().encode(jsonText);
 const file2 = new FileShim(properBytes, 'Test_Novel.tinta');
 
 // Create a different project first, so we can verify the import switches to the new one
-const other = Store.createProject('Other Novel');
+Store.createProject('Other Novel');
 assertEqual(Store.getActiveProject().title, 'Other Novel', 'pre-import active project is "Other Novel"');
 
 const result = await importTintaProject(file2);
@@ -224,8 +239,8 @@ assert(errMsg.includes('project'), 'error message mentions expected kind');
 
 // ── 6. ZIP detection by magic bytes ───────────────────────────────────
 section('ZIP vs JSON detection — magic bytes PK\\x03\\x04');
-const zipBytes = new Uint8Array([0x50, 0x4b, 0x03, 0x04, 0, 0, 0, 0]);
-const jsonBytes = new Uint8Array([0x7b, 0x22, 0x6d, 0x61]); // {"ma...
+
+
 // isZip is internal — test through the public path by importing each.
 // For ZIP detection, we'd need a real .tinta zip; the export path
 // produces one when there are images. Skip the direct isZip test and
@@ -238,7 +253,7 @@ const jsonBytes = new Uint8Array([0x7b, 0x22, 0x6d, 0x61]); // {"ma...
 section('exportTintaProject + importTintaProject — ZIP variant with one image');
 globalThis.localStorage.clear();
 globalThis.__imageStoreShim.blobs.clear();
-const projWithImage = Store.createProject('Visual Novel');
+Store.createProject('Visual Novel');
 const fakeImageBytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3, 4]);
 const fakeImageBlob = new Blob([fakeImageBytes], { type: 'image/png' });
 const imageId = 'img_test_001';
@@ -359,6 +374,100 @@ globalThis.__imageStoreShim.blobs.clear();
     'the surrounding prose is untouched by the remap'
   );
 }
+
+// ── 8c. import — ALL record ids are regenerated, references stay intact ─
+// Roadmap #6 systemic fix. A .tinta preserves its ids on import (only
+// project + image ids used to be remapped), so two imports of one file
+// agreed on every chapter/entity/relationship/… id, and attacker-chosen
+// ids rode into data-* attributes verbatim. Import now mints fresh ids
+// for every uid-shaped record id and rewrites every reference.
+section('import regenerates ALL record ids and keeps references intact');
+
+// Build a maximally-connected source project via the real Store APIs.
+Store.createProject('ID Regen Novel');
+const idSrcChapter = Store.createChapter('Ch One');
+const idSrcScene = Store.createScene(idSrcChapter.id, { title: 'Scene One' });
+const idSrcSnap = Store.createSnapshot(idSrcChapter.id, 'manual snap');
+const idSrcEntA = Store.createEntity({ name: 'Ana', type: 'character' });
+const idSrcEntB = Store.createEntity({ name: 'Ben', type: 'character' });
+const idSrcEntSnap = Store.createEntitySnapshot(idSrcEntA.id, 'before the fall');
+const idSrcRel = Store.createRelationship({ fromId: idSrcEntA.id, toId: idSrcEntB.id, label: 'allies' });
+const idSrcEvt = Store.createTimelineEvent({ title: 'The Fall' });
+Store.addRelationshipHistoryEntry(idSrcRel.id, { label: 'allies', timelineEventId: idSrcEvt.id, note: 'before everything' });
+const idSrcMap = Store.createMap({ name: 'World Map' });
+const idSrcMarker = Store.addMarker(idSrcMap.id, { label: 'Ana\'s home' });
+// Wire the marker to the entity (the 🧠-tier link) + a collection ref.
+{
+  const p = Store.getActiveProject();
+  p.maps[idSrcMap.id] = p.maps[idSrcMap.id] || p.maps; // no-op guard for shape drift
+  const mapRec = Object.values(p.maps).find((m) => m && m.id === idSrcMap.id);
+  mapRec.markers.find((m) => m.id === idSrcMarker.id).entityId = idSrcEntA.id;
+  const coll = { id: `coll_${Date.now().toString(36)}_regen1`, name: 'Favs', chapterIds: [idSrcChapter.id], createdAt: new Date().toISOString() };
+  p.collections.push(coll);
+  p.chapters.find((c) => c.id === idSrcChapter.id).content = 'Ana remembers chapter id chap_x1y2z3_w9v8u7 only as text, never as identity.';
+  Store.save();
+}
+
+const idSrcIds = [
+  idSrcChapter.id, idSrcScene.id, idSrcSnap.id, idSrcEntA.id, idSrcEntB.id,
+  idSrcEntSnap.id, idSrcRel.id, idSrcEvt.id, idSrcMap.id, idSrcMarker.id,
+];
+
+const idSrcExport = await exportTintaProject();
+const idSrcBytes = new TextEncoder().encode(await idSrcExport.blob.text());
+const idFile1 = new FileShim(idSrcBytes, 'ID_Regen_1.tinta');
+const idFile2 = new FileShim(idSrcBytes, 'ID_Regen_2.tinta');
+
+const idImport1 = await importTintaProject(idFile1);
+Store.getActiveProject();
+const idImport2 = await importTintaProject(idFile2);
+Store.getActiveProject();
+
+// Switch back so both imports are reachable by id.
+Store.switchProject(idImport1.projectId);
+const p1 = Store.getActiveProject();
+const p2Chapters = Store.listProjects().length; // both exist — sanity
+assert(p2Chapters >= 3, 'both imports landed as separate projects');
+
+const p1Chapter = p1.chapters.find((c) => c.title === 'Ch One');
+const p1Scene = p1Chapter.scenes[0];
+const p1EntA = Object.values(p1.entities).find((e) => e.name === 'Ana');
+const p1EntB = Object.values(p1.entities).find((e) => e.name === 'Ben');
+const p1Rel = Object.values(p1.relationships).find((r) => r.fromId === p1EntA.id && r.toId === p1EntB.id); // label lives on the reltype, not the record
+const p1Map = Object.values(p1.maps).find((m) => m && m.name === 'World Map');
+const p1Marker = p1Map.markers[0];
+const p1Evt = Object.values(p1.timelineEvents).find((e) => e.title === 'The Fall');
+const p1Coll = p1.collections.find((c) => c.name === 'Favs');
+
+const p1Ids = [
+  p1Chapter.id, p1Scene.id, p1Chapter.snapshots[0].id, p1EntA.id, p1EntB.id,
+  p1EntA.snapshots[0].id, p1Rel.id, p1Evt.id, p1Map.id, p1Marker.id,
+];
+assert(idImport1.regeneratedIds >= 12, 'import reports a full harvest of record ids (incl. the relhist entry)');
+assert(p1Ids.every((id, i) => id !== idSrcIds[i]), 'no imported record id equals its source id');
+assert(new Set(p1Ids).size === p1Ids.length, 'no two record kinds share an id within the import');
+
+// Referential integrity — every reference was rewritten to the FRESH ids.
+assert(p1Rel.fromId === p1EntA.id && p1Rel.toId === p1EntB.id, 'relationship fromId/toId point at the imported entities');
+assert(p1Rel.history[0].timelineEventId === p1Evt.id, 'relationship history entry points at the imported timeline event');
+assert(p1Marker.entityId === p1EntA.id, 'map marker entityId points at the imported entity');
+assert(p1Coll.chapterIds.includes(p1Chapter.id), 'collection chapterIds point at the imported chapter');
+assert(p1Chapter.scenes[0].chapterId === undefined || p1Scene.id !== idSrcScene.id, 'scene id is fresh');
+assert(!Object.keys(p1.entities).some((k) => idSrcIds.includes(k)), 'entities map is keyed by the fresh ids');
+
+// Prose that merely CONTAINS an id-like substring is identity-untouched.
+assert(
+  p1Chapter.content.includes('chap_x1y2z3_w9v8u7'),
+  'prose containing an id-like substring is preserved verbatim (exact-match remap only)'
+);
+
+// Cross-import: the SAME file imported twice agrees on nothing.
+const p2 = (() => { Store.switchProject(idImport2.projectId); return Store.getActiveProject(); })();
+const p2EntA = Object.values(p2.entities).find((e) => e.name === 'Ana');
+const p2Rel = Object.values(p2.relationships).find((r) => r.fromId === p2EntA.id);
+assert(p2Rel.id !== p1Rel.id, 'the two imports share NO relationship id');
+assert(p2EntA.id !== p1EntA.id, 'the two imports share NO entity id');
+assert(!p1Ids.some((id) => JSON.stringify(p2).includes(`"${id}"`)), 'no p1 id appears anywhere inside p2');
 
 // ── 9. safeFilename — sanitization ────────────────────────────────────
 section('safeFilename — sanitizes project titles into filenames');
@@ -547,7 +656,7 @@ assert(hasCode(corruptZipCheck.errors, 'corrupt-zip'), 'reports corrupt-zip');
 section('checkTintaFile — is pure, never mutates Store or ImageStore');
 globalThis.localStorage.clear();
 globalThis.__imageStoreShim.blobs.clear();
-const purityProj = Store.createProject('Purity Check');
+Store.createProject('Purity Check');
 // P2-5 fix — drop the `?? 'tinta-db'` fallback. The canonical key is
 // 'tinta:db' (colon, not hyphen) — see store-core.js:3. The fallback
 // never fired today (Store.STORAGE_KEY is re-exported from store.js:47)
@@ -598,14 +707,30 @@ assert(!exportThrew, 'exportTintaProject does not throw when a project exists');
 // createZip() computes a real CRC-32 over every byte of every entry,
 // which is fine for the small fixtures used above but would make the
 // large-payload tests below (a 50MB+ image, a 100MB+ project.json)
-// noticeably slower for no test value — parseZipEntries never reads the
-// CRC field at all, so a hardcoded 0 is exactly as valid an input as a
-// real checksum for what's being tested here.
+// noticeably slower for no test value — the reader now VERIFIES the CRC
+// field (roadmap #11), so buildRawZip writes each entry's honest CRC-32
+// through this independent table implementation. A test-side oracle, not
+// an import of tintaPackage's own crc32 — the two must agree byte-for-byte,
+// and agreement across two separately written tables is the actual check.
+const CRC32_TABLE = (() => {
+  const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    t[n] = c >>> 0;
+  }
+  return t;
+})();
+function crc32Oracle(bytes) {
+  let c = 0xffffffff;
+  for (let i = 0; i < bytes.length; i++) c = CRC32_TABLE[(c ^ bytes[i]) & 0xff] ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
+}
 function u16le(n) { return [n & 0xff, (n >>> 8) & 0xff]; }
 function u32le(n) { return [n & 0xff, (n >>> 8) & 0xff, (n >>> 16) & 0xff, (n >>> 24) & 0xff]; }
 
 // General-purpose: one-to-one entries → (local header + central directory
-// entry) pairs, same layout as zip.js's createZip(), crc hardcoded to 0.
+// entry) pairs, same layout as zip.js's createZip(), honest CRC per entry.
 // Used wherever a fixture just needs a few real, DISTINCT entries (one of
 // which happens to be oversized, or there are simply a lot of them).
 function buildRawZip(entries) {
@@ -616,10 +741,11 @@ function buildRawZip(entries) {
     const nameBytes = new TextEncoder().encode(name);
     const fileBytes = data instanceof Uint8Array ? data : new TextEncoder().encode(data);
     const size = fileBytes.length;
+    const crc = crc32Oracle(fileBytes);
     const localHeader = new Uint8Array([
       0x50, 0x4b, 0x03, 0x04,
       ...u16le(20), ...u16le(0), ...u16le(0), ...u16le(0), ...u16le(0),
-      ...u32le(0), ...u32le(size), ...u32le(size),
+      ...u32le(crc), ...u32le(size), ...u32le(size),
       ...u16le(nameBytes.length), ...u16le(0),
     ]);
     localParts.push(localHeader, nameBytes, fileBytes);
@@ -627,7 +753,7 @@ function buildRawZip(entries) {
     const centralHeader = new Uint8Array([
       0x50, 0x4b, 0x01, 0x02,
       ...u16le(20), ...u16le(20), ...u16le(0), ...u16le(0), ...u16le(0), ...u16le(0),
-      ...u32le(0), ...u32le(size), ...u32le(size),
+      ...u32le(crc), ...u32le(size), ...u32le(size),
       ...u16le(nameBytes.length), ...u16le(0), ...u16le(0), ...u16le(0), ...u16le(0),
       ...u32le(0), ...u32le(offset),
     ]);
@@ -659,10 +785,11 @@ function buildRawZip(entries) {
 function buildDuplicatedZip({ dataName, dataBytes, centralNames }) {
   const nameBytes = new TextEncoder().encode(dataName);
   const size = dataBytes.length;
+  const crc = crc32Oracle(dataBytes); // honest CRC — every central entry points at the same real bytes, so they all share it
   const localHeader = new Uint8Array([
     0x50, 0x4b, 0x03, 0x04,
     ...u16le(20), ...u16le(0), ...u16le(0), ...u16le(0), ...u16le(0),
-    ...u32le(0), ...u32le(size), ...u32le(size),
+    ...u32le(crc), ...u32le(size), ...u32le(size),
     ...u16le(nameBytes.length), ...u16le(0),
   ]);
   const localHeaderOffset = 0;
@@ -672,7 +799,7 @@ function buildDuplicatedZip({ dataName, dataBytes, centralNames }) {
     centralParts.push(new Uint8Array([
       0x50, 0x4b, 0x01, 0x02,
       ...u16le(20), ...u16le(20), ...u16le(0), ...u16le(0), ...u16le(0), ...u16le(0),
-      ...u32le(0), ...u32le(size), ...u32le(size),
+      ...u32le(crc), ...u32le(size), ...u32le(size),
       ...u16le(nb.length), ...u16le(0), ...u16le(0), ...u16le(0), ...u16le(0),
       ...u32le(0), ...u32le(localHeaderOffset),
     ]));
@@ -953,6 +1080,125 @@ section('hardening — a large but WITHIN-limits archive still imports cleanly')
   const withinLimitsResult = await importTintaProject(new FileShim(bytes, 'within-limits.tinta'));
   assertEqual(withinLimitsResult.projectTitle, 'Within Limits', 'the legitimate project actually imported');
   assertEqual(Store.getActiveProject().chapters[0]?.title, 'One', 'and its content came through intact');
+}
+
+// ── 30. a byte-flipped entry fails its CRC check ────────────────────────
+// Roadmap #11 — the reader used to validate structure and never content:
+// a corrupt-but-structurally-valid archive imported silently wrong bytes.
+section('roadmap #11 — a corrupt-but-structurally-valid zip fails its CRC check');
+{
+  globalThis.localStorage.clear();
+  globalThis.__imageStoreShim.blobs.clear();
+  const bytes = buildRawZip([
+    { name: 'manifest.json', data: JSON.stringify({ kind: 'project', tintaFormatVersion: 1, projectTitle: 'Crc Flip', imageCount: 0 }) },
+    { name: 'project.json', data: JSON.stringify({ id: 'proj_crcflip', title: 'Crc Flip', chapters: [{ id: 'ch1', title: 'One', content: 'Original prose that must never silently change.', order: 0 }], entities: {}, images: {} }) },
+  ]);
+  // Flip one byte inside project.json's DATA. Offsets are computed from
+  // the archive's own headers (local header = 30 bytes + filename), not
+  // hardcoded — the manifest's JSON length shifts where project.json's
+  // data actually starts. Headers/CRCs stay honest, the payload no longer
+  // matches them — exactly a damaged-in-transit file.
+  const localHeaderOffsets = [];
+  for (let i = 0; i + 4 <= bytes.length; i++) {
+    if (bytes[i] === 0x50 && bytes[i + 1] === 0x4b && bytes[i + 2] === 0x03 && bytes[i + 3] === 0x04) localHeaderOffsets.push(i);
+  }
+  assertEqual(localHeaderOffsets.length, 2, 'sanity: two local file headers in this fixture');
+  const projEntryOffset = localHeaderOffsets[1];
+  const projNameLen = bytes[projEntryOffset + 26] | (bytes[projEntryOffset + 27] << 8);
+  const projDataOffset = projEntryOffset + 30 + projNameLen;
+  bytes[projDataOffset] ^= 0x01;
+
+  const crcCheck = await checkTintaFile(new FileShim(bytes, 'crc-flip.tinta'));
+  assertEqual(crcCheck.valid, false, 'a CRC mismatch makes the archive invalid');
+  assert(hasCode(crcCheck.errors, 'corrupt-zip'), 'reports corrupt-zip');
+  assert(
+    crcCheck.errors.some((e) => /checksum/i.test(e.message)),
+    'the corrupt-zip message explains it was a checksum failure, not generic corruption'
+  );
+  assert(
+    crcCheck.errors.some((e) => /project\.json/.test(e.message)),
+    'the message names the entry that failed'
+  );
+
+  let crcImportThrew = false;
+  let crcImportMessage = '';
+  try { await importTintaProject(new FileShim(bytes, 'crc-flip.tinta')); }
+  catch (e) { crcImportThrew = true; crcImportMessage = e.message; }
+  assert(crcImportThrew, 'importTintaProject refuses the flipped archive');
+  assert(/checksum/i.test(crcImportMessage), `import error names the checksum (got: ${crcImportMessage.slice(0, 80)})`);
+  assertEqual(Store.getActiveProject()?.title, 'Within Limits', 'the previously active project is untouched');
+}
+
+// ── 31. the encryption flag is rejected in both headers ─────────────────
+section('roadmap #11 — encrypted entries are rejected (central + local flag)');
+{
+  globalThis.localStorage.clear();
+  const base = buildRawZip([
+    { name: 'manifest.json', data: JSON.stringify({ kind: 'project', tintaFormatVersion: 1, projectTitle: 'Enc', imageCount: 0 }) },
+    { name: 'project.json', data: JSON.stringify({ id: 'proj_enc', title: 'Enc', chapters: [], entities: {}, images: {} }) },
+  ]);
+
+  // Variant A: bit 0 set in the CENTRAL directory's general-purpose flags.
+  // EOCD is the last 22 bytes; its +16 u32 points at the central directory.
+  const eocdOffset = base.length - 22;
+  const centralDirOffset =
+    base[eocdOffset + 16] | (base[eocdOffset + 17] << 8) | (base[eocdOffset + 18] << 16) | (base[eocdOffset + 19] << 24);
+  const centralVariant = base.slice();
+  centralVariant[centralDirOffset + 8] |= 0x01;
+  const centralCheck = await checkTintaFile(new FileShim(centralVariant, 'enc-central.tinta'));
+  assertEqual(centralCheck.valid, false, 'a central-directory encryption flag makes the archive invalid');
+  assert(
+    centralCheck.errors.some((e) => /encrypted/i.test(e.message)),
+    'the message says the archive is encrypted'
+  );
+  let centralThrew = false;
+  try { await importTintaProject(new FileShim(centralVariant, 'enc-central.tinta')); }
+  catch { centralThrew = true; }
+  assert(centralThrew, 'importTintaProject refuses the central-flag variant');
+
+  // Variant B: bit 0 set in the LOCAL header's flags (first entry starts
+  // at offset 0; its GP flags live at +6).
+  const localVariant = base.slice();
+  localVariant[6] |= 0x01;
+  const localCheck = await checkTintaFile(new FileShim(localVariant, 'enc-local.tinta'));
+  assertEqual(localCheck.valid, false, 'a local-header encryption flag also makes the archive invalid');
+  assert(
+    localCheck.errors.some((e) => /encrypted/i.test(e.message)),
+    'the local-flag variant also reports encryption, not generic corruption'
+  );
+}
+
+// ── 32. a failed import rolls back the image blobs it already wrote ─────
+// Roadmap #11 — blobs written before a late failure (cross-tab pause,
+// quota-refused save) used to stay in the shared IndexedDB store forever:
+// invisible, unreferenced, pure quota loss.
+section('roadmap #11 — a failed import rolls back its already-written image blobs');
+{
+  globalThis.localStorage.clear();
+  globalThis.__imageStoreShim.blobs.clear();
+  const bytes = buildRawZip([
+    { name: 'manifest.json', data: JSON.stringify({ kind: 'project', tintaFormatVersion: 1, projectTitle: 'Orphan Rollback', imageCount: 2 }) },
+    { name: 'project.json', data: JSON.stringify({ id: 'proj_orphan', title: 'Orphan Rollback', chapters: [], entities: {}, images: {}, coverImageId: 'img_src1' }) },
+    { name: 'images/img_src1.png', data: new Uint8Array([1, 2, 3, 4]) },
+    { name: 'images/img_src2.png', data: new Uint8Array([5, 6, 7, 8]) },
+  ]);
+
+  // Project.json references img_src1 → import maps BOTH archive image
+  // entries? No — only ids the project actually references get mapped and
+  // written; img_src2 is unreferenced and must never be written at all.
+  const blobCountBefore = globalThis.__imageStoreShim.blobs.size;
+  globalThis.localStorage.failNextSet = true; // one-shot: the import's save() will fail
+  let importThrew = false;
+  let importMessage = '';
+  try { await importTintaProject(new FileShim(bytes, 'orphan.tinta')); }
+  catch (e) { importThrew = true; importMessage = e.message; }
+  assert(importThrew, 'the import fails when the save is refused');
+  assert(/saving it locally failed/.test(importMessage), `the failure is the save-refusal (got: ${importMessage.slice(0, 90)})`);
+  assertEqual(globalThis.__imageStoreShim.blobs.size, blobCountBefore, 'the image blob written before the failure was rolled back — no orphans left behind');
+  assert(
+    !Object.values(Store.getActiveDb().projects).some((p) => p.title === 'Orphan Rollback'),
+    'and the half-imported project slot is gone from the db, as before'
+  );
 }
 
 // ── summary ────────────────────────────────────────────────────────────

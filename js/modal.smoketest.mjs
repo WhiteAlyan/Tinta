@@ -84,7 +84,7 @@ globalThis.document = {
   },
   // confirmDialog's lazy root creation — singleton is fine (one confirm at
   // a time is the module's own contract, asserted below).
-  createElement(tag) { confirmRootEl.id = ''; return confirmRootEl; },
+  createElement(_tag) { confirmRootEl.id = ''; return confirmRootEl; },
   body: { appendChild() {} },
   activeElement: null,
   addEventListener(type, handler) {
@@ -113,6 +113,7 @@ function clickCloseButton() {
 }
 
 const { openModal, teardown, confirmDialog, promptDialog, noticeDialog } = await import('./modal.js');
+const { html, raw } = await import('./dom-utils.js');
 
 // ── test harness (same shape as every other smoketest) ─────────────────
 let pass = 0, fail = 0;
@@ -138,8 +139,24 @@ resetAll();
 openModal({ title: 'Hello', body: '<p>body</p>' });
 assert(rootInnerHTML.includes('modal-backdrop'), 'backdrop present after open');
 assert(rootInnerHTML.includes('Hello'), 'title rendered');
-assert(rootInnerHTML.includes('<p>body</p>'), 'body rendered as-is (caller-escaping contract, no double-escape)');
+// Roadmap #6 — plain-string bodies are ESCAPED now (they used to be
+// injected verbatim, which made every string-passing call site a
+// stored-XSS sink by default — the settingsModal stopword class).
+// Pre-built markup must arrive as SafeHtml (html`` or raw()).
+assert(rootInnerHTML.includes('&lt;p&gt;body&lt;/p&gt;'), 'plain-string body is escaped into inert text (escape-by-default contract)');
+assert(!rootInnerHTML.includes('<p>body</p>'), 'no unescaped markup from a plain-string body');
 assert(rootInnerHTML.includes('id="modal-close"'), 'close button present by default');
+teardown();
+
+// ── 1b. SafeHtml bodies still render as markup (the explicit opt-in) ────
+section('openModal — SafeHtml bodies render as markup');
+resetAll();
+openModal({ body: raw('<p>raw body</p>') });
+assert(rootInnerHTML.includes('<p>raw body</p>'), 'raw() body renders as real markup (the declared-trusted path)');
+teardown();
+resetAll();
+openModal({ body: html`<p class="x">${'<b>hostile</b>'}</p>` });
+assert(rootInnerHTML.includes('<p class="x">&lt;b&gt;hostile&lt;/b&gt;</p>'), 'html`` body keeps its real tags while interpolations stay escaped');
 teardown();
 
 // ── 2. showHeader: false omits header entirely ──────────────────────────
@@ -323,7 +340,7 @@ section('confirmDialog — Escape, backdrop, Cancel, and Enter paths');
 
 section('confirmDialog — non-danger focuses confirm; supersession; escaping');
 {
-  const p = confirmDialog({ title: 'Share?', message: 's', confirmLabel: 'Share' });
+  confirmDialog({ title: 'Share?', message: 's', confirmLabel: 'Share' });
   await Promise.resolve();
   assert(confirmFocusTarget === 'ok', 'non-danger dialog focuses the confirm button');
   assert(!confirmInnerHTML.includes('confirm-btn-danger'), 'no danger styling without danger=true');

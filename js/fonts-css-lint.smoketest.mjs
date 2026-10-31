@@ -50,11 +50,11 @@ for (const m of urlMatches) {
   referencedFiles.add({ path, resolved });
 }
 
-let allFound = true;
+
 for (const { path, resolved } of referencedFiles) {
   const exists = existsSync(resolved);
   ok(`url(${path}) → file exists`, exists);
-  if (!exists) allFound = false;
+
 }
 
 // Bonus check: every @font-face declares font-display: swap (the

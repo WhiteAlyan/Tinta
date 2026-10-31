@@ -3,13 +3,13 @@
 //
 import * as ModalShell from './modal.js';
 import * as Store from './store.js';
-import { escapeAttr, escapeHtml, q } from './dom-utils.js';
-import { closeModal, confirmDialog, openModal } from './modal.js';
+import { escapeAttr, escapeHtml, q, raw } from './dom-utils.js';
+import { closeModal } from './modal.js';
 import { renderNotesView } from './notesView.js';
 import { requestRender } from './renderBus.js';
 import { WORLDBUILDING_TEMPLATES } from './worldTemplates.js';
 
-// Historical context: see docs/CODEBASE_NOTES.md#jstypemanagers-js-12-19
+// Historical context: see docs/CODEBASE_NOTES.md#jstypemanagers-js
 
 export const CHAPTER_TYPE_ROLE_LABEL = { content: 'Content', frontmatter: 'Front matter', backmatter: 'Back matter', scratch: 'Scratch (excluded from export)' };
 
@@ -17,11 +17,11 @@ export function openChapterTypeManager() {
   const project = Store.getActiveProject();
   const types = Store.getChapterTypes();
 
-// Historical context: see docs/CODEBASE_NOTES.md#jstypemanagers-js-27-36
+// Historical context: see docs/CODEBASE_NOTES.md#jstypemanagers-js
   const root = ModalShell.openModal({
     title: 'Document types',
     className: 'entity-type-manager-modal',
-    body: `
+    body: raw(`
         <p class="settings-note">What kind of document each chapter-slot is: an ordinary Chapter, front/back matter like a Dedication or Appendix, or Scratch material (Author/Research notes) that's excluded from manuscript export automatically. Role controls behavior; label is just what you see.</p>
         <div class="entity-type-list">
           ${types.map((t) => {
@@ -44,7 +44,7 @@ export function openChapterTypeManager() {
           </select>
           <button id="new-doctype-add-btn" class="add-scene-btn">+ Add</button>
         </div>
-    `,
+    `),
   });
 
   const closeToWrite = () => { ModalShell.teardown(); requestRender(); };
@@ -79,11 +79,11 @@ export function openEntityTypeManager() {
   const project = Store.getActiveProject();
   const types = Store.getEntityTypes();
 
-// Historical context: see docs/CODEBASE_NOTES.md#jstypemanagers-js-98-103
+// Historical context: see docs/CODEBASE_NOTES.md#jstypemanagers-js
   const root = ModalShell.openModal({
     title: 'Entity types',
     className: 'entity-type-manager-modal',
-    body: `
+    body: raw(`
         <p class="settings-note">The four defaults (Character, Location, Item, Concept) are always here. Add your own (Deity, Species, Faction, whatever your worldbuilding needs) with a color and any custom fields you want every entity of that type to have.</p>
         <div class="entity-type-list">
           ${types.map((t) => {
@@ -117,7 +117,7 @@ export function openEntityTypeManager() {
             </div>
           </div>`;
         })()}
-    `,
+    `),
   });
 
   q('modal-close').addEventListener('click', () => closeTypeManagerToNotes());

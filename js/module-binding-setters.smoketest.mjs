@@ -76,7 +76,7 @@ try {
   Context.setActiveMapId(null);
   Context.setActiveReferenceId(null);
   Context.setActiveSketchId(null);
-} catch (err) {
+} catch {
   threw = true;
 }
 ok('setters accept null (the project-switch teardown value) without throwing', !threw);

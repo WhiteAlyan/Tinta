@@ -1,6 +1,6 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jspalette-js-1-5
+// Historical context: see docs/CODEBASE_NOTES.md#jspalette-js
 
-// Historical context: see docs/CODEBASE_NOTES.md#jspalette-js-7-11
+// Historical context: see docs/CODEBASE_NOTES.md#jspalette-js
 function scoreMatch(label, query) {
   const text = label.toLowerCase();
   const q = query.toLowerCase();
@@ -26,7 +26,7 @@ function scoreMatch(label, query) {
   return 50 + bestRun * 5 - ti;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jspalette-js-37-40
+// Historical context: see docs/CODEBASE_NOTES.md#jspalette-js
 export function filterItems(items, query) {
   const trimmed = (query || '').trim();
   if (!trimmed) return items;

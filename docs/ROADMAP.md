@@ -4092,3 +4092,107 @@ Not done as part of this pass: the Playwright specs in `tests/` (15
 files) still haven't executed in this environment — no real browser
 available here. Browser-level behavior remains unverified until someone
 runs them somewhere that has one.
+
+## Roadmap #1–2 — external review: the dead grammar modal + the import XSS trio
+
+Worked from the 2026 external code review (`Tinta_Code_Review_Report.pdf`,
+roadmap table 4). Items 1–2 are the two P0s.
+
+**1. The grammar results modal was dead code** (`js/grammarModal.js`)
+`renderGrammarResultsModal` was the one modal body still built as a plain
+string, and it called `escapeHtml()`/`escapeAttr()` six times without
+ever importing them — a `ReferenceError` the moment a grammar check
+returned results, surfacing as an unhandled rejection that left the
+loading modal on screen forever. The results body is now built through
+the `html` tagged template like every other modal in the file: every
+interpolated value (category, message, ids, replacements) escapes by
+construction, the real `<mark>` survives, and nothing double-escapes.
+Covered by `grammar-modal-render.smoketest.mjs` (21 assertions) — the
+results path had zero coverage before.
+
+**2. The import-path XSS trio.** Three render sites bypassed the escaping
+bridge with attacker-controllable values from `.tinta` files:
+`settingsModal.js`'s stopword list, `searchView.js`'s `data-jump-*`
+attributes (ids straight into attribute position via `raw()`), and the
+snapshot-row `data-snapshot`/`data-entry` attributes in
+`historyModals.js` + `canvasView.js`. All four files escape at every
+former sink now (`escapeHtml` for text position, `escapeAttr` for
+attribute position).
+
+## Roadmap #3–7 — external review: data-loss edges, systemic hardening
+
+Applied as one batch; full per-item detail in `FIXES-ROADMAP-3-7.md` at
+the repo root. Summary: every quota-failed save re-snapshots to IndexedDB
+(#3); the cross-tab banner names the unsaved text and offers copy-out
+(#4); newer-schema dbs, full backups, and .tinta manifests are refused
+with a write lock and quarantine instead of migrated blind (#5);
+openModal() escapes plain-string bodies by default with all 16 caller
+files migrated, .tinta import regenerates ALL record identifiers, and the
+shell ships a CSP (#6); undo history clears across full-db replaces (#7).
+Also fixed en route: `SCHEMA_VERSION` had never been re-exported through
+`store.js`, so every exported manifest carried `schemaVersion: undefined`.
+
+## Roadmap #8–11 — external review: docs truth, storage hygiene, lint signal, zip content checks
+
+**8. Documentation truth regenerated.** `CODEBASE_NOTES.md` had been
+truncated to a 30-line stub while 848 single-line cross-references in 92
+source files pointed at section anchors that no longer existed — and the
+anchors were line-range based, so they died on every edit anyway. The
+historical block texts are unrecoverable (stripped pre-git, no other
+copy), so `scripts/extract_codebase_notes.py` was rebuilt around that
+lesson: default mode is a NON-destructive regeneration from the blocks
+currently in sources, `--fix-xref` repointed all 848 references to
+stable per-file anchors (`#jsgrammarmodal-js`, suffix of the old
+line-range form — one line becomes one line), and `--verify` fails
+loudly on any anchor that doesn't resolve (848/848 resolve; the review's
+"849 dead anchors" count is now zero). `appMeta.js` reconciled to
+0.3.0 "Fast, Beautiful, Trustworthy" — it still read 0.2.8 while the
+v0.2.9 onboarding release and the v0.3 editor-preview pass shipped.
+`TINTA-MASTER-TRUTH.md` corrected in place: the false "zero code"
+claims for onboarding (`js/onboarding.js` + `js/welcomeScreen.js` both
+ship) and `prefers-reduced-motion` (blocks in base/modals/polish css),
+and the dead `app.js` line citations.
+
+**9. Storage hygiene.** Four erosion paths closed: (a) corrupt-db
+quarantine keys (`tinta:db:corrupt-backup:*`, a full db copy each)
+accumulate forever — `load()` now sweeps them to the newest two on
+every boot; (b) the legacy `scriptorium:db` key was re-saved under the
+new name and never deleted — it is now removed, but only after the
+same data has actually landed under `tinta:db` (until then it is the
+only copy); (c) the decision log and per-relationship histories grew
+without bound — capped at 250 and 50 respectively at the write path,
+oldest-first, constants exported (`MAX_DECISION_LOG`,
+`MAX_RELATIONSHIP_HISTORY`); (d) the folder auto-backup overwrote one
+fixed-name .tinta per project — backups are now dated
+(`<project>-autosave-YYYY-MM-DD.tinta`, same-day saves reuse the same
+file) and the folder rotates to the newest five per project
+(`AUTOBACKUP_KEEP`), deleting only files matching the module's own
+exact naming pattern. Naming/rotation logic split into the pure
+`autoBackupName.js` (unit-tested; also added to sw.js's SHELL_FILES,
+which the sw-precache guard checked the moment it landed).
+
+**10. ESLint signal restored.** The hand-maintained ~40-name globals
+list was the reason the grammar-modal `ReferenceError` shipped silently
+— the file used globals (`performance`, `TextEncoder`, `getComputedStyle`,
+`fetch`, …) the list had never heard of, and 53 real `no-undef` errors
+drowned among 108 warnings. The config now uses the `globals` package's
+`browser` + `node` presets. Every remaining finding was then fixed
+file-by-file (unused imports/vars removed or `_`-prefixed, five
+`no-useless-escape`s cleaned, one stale `eslint-disable` directive
+removed) — including one REAL latent bug the restored signal caught:
+`store-projects.js`'s `renameSeries()` called `getSeries()` without
+importing it, so renaming any series threw `ReferenceError`.
+`npm run lint` is clean.
+
+**11. Zip reader verifies content, not just structure.** The hand-rolled
+reader validated offsets exhaustively but never checked an entry's
+CRC-32, so a corrupt-but-structurally-valid archive imported silently
+wrong bytes. Entries are now CRC-32-verified against the central
+directory (table-based, STORE-only so the bytes are the content), and
+encrypted entries are rejected via the general-purpose bit 0 in both
+the central and local headers. Failed imports also roll back the image
+blobs they already wrote to the shared IndexedDB store — they used to
+remain as invisible, unreferenced quota loss. New smoketest sections
+pin all three (byte-flip rejection, both encryption-flag variants,
+orphan rollback on a quota-refused save); the test zip builders now
+write honest CRCs through an independent table implementation.

@@ -1,8 +1,8 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jsgeneratormodal-js-1-26
+// Historical context: see docs/CODEBASE_NOTES.md#jsgeneratormodal-js
 
 import * as Store from './store.js';
 import { requestRender } from './renderBus.js';
-import { q, escapeHtml, escapeAttr } from './dom-utils.js';
+import { q, escapeHtml, escapeAttr, raw } from './dom-utils.js';
 import { openModal, teardown, noticeDialog } from './modal.js';
 
 export let activeEntityIdFromGenerator = null;
@@ -12,18 +12,18 @@ export let activeSystemIdFromGenerator = null;
 export function clearActiveSystemIdFromGenerator() { activeSystemIdFromGenerator = null; }
 
 export function openWorldbuildingDraftModal(typeKey) {
-// Historical context: see docs/CODEBASE_NOTES.md#jsgeneratormodal-js-40-44
+// Historical context: see docs/CODEBASE_NOTES.md#jsgeneratormodal-js
   let languageEntityId = '';
   let draft = Store.draftWorldbuildingEntity({ typeKey });
   if (!draft) { teardown(); return; }
   const languageEntities = Store.getLanguageEntities();
 
   function paint() {
-// Historical context: see docs/CODEBASE_NOTES.md#jsgeneratormodal-js-51-56
+// Historical context: see docs/CODEBASE_NOTES.md#jsgeneratormodal-js
     const root = openModal({
       title: `Generate a ${escapeHtml(draft.typeLabel)}`,
       className: 'generator-modal',
-      body: `
+      body: raw(`
           <p class="settings-note">A starting point, not a finished entity. Edit anything below, or reroll for a different draft. Nothing is saved until you use it.</p>
           ${
             languageEntities.length
@@ -61,7 +61,7 @@ export function openWorldbuildingDraftModal(typeKey) {
             <input type="text" id="draft-seed-input" class="namegen-seed-input" placeholder="Paste a seed to reproduce a draft…" />
             <button id="draft-use-seed" class="namegen-seed-btn" title="Reroll using the seed above">↳ Use</button>
           </div>
-      `,
+      `),
     });
 
     const languageSelect = q('draft-language');
@@ -111,14 +111,14 @@ export function openWorldbuildingDraftModal(typeKey) {
   paint();
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsgeneratormodal-js-148-155
+// Historical context: see docs/CODEBASE_NOTES.md#jsgeneratormodal-js
 const STARTER_SYSTEM_DOMAIN_PRESETS = ['Magic', 'Skill tree', 'Technology', 'Martial arts', 'Cyberware', 'Cosmic Laws'];
 
 export function openStarterSystemModal() {
   const root = openModal({
     title: 'Generate a starter system',
     className: 'generator-modal',
-    body: `
+    body: raw(`
         <p class="settings-note">Seeds a tiered node tree you can edit node-by-node afterward: a starting skeleton, not a finished system. Only name/rank/category/effect are generated; cost, cooldown, and the other mechanical fields are left blank on purpose since generic filler there would be misleading rather than useful. Works just as well for a technology tree as a magic system, since it's the same prerequisite-chain shape either way.</p>
         <label class="grammar-field-label">System name
           <input type="text" id="starter-name" placeholder="e.g. Elemental Magic, Cyberware" />
@@ -143,7 +143,7 @@ export function openStarterSystemModal() {
         <div class="generator-modal-actions">
           <button id="starter-generate">Generate</button>
         </div>
-    `,
+    `),
   });
 
   root.querySelectorAll('.starter-domain-preset-btn').forEach((btn) => {
@@ -163,7 +163,7 @@ export function openStarterSystemModal() {
     teardown();
     activeSystemIdFromGenerator = system.id;
     requestRender();
-// Historical context: see docs/CODEBASE_NOTES.md#jsgeneratormodal-js-207-215
+// Historical context: see docs/CODEBASE_NOTES.md#jsgeneratormodal-js
     await noticeDialog({
       title: 'System generated',
       message: `Generated with seed: ${seed}\n\nSame system name/domain/tiers + this seed reproduces the exact same tree.`,

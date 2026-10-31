@@ -1,10 +1,10 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-js-1-85
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-js
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-js-87-100
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-js
 
-import * as Format from './format.js';
-import * as RuleSystem from './ruleSystem.js';
-import * as Generator from './generator.js';
+
+
+
 // 0.2.8 Pass A — wordCount's body moved down into format.js (see it there);
 // imported under its bare name so this module's 10 internal callers are
 // untouched, and re-exported right below so the store contract is unchanged.
@@ -13,26 +13,12 @@ import { wordCount } from './format.js';
 // 0.2.8 Pass 1 — vault machinery bindings (bare names for the domain code below).
 import {
   AUTHORITY_SOURCES,
-  AUTO_CHECKPOINT_INTERVAL_MS,
   CANON_STATUSES,
-  MAX_RECENT_ACTIVITY,
   backupBeforeDelete,
-  capAutoSnapshots,
-  capManualSnapshots,
-  cloneWithoutSnapshots,
-  escapeRegExp,
   getActiveProject,
-  getChapter,
-  getSeries,
   getSeriesForActiveProject,
-  load,
-  makeProject,
-  makeSeries,
   now,
-  recordMutation,
-  replaceDb,
   save,
-  slugType,
   uid,
 } from './store-core.js';
 
@@ -42,6 +28,12 @@ export {
   load,
   save,
 } from './store-core.js';
+// Roadmap #5 — SCHEMA_VERSION joins the public surface. tintaPackage.js
+// already wrote `schemaVersion: Store.SCHEMA_VERSION` into every manifest,
+// but this module never re-exported the constant — the manifest field has
+// silently been `undefined` (dropped by JSON.stringify) on every export so
+// far. Re-exporting fixes both the manifest and the import guards.
+export { SCHEMA_VERSION } from './store-core.js';
 // Pure re-exports (not referenced by domain code internally).
 export {
   STORAGE_KEY,
@@ -71,7 +63,7 @@ export {
   undo,
 } from './store-core.js';
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-js-169-172
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-js
 export {
   addThesaurusEntry,
   deleteThesaurusEntry,
@@ -121,7 +113,7 @@ export {
   importFullBackup,
 } from './store-backup.js';
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-js-210-214
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-js
 export {
   addActiveProjectToSeries,
   createProject,
@@ -139,7 +131,7 @@ export {
   updateProjectMeta,
 } from './store-projects.js';
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-js-232-237
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-js
 import {
   createEntity,
   extractMentions,
@@ -512,7 +504,7 @@ export {
 } from './store-manuscript.js';
 
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-js-602-611
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-js
 export function markGenerationEdited(kind, id) {
   const record = kind === 'ruleSystem' ? getRuleSystem(id) : getEntity(id);
   if (!record || !record.generation || record.generation.edited) return;
@@ -521,10 +513,10 @@ export function markGenerationEdited(kind, id) {
   else updateEntity(id, patch);
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-js-620-625
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-js
 export { wordCount };
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-js-628-635
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-js
 export function setCanonStatus(kind, id, status) {
   if (!CANON_STATUSES.includes(status)) return;
   if (kind === 'ruleSystem') updateRuleSystem(id, { canonStatus: status });
@@ -541,7 +533,7 @@ export function deleteEntity(entityId) {
   const project = getActiveProject();
   const entity = project.entities[entityId];
   if (entity) backupBeforeDelete('entity', entityId, entity, entity.name);
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-js-652-658
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-js
   Object.values(project.entities).forEach((e) => {
     if (e.parentId === entityId) e.parentId = null;
   });
@@ -555,12 +547,12 @@ export function deleteEntity(entityId) {
     });
   }
   delete project.entities[entityId];
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-js-672-677
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-js
   Object.keys(project.relationships).forEach((relId) => {
     const rel = project.relationships[relId];
     if (rel.fromId === entityId || rel.toId === entityId) deleteRelationship(relId);
   });
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-js-682-686
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-js
   Object.values(project.maps || {}).forEach((map) => {
     map.markers.forEach((marker) => {
       if (marker.entityId === entityId) marker.entityId = null;
@@ -579,20 +571,20 @@ export function deleteEntity(entityId) {
   save();
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-js-705-709
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-js
 export function getDeletedItemBackups() {
   const project = getActiveProject();
   return [...(project.deletedItemBackups || [])].sort((a, b) => new Date(b.deletedAt) - new Date(a.deletedAt));
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-js-715-721
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-js
 export function restoreDeletedItem(backupId) {
   const project = getActiveProject();
   const idx = (project.deletedItemBackups || []).findIndex((b) => b.id === backupId);
   if (idx === -1) return null;
   const backup = project.deletedItemBackups[idx];
   project.deletedItemBackups.splice(idx, 1);
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-js-728-737
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-js
   if (backup.kind === 'entity') {
     const entity = createEntity({ name: backup.data.name, type: backup.data.type, description: backup.data.description });
     updateEntity(entity.id, { ...backup.data, id: entity.id, createdAt: entity.createdAt, updatedAt: now() });
@@ -610,7 +602,7 @@ export function restoreDeletedItem(backupId) {
   return null;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-js-755-762
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-js
 
 export function promoteSnippetToEntity(snippetId, type = 'character') {
   const project = getActiveProject();
@@ -642,7 +634,7 @@ export function promoteSnippetToTimelineEvent(snippetId) {
   return event;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-js-794-801
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-js
 export function promoteSnippetToDecision(snippetId) {
   const project = getActiveProject();
   const snippet = project.snippets[snippetId];
@@ -667,7 +659,7 @@ export function promoteSnippetToAnnotation(snippetId, chapterId, type = 'todo') 
   return annotation;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-js-826-832
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-js
 
 export function getGraphPresetList() {
   const project = getActiveProject();
@@ -723,7 +715,7 @@ export function deleteGraphPreset(id) {
   save();
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-js-888-893
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-js
 export function applyGraphPreset(id) {
   const preset = getGraphPreset(id);
   if (!preset) return null;

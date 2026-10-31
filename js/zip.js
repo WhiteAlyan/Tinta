@@ -1,4 +1,4 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jszip-js-1-16
+// Historical context: see docs/CODEBASE_NOTES.md#jszip-js
 
 // ── CRC-32 (standard table-based implementation) ───────────────────────────
 
@@ -30,7 +30,7 @@ function crc32(bytes) {
 function u16(n) { return [n & 0xff, (n >>> 8) & 0xff]; }
 function u32(n) { return [n & 0xff, (n >>> 8) & 0xff, (n >>> 16) & 0xff, (n >>> 24) & 0xff]; }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jszip-js-48-52
+// Historical context: see docs/CODEBASE_NOTES.md#jszip-js
 const DOS_TIME = 0;
 const DOS_DATE = (1 << 9) | (1 << 5) | 1; // 1980-01-01, the DOS epoch
 
@@ -48,7 +48,7 @@ function normalizeData(data) {
   throw new Error('zip entry data must be a string, Uint8Array, or ArrayBuffer');
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jszip-js-70-73
+// Historical context: see docs/CODEBASE_NOTES.md#jszip-js
 export function createZip(entries) {
   const localParts = [];
   const centralParts = [];

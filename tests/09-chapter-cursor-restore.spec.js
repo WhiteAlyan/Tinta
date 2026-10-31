@@ -44,7 +44,7 @@ test('cursor position in chapter A is restored after switching to chapter B and 
   await expect(textareaBack).toHaveValue('Line one of the chapter.\nLine two.\nLine three.\nLine four.\nLine five.');
 });
 
-test('cursor position survives a full page reload', async ({ page, context }) => {
+test('cursor position survives a full page reload', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('#app-shell')).toBeVisible();
   await page.waitForTimeout(500);

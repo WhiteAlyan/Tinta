@@ -1,11 +1,11 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jsbookview-js-1-4
+// Historical context: see docs/CODEBASE_NOTES.md#jsbookview-js
 import * as Format from './format.js';
 import * as ImageStore from './imagestore.js';
 import * as Store from './store.js';
 import { activeChapterId, activeView, setActiveChapterId } from './context.js';
 import { html, q, raw, toBridge } from './dom-utils.js';
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsbookview-js-11-15
+// Historical context: see docs/CODEBASE_NOTES.md#jsbookview-js
 export let bookModeUrls = [];
 
 export const BOOK_COLUMN_WIDTH = 430;
@@ -60,7 +60,7 @@ export async function renderBookView(project) {
     renderBookView(Store.getActiveProject());
   });
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsbookview-js-70-73
+// Historical context: see docs/CODEBASE_NOTES.md#jsbookview-js
   const imageIds = Format.extractImageIds(chapter.content);
   const images = {};
   await Promise.all(
@@ -96,7 +96,7 @@ export async function renderBookView(project) {
   setupBookPagination(spread, chapter.id, chapter.lastReadSpread || 0);
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsbookview-js-109-125
+// Historical context: see docs/CODEBASE_NOTES.md#jsbookview-js
 export function setupBookPagination(spread, chapterId, initialSpread = 0) {
   requestAnimationFrame(() => {
     const totalWidth = spread.scrollWidth;
@@ -142,15 +142,15 @@ export function setupBookPagination(spread, chapterId, initialSpread = 0) {
 // renderSnippetsView extracted to snippetsView.js (v0.2 Pass 3) — see that
 // file's header comment for why it was picked second, after Stats.
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsbookview-js-171-180
+// Historical context: see docs/CODEBASE_NOTES.md#jsbookview-js
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsbookview-js-182-186
+// Historical context: see docs/CODEBASE_NOTES.md#jsbookview-js
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsbookview-js-188-195
+// Historical context: see docs/CODEBASE_NOTES.md#jsbookview-js
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsbookview-js-197-200
+// Historical context: see docs/CODEBASE_NOTES.md#jsbookview-js
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsbookview-js-153-160
+// Historical context: see docs/CODEBASE_NOTES.md#jsbookview-js
 export function resetBookViewState() {
   revokeBookModeUrls();
 }

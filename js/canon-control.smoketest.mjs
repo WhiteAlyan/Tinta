@@ -119,7 +119,7 @@ section('markGenerationEdited — the explicit post-generation-edit hook');
 
 section('canonStatus is a plain field — settable via the existing update functions, no separate setter needed');
 {
-  const entity = Store.createEntity({ name: 'Promotable', type: 'character' });
+  Store.createEntity({ name: 'Promotable', type: 'character' });
   const draftEntity = Store.commitWorldbuildingDraft({ typeKey: 'character', name: 'Was Draft', customFields: {} });
   assertEqual(draftEntity.canonStatus, 'draft', 'sanity check — starts draft');
 

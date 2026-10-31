@@ -1,9 +1,9 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-systems-js-1-20
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-systems-js
 
 import * as RuleSystem from './ruleSystem.js';
 import { backupBeforeDelete, getActiveProject, now, ownGet, save, uid } from './store-core.js';
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-systems-js-25-36
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-systems-js
 
 export function getRuleSystemList() {
   const project = getActiveProject();
@@ -56,7 +56,7 @@ export function deleteRuleSystem(id) {
   const system = ownGet(project.ruleSystems, id);
   if (system) backupBeforeDelete('ruleSystem', id, system, system.name);
   delete project.ruleSystems[id];
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-systems-js-89-93
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-systems-js
   Object.values(project.systemNodes)
     .filter((n) => n.systemId === id)
     .forEach((n) => delete project.systemNodes[n.id]);
@@ -74,7 +74,7 @@ export function getSystemNode(id) {
   return ownGet(project.systemNodes, id) || null;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-systems-js-111-118
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-systems-js
 export function getDependentNodes(nodeId) {
   const project = getActiveProject();
   const node = project.systemNodes[nodeId];
@@ -84,7 +84,7 @@ export function getDependentNodes(nodeId) {
   );
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-systems-js-128-134
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-systems-js
 export function createSystemNode({
   systemId,
   name,
@@ -128,7 +128,7 @@ export function createSystemNode({
   return node;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-systems-js-178-182
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-systems-js
 export function updateSystemNode(id, patch) {
   const node = getSystemNode(id);
   if (!node) return null;
@@ -155,7 +155,7 @@ export function updateSystemNode(id, patch) {
 export function deleteSystemNode(id) {
   const project = getActiveProject();
   delete project.systemNodes[id];
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-systems-js-209-212
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-systems-js
   Object.values(project.systemNodes).forEach((n) => {
     let touched = false;
     if (n.requirement && n.requirement.includes(id)) {

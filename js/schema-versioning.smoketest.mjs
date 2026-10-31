@@ -80,15 +80,31 @@ section('VERSIONED_MIGRATIONS — the real extension point for future schema cha
 
 // There's no public API to register a migration (by design — it's a
 // module-internal table, not something app.js or a test should reach
-// into at runtime). This section instead verifies the CONTRACT the doc
-// comment promises, by confirming migrate() is well-behaved for a db
-// version at/above SCHEMA_VERSION (a future migration's target), which is
-// the scenario a real VERSIONED_MIGRATIONS entry would eventually be
-// exercised against.
+// into at runtime). This section verifies the CONTRACT the doc comment
+// promises, updated for roadmap #5: a db whose version is ABOVE
+// SCHEMA_VERSION no longer round-trips through the import boundary —
+// this build would be re-serializing data whose schema it can't
+// interpret under a version tag claiming migrations it never ran, and a
+// later upgrade would then skip those migrations for this data.
+// replaceDb() now refuses before touching state, so the CURRENT db is
+// untouched by the refused import.
 const futureVersionDb = JSON.parse(Store.exportFullBackup());
 futureVersionDb.version = 99; // simulates a db from a future Tinta version
-Store.importFullBackup(JSON.stringify(futureVersionDb));
-assertEqual(JSON.parse(Store.exportFullBackup()).version, 99, 'migrate() never downgrades a version number that is already ahead of SCHEMA_VERSION — Math.max, not overwrite');
+let downgradeThrew = null;
+try {
+  Store.importFullBackup(JSON.stringify(futureVersionDb));
+} catch (err) {
+  downgradeThrew = err;
+}
+assert(!!downgradeThrew, 'importing a backup written by a newer schema version throws (roadmap #5 downgrade guard)');
+assert((downgradeThrew?.message || '').includes('newer version'), 'the error explains the version mismatch');
+assertEqual(JSON.parse(Store.exportFullBackup()).version, 5, 'the current db is untouched by the refused import');
+
+// The Math.max contract migrate() itself owns is still pinned — directly,
+// with an object that never crosses the import boundary (on the boot path
+// a newer db is quarantined and never handed to migrate as live state).
+const migratedFuture = Store.migrate({ version: 99, projects: { p: { id: 'p', title: 'x', chapters: [] } }, activeProjectId: 'p' });
+assertEqual(migratedFuture.version, 99, 'migrate() never downgrades a version number that is already ahead of SCHEMA_VERSION — Math.max, not overwrite');
 
 // ── summary ──────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fail} failed`);

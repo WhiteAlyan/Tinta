@@ -1,4 +1,4 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jseditor-js-1-7
+// Historical context: see docs/CODEBASE_NOTES.md#jseditor-js
 
 import * as Store from './store.js';
 import * as Format from './format.js';
@@ -8,25 +8,25 @@ import { getActiveMentionQuery, insertMention, getCaretCoordinates, splitParagra
 import { els } from './els.js';
 import { q } from './dom-utils.js';
 
-// Historical context: see docs/CODEBASE_NOTES.md#jseditor-js-16-27
+// Historical context: see docs/CODEBASE_NOTES.md#jseditor-js
 const POSITION_SAVE_DELAY_MS = 800;
 
-// Historical context: see docs/CODEBASE_NOTES.md#jseditor-js-30-36
+// Historical context: see docs/CODEBASE_NOTES.md#jseditor-js
 const WRITE_IDLE_MS = 5 * 60 * 1000;
 
-// Historical context: see docs/CODEBASE_NOTES.md#jseditor-js-39-51
+// Historical context: see docs/CODEBASE_NOTES.md#jseditor-js
 let activeFlush = null;
 if (typeof window !== 'undefined') {
   window.addEventListener('pagehide', () => activeFlush?.());
   window.addEventListener('beforeunload', () => activeFlush?.());
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jseditor-js-58-63
+// Historical context: see docs/CODEBASE_NOTES.md#jseditor-js
 let activeUpdateDim = null;
-// Historical context: see docs/CODEBASE_NOTES.md#jseditor-js-65-73
+// Historical context: see docs/CODEBASE_NOTES.md#jseditor-js
 let activeUpdateTypewriterScroll = null;
 if (typeof window !== 'undefined') {
-// Historical context: see docs/CODEBASE_NOTES.md#jseditor-js-76-79
+// Historical context: see docs/CODEBASE_NOTES.md#jseditor-js
   window.addEventListener('resize', () => {
     activeUpdateDim?.();
     activeUpdateTypewriterScroll?.();
@@ -68,7 +68,7 @@ function escapeHtmlForOverlay(str = '') {
     .replace(/>/g, '&gt;');
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jseditor-js-93-99
+// Historical context: see docs/CODEBASE_NOTES.md#jseditor-js
 export function applyFormatToggle(textarea, result) {
   textarea.value = result.text;
   textarea.focus();
@@ -80,11 +80,11 @@ export function attachEditor({ textarea, chapterId, onSave, onWordCount, onMenti
   let saveTimer = null;
   let positionTimer = null;
   let lastSavedValue = textarea.value;
-// Historical context: see docs/CODEBASE_NOTES.md#jseditor-js-111-115
+// Historical context: see docs/CODEBASE_NOTES.md#jseditor-js
   let writeSessionStart = null;
   let writeIdleTimer = null;
   const popup = createMentionPopup(textarea);
-// Historical context: see docs/CODEBASE_NOTES.md#jseditor-js-119-125
+// Historical context: see docs/CODEBASE_NOTES.md#jseditor-js
   const dimOverlay = textarea.parentElement?.querySelector('.focus-dim-overlay') || null;
 
   // v0.3 — image URL cache for the always-on formatted overlay. Maps
@@ -193,14 +193,14 @@ export function attachEditor({ textarea, chapterId, onSave, onWordCount, onMenti
     dimOverlay.scrollTop = textarea.scrollTop;
   }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jseditor-js-176-182
+// Historical context: see docs/CODEBASE_NOTES.md#jseditor-js
   function updateTypewriterScroll() {
     if (textarea.closest('#app-shell')?.dataset.focusLevel !== 'typewriter') return;
     const { top, lineHeight } = getCaretCoordinates(textarea, textarea.selectionStart);
     const rect = textarea.getBoundingClientRect();
     const target = rect.top + rect.height / 2 - lineHeight / 2;
     const delta = top - target;
-// Historical context: see docs/CODEBASE_NOTES.md#jseditor-js-189-193
+// Historical context: see docs/CODEBASE_NOTES.md#jseditor-js
     if (Math.abs(delta) < lineHeight / 2) return;
     textarea.scrollTop += delta;
   }
@@ -248,7 +248,7 @@ export function attachEditor({ textarea, chapterId, onSave, onWordCount, onMenti
     onWordCount?.(Store.wordCount(textarea.value));
   }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jseditor-js-231-234
+// Historical context: see docs/CODEBASE_NOTES.md#jseditor-js
   function closeWriteSession() {
     if (writeIdleTimer) clearTimeout(writeIdleTimer);
     writeIdleTimer = null;
@@ -257,7 +257,7 @@ export function attachEditor({ textarea, chapterId, onSave, onWordCount, onMenti
     writeSessionStart = null;
   }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jseditor-js-243-247
+// Historical context: see docs/CODEBASE_NOTES.md#jseditor-js
   function noteWriteActivity() {
     if (writeSessionStart === null) writeSessionStart = Date.now();
     if (writeIdleTimer) clearTimeout(writeIdleTimer);
@@ -279,7 +279,7 @@ export function attachEditor({ textarea, chapterId, onSave, onWordCount, onMenti
       }
     }
     flushPosition();
-// Historical context: see docs/CODEBASE_NOTES.md#jseditor-js-262-267
+// Historical context: see docs/CODEBASE_NOTES.md#jseditor-js
     closeWriteSession();
   }
 
@@ -293,7 +293,7 @@ export function attachEditor({ textarea, chapterId, onSave, onWordCount, onMenti
     updateTypewriterScroll();
   });
   textarea.addEventListener('keydown', popup.handleKeydown);
-// Historical context: see docs/CODEBASE_NOTES.md#jseditor-js-281-288
+// Historical context: see docs/CODEBASE_NOTES.md#jseditor-js
   textarea.addEventListener('keydown', (e) => {
     const settings = Store.getTypewriterSettings();
     if (!settings.enabled) return;
@@ -323,13 +323,13 @@ export function attachEditor({ textarea, chapterId, onSave, onWordCount, onMenti
       applyFormatToggle(textarea, Format.toggleUnderline(textarea.value, textarea.selectionStart, textarea.selectionEnd));
     }
   });
-// Historical context: see docs/CODEBASE_NOTES.md#jseditor-js-312-315
+// Historical context: see docs/CODEBASE_NOTES.md#jseditor-js
   textarea.addEventListener('click', () => {
     popup.hide();
     schedulePositionSave();
     updateDimOverlay();
     updateTypewriterScroll();
-// Historical context: see docs/CODEBASE_NOTES.md#jseditor-js-321-330
+// Historical context: see docs/CODEBASE_NOTES.md#jseditor-js
     if (!onMentionClick) return;
     const pos = textarea.selectionStart;
     const hit = Store.extractMentions(textarea.value).find((m) => pos >= m.index && pos <= m.index + m.length);
@@ -363,7 +363,7 @@ export function attachEditor({ textarea, chapterId, onSave, onWordCount, onMenti
   return { flush, destroy: popup.destroy };
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jseditor-js-364-370
+// Historical context: see docs/CODEBASE_NOTES.md#jseditor-js
 function restorePosition(textarea, chapterId) {
   const chapter = Store.getChapter(chapterId);
   if (!chapter) return;
@@ -371,13 +371,13 @@ function restorePosition(textarea, chapterId) {
   textarea.selectionStart = textarea.selectionEnd = pos;
   requestAnimationFrame(() => {
     textarea.scrollTop = chapter.lastScrollTop || 0;
-// Historical context: see docs/CODEBASE_NOTES.md#jseditor-js-378-381
+// Historical context: see docs/CODEBASE_NOTES.md#jseditor-js
     activeUpdateDim?.();
     activeUpdateTypewriterScroll?.();
   });
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jseditor-js-387-397
+// Historical context: see docs/CODEBASE_NOTES.md#jseditor-js
 // v0.2.9 — Typewriter is now opt-in. The default cycle is off → focus → zen
 // (3 states, self-explanatory). When the writer enables Typewriter in
 // Settings → Identity, it's added back as a 4th state. This prevents
@@ -411,7 +411,7 @@ export function getFocusLevel(shellEl) {
   return shellEl.dataset.focusLevel || 'off';
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jseditor-js-418-421
+// Historical context: see docs/CODEBASE_NOTES.md#jseditor-js
 
 function createMentionPopup(textarea) {
   const popup = document.createElement('div');
@@ -519,7 +519,7 @@ function createMentionPopup(textarea) {
   };
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jseditor-js-526-534
+// Historical context: see docs/CODEBASE_NOTES.md#jseditor-js
 // P1-8 fix — used to be a `const FOCUS_LEVEL_TOOLTIP` object baked at
 // module-load time. The 'off' and 'zen' branches referenced
 // Store.getTypewriterEnabled() at first import, so if the writer toggled

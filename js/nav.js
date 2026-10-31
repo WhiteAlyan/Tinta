@@ -1,8 +1,8 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jsnav-js-1-41
+// Historical context: see docs/CODEBASE_NOTES.md#jsnav-js
 
 import { html, toBridge } from './dom-utils.js';
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsnav-js-45-56
+// Historical context: see docs/CODEBASE_NOTES.md#jsnav-js
 export function effectiveNavStyle(userStyle, fitsGrouped) {
   if (userStyle === 'compact') return 'compact';
   return fitsGrouped ? 'grouped' : 'compact';
@@ -12,7 +12,7 @@ export const NAV_GROUPS = [
   { key: 'write', label: 'Write', views: [{ id: 'write', label: 'Write' }, { id: 'book', label: 'Book' }] },
   { key: 'plan', label: 'Plan', views: [{ id: 'corkboard', label: 'Corkboard' }, { id: 'outline', label: 'Outline' }, { id: 'timeline', label: 'Timeline' }, { id: 'questions', label: 'Questions' }] },
   { key: 'world', label: 'World', views: [{ id: 'notes', label: 'Notes' }, { id: 'canvas', label: 'Canvas' }, { id: 'map', label: 'Map' }, { id: 'sketch', label: 'Sketch' }, { id: 'references', label: 'References' }, { id: 'systems', label: 'Systems' }] },
-// Historical context: see docs/CODEBASE_NOTES.md#jsnav-js-66-73
+// Historical context: see docs/CODEBASE_NOTES.md#jsnav-js
   { key: 'tools', label: 'Tools', views: [{ id: 'resume', label: 'Resume' }, { id: 'search', label: 'Search' }, { id: 'stats', label: 'Stats' }, { id: 'health', label: 'Health' }, { id: 'checklist', label: 'Checklist' }, { id: 'annotations', label: 'Annotations' }, { id: 'snippets', label: 'Snippets' }, { id: 'decisions', label: 'Decisions' }] },
 ];
 
@@ -58,7 +58,7 @@ export function isViewVisibleAtDensity(viewId, density = 'normal') {
 // one view that is always present at every density.
 export const DENSITY_FALLBACK_VIEW = 'write';
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsnav-js-77-86
+// Historical context: see docs/CODEBASE_NOTES.md#jsnav-js
 export function attachNavTabs(container, { getActiveView, getNavStyle, getDensity, onSelectView }) {
   let openGroup = null; // compact mode only — which group's flyout is open
 
@@ -92,7 +92,7 @@ export function attachNavTabs(container, { getActiveView, getNavStyle, getDensit
     })}`);
   }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsnav-js-114-123
+// Historical context: see docs/CODEBASE_NOTES.md#jsnav-js
   function groupedOverflows() {
     const bar = container.closest('.view-tabs');
     if (!bar) return false;
@@ -110,7 +110,7 @@ export function attachNavTabs(container, { getActiveView, getNavStyle, getDensit
     return false;
   }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsnav-js-141-144
+// Historical context: see docs/CODEBASE_NOTES.md#jsnav-js
   let lastPaintedStyle = null;
 
   function render() {
@@ -127,7 +127,7 @@ export function attachNavTabs(container, { getActiveView, getNavStyle, getDensit
     if (style === 'compact') paintCompact(activeView);
   }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsnav-js-161-167
+// Historical context: see docs/CODEBASE_NOTES.md#jsnav-js
   // P2-12 fix — the original anonymous resize handler is now declared
   // as a named `resizeHandler` further down so destroy() can remove it.
   // `resizeTimer` stays here so both the handler and destroy() can see it.

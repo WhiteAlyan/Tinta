@@ -143,7 +143,7 @@ section('draftWorldbuildingEntity / commitWorldbuildingDraft — seed, canonStat
 section('generateStarterSystem — seed round-trip produces an identical tree');
 {
   const { system: sysA, nodes: nodesA, seed } = Store.generateStarterSystem({ name: 'Elemental Magic', domain: 'fire', tierCount: 3, perTier: 2 });
-  const { system: sysB, nodes: nodesB } = Store.generateStarterSystem({ name: 'Elemental Magic', domain: 'fire', tierCount: 3, perTier: 2, seed });
+  const { nodes: nodesB } = Store.generateStarterSystem({ name: 'Elemental Magic', domain: 'fire', tierCount: 3, perTier: 2, seed });
   assertEqual(nodesA.map((n) => n.name).join(','), nodesB.map((n) => n.name).join(','), 'the same seed reproduces the exact same node names, in the same order');
   assertEqual(
     nodesA.map((n) => n.requirement.length ? nodesA.findIndex((x) => x.id === n.requirement[0]) : -1).join(','),

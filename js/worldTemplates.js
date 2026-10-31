@@ -1,7 +1,7 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jsworldtemplates-js-1-5
+// Historical context: see docs/CODEBASE_NOTES.md#jsworldtemplates-js
 
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsworldtemplates-js-8-31
+// Historical context: see docs/CODEBASE_NOTES.md#jsworldtemplates-js
 export const WORLDBUILDING_TEMPLATES = [
   {
     label: 'Culture', color: '#8B6F47',
@@ -11,7 +11,7 @@ export const WORLDBUILDING_TEMPLATES = [
       { key: 'customsTaboos', label: 'Customs & taboos' },
       { key: 'artsCuisine', label: 'Arts, dress & cuisine' },
       { key: 'namingConventions', label: 'Naming conventions' },
-// Historical context: see docs/CODEBASE_NOTES.md#jsworldtemplates-js-41-46
+// Historical context: see docs/CODEBASE_NOTES.md#jsworldtemplates-js
       { key: 'festivals', label: 'Festivals & holidays' },
     ],
   },
@@ -21,10 +21,10 @@ export const WORLDBUILDING_TEMPLATES = [
       { key: 'anatomyPhysiology', label: 'Anatomy & physiology' },
       { key: 'lifespanReproduction', label: 'Lifespan & reproduction' },
       { key: 'abilitiesWeaknesses', label: 'Abilities & weaknesses' },
-// Historical context: see docs/CODEBASE_NOTES.md#jsworldtemplates-js-56-62
+// Historical context: see docs/CODEBASE_NOTES.md#jsworldtemplates-js
       { key: 'habitat', label: 'Habitat' },
       { key: 'diet', label: 'Diet' },
-// Historical context: see docs/CODEBASE_NOTES.md#jsworldtemplates-js-65-71
+// Historical context: see docs/CODEBASE_NOTES.md#jsworldtemplates-js
       { key: 'senses', label: 'Senses' },
       { key: 'culturalImplications', label: 'Cultural implications' },
     ],
@@ -33,10 +33,10 @@ export const WORLDBUILDING_TEMPLATES = [
     label: 'Language', color: '#6B7A8F',
     fields: [
       { key: 'phonologyScript', label: 'Phonology & writing system' },
-// Historical context: see docs/CODEBASE_NOTES.md#jsworldtemplates-js-80-90
+// Historical context: see docs/CODEBASE_NOTES.md#jsworldtemplates-js
       { key: 'phonotactics', label: 'Phonotactics' },
       { key: 'grammarSyntax', label: 'Grammar & syntax' },
-// Historical context: see docs/CODEBASE_NOTES.md#jsworldtemplates-js-93-98
+// Historical context: see docs/CODEBASE_NOTES.md#jsworldtemplates-js
       { key: 'morphology', label: 'Morphology' },
       { key: 'vocabularyNaming', label: 'Vocabulary & naming rules' },
       { key: 'dialects', label: 'Dialects' },
@@ -56,7 +56,7 @@ export const WORLDBUILDING_TEMPLATES = [
       { key: 'festivals', label: 'Festivals & holy days' },
     ],
   },
-// Historical context: see docs/CODEBASE_NOTES.md#jsworldtemplates-js-118-121
+// Historical context: see docs/CODEBASE_NOTES.md#jsworldtemplates-js
   {
     label: 'Philosophy', color: '#6B5B7A',
     fields: [
@@ -87,7 +87,7 @@ export const WORLDBUILDING_TEMPLATES = [
       { key: 'dependencies', label: 'Resource dependencies' },
     ],
   },
-// Historical context: see docs/CODEBASE_NOTES.md#jsworldtemplates-js-152-157
+// Historical context: see docs/CODEBASE_NOTES.md#jsworldtemplates-js
   {
     label: 'Settlement', color: '#B08552',
     fields: [
@@ -98,7 +98,7 @@ export const WORLDBUILDING_TEMPLATES = [
       { key: 'notableDistricts', label: 'Notable districts / landmarks' },
     ],
   },
-// Historical context: see docs/CODEBASE_NOTES.md#jsworldtemplates-js-168-181
+// Historical context: see docs/CODEBASE_NOTES.md#jsworldtemplates-js
   {
     label: 'Cosmology', color: '#5A5B8F',
     fields: [
@@ -112,4 +112,4 @@ export const WORLDBUILDING_TEMPLATES = [
   },
 ];
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsworldtemplates-js-195-198
+// Historical context: see docs/CODEBASE_NOTES.md#jsworldtemplates-js

@@ -13,7 +13,7 @@ export const CHECKLIST_JUMP_VIEW = {
   storyQuestions: 'questions',
 };
 
-export function renderChecklistView(project) {
+export function renderChecklistView(_project) {
   const panel = document.querySelector('.view-panel[data-view="checklist"]');
   const checklist = Store.getCompletionChecklist();
 
@@ -85,4 +85,4 @@ export function renderChecklistView(project) {
   });
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jschecklistview-js-79-95
+// Historical context: see docs/CODEBASE_NOTES.md#jschecklistview-js

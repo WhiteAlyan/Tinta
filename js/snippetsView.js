@@ -1,4 +1,4 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jssnippetsview-js-1-23
+// Historical context: see docs/CODEBASE_NOTES.md#jssnippetsview-js
 import * as Store from './store.js';
 import { html, raw, toBridge, q, bindOutsideClick } from './dom-utils.js';
 
@@ -11,7 +11,7 @@ export function renderSnippetsView(project) {
   const orderedChapters = [...project.chapters].sort((a, b) => a.order - b.order);
   const entityTypes = Store.getEntityTypes();
 
-// Historical context: see docs/CODEBASE_NOTES.md#jssnippetsview-js-36-43
+// Historical context: see docs/CODEBASE_NOTES.md#jssnippetsview-js
   function promoteMenu(snippetId) {
     return html`
       <div class="snippet-promote-menu wt-popover hidden" id="snippet-promote-${snippetId}">
@@ -118,7 +118,7 @@ export function renderSnippetsView(project) {
     });
   });
 
-// Historical context: see docs/CODEBASE_NOTES.md#jssnippetsview-js-150-153
+// Historical context: see docs/CODEBASE_NOTES.md#jssnippetsview-js
   panel.querySelectorAll('[data-menu-toggle]').forEach((btn) => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -129,7 +129,7 @@ export function renderSnippetsView(project) {
       menu.classList.toggle('hidden', !wasHidden);
     });
   });
-// Historical context: see docs/CODEBASE_NOTES.md#jssnippetsview-js-164-170
+// Historical context: see docs/CODEBASE_NOTES.md#jssnippetsview-js
   bindOutsideClick(closeSnippetMenusOnOutsideClick);
 
   panel.querySelectorAll('.promote-go-btn').forEach((btn) => {

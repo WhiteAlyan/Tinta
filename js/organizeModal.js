@@ -1,12 +1,12 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jsorganizemodal-js-1-4
+// Historical context: see docs/CODEBASE_NOTES.md#jsorganizemodal-js
 import * as ModalShell from './modal.js';
 import * as Store from './store.js';
 import { setActiveChapterId, setActiveView } from './context.js';
 import { html, q, raw, toBridge } from './dom-utils.js';
-import { closeModal, confirmDialog, openModal } from './modal.js';
+import { closeModal } from './modal.js';
 import { requestRender } from './renderBus.js';
 import { applySavedSearch } from './searchView.js';
-// Historical context: see docs/CODEBASE_NOTES.md#jsorganizemodal-js-12-15
+// Historical context: see docs/CODEBASE_NOTES.md#jsorganizemodal-js
 let organizeModalTab = 'chapters';
 
 
@@ -28,12 +28,12 @@ export function openOrganizeModal() {
   ModalShell.openModal({
     title: 'Organize',
     className: 'organize-modal',
-    body: `
+    body: raw(`
         <div class="organize-tabs" id="organize-tabs">
           ${ORGANIZE_TABS.map((t) => `<button class="organize-tab${t.key === organizeModalTab ? ' active' : ''}" data-tab="${t.key}">${t.label}</button>`).join('')}
         </div>
         <div id="organize-modal-body" class="organize-modal-body"></div>
-    `,
+    `),
   });
 
   q('organize-tabs').querySelectorAll('.organize-tab').forEach((btn) => {
@@ -96,7 +96,7 @@ export function renderOrganizeChaptersTab(body) {
       ${
         chapters.length
           ? chapters.map((c) => {
-// Historical context: see docs/CODEBASE_NOTES.md#jsorganizemodal-js-105-108
+// Historical context: see docs/CODEBASE_NOTES.md#jsorganizemodal-js
               const isContent = Store.getChapterTypeForChapter(c).role === 'content';
               const partSelect = isContent
                 ? html`<select class="organize-part-select" data-chapter-id="${c.id}" title="Part">
@@ -233,7 +233,7 @@ export function renderOrganizeFoldersTab(body) {
   });
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsorganizemodal-js-245-248
+// Historical context: see docs/CODEBASE_NOTES.md#jsorganizemodal-js
 export function renderOrganizePartsTab(body) {
   const parts = Store.getParts();
   body.innerHTML = toBridge(html`
@@ -403,7 +403,7 @@ export function renderOrganizeTrashTab(body) {
       }
     </div>
   `);
-// Historical context: see docs/CODEBASE_NOTES.md#jsorganizemodal-js-418-421
+// Historical context: see docs/CODEBASE_NOTES.md#jsorganizemodal-js
   body.querySelectorAll('.organize-restore-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       Store.restoreChapter(btn.dataset.chapterId);
@@ -420,7 +420,7 @@ export function renderOrganizeTrashTab(body) {
   });
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsorganizemodal-js-438-444
+// Historical context: see docs/CODEBASE_NOTES.md#jsorganizemodal-js
 export function renderOrganizeRecentlyDeletedTab(body) {
   const backups = Store.getDeletedItemBackups();
   const kindLabel = { entity: 'Entity', ruleSystem: 'Rule system' };
@@ -443,7 +443,7 @@ export function renderOrganizeRecentlyDeletedTab(body) {
   body.querySelectorAll('.organize-restore-deleted-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       const result = Store.restoreDeletedItem(btn.dataset.backupId);
-// Historical context: see docs/CODEBASE_NOTES.md#jsorganizemodal-js-467-472
+// Historical context: see docs/CODEBASE_NOTES.md#jsorganizemodal-js
       if (result) requestRender({ skipModalClose: true });
       renderOrganizeModalBody();
     });
@@ -503,7 +503,7 @@ export function renderOrganizeSavedSearchesTab(body) {
   });
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsorganizemodal-js-532-535
+// Historical context: see docs/CODEBASE_NOTES.md#jsorganizemodal-js
 export function renderOrganizeQuotesTab(body) {
   const quotes = Store.getQuoteList();
   body.innerHTML = toBridge(html`
@@ -541,7 +541,7 @@ export function renderOrganizeQuotesTab(body) {
 // Same #modal-root overlay pattern as the history/export modals above —
 // triggered from the sidebar's ▾ button next to the project title input.
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsorganizemodal-js-573-587
+// Historical context: see docs/CODEBASE_NOTES.md#jsorganizemodal-js
 
 // Library metadata pass — which project fields the filter row can chip on, and their
 // display labels. Order here is the render order.

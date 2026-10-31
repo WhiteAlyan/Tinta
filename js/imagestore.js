@@ -1,4 +1,4 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jsimagestore-js-1-16
+// Historical context: see docs/CODEBASE_NOTES.md#jsimagestore-js
 //
 // P2-9 fix — imagestore.js and assetstore.js used to implement
 // byte-for-byte near-identical openDb / putBlob / getBlob / deleteBlob /
@@ -19,7 +19,7 @@ export const getBlob = store.getBlob;
 export const deleteBlob = store.deleteBlob;
 export const getObjectUrl = store.getObjectUrl;
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsimagestore-js-71-76
+// Historical context: see docs/CODEBASE_NOTES.md#jsimagestore-js
 export async function deleteBlobs(ids) {
   const results = await Promise.allSettled(ids.map((id) => deleteBlob(id)));
   return results.filter((r) => r.status === 'rejected').length; // count of failures, for the caller to decide whether to warn

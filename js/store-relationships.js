@@ -1,8 +1,17 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-relationships-js-1-21
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-relationships-js
 
 import { getActiveProject, now, ownGet, save, uid } from './store-core.js';
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-relationships-js-25-40
+// Roadmap #9 — relationship history entries append automatically on every
+// label/status/strength/note change, and nothing ever aged them out: one
+// heavily-reworked relationship grew its history forever inside a db that
+// re-serializes on every save. 50 entries per relationship is far past any
+// narrative usefulness (that's the relationship's full audit trail through
+// fifty distinct edits), and eviction is oldest-first — the recent history
+// the inspector actually reads is untouched.
+export const MAX_RELATIONSHIP_HISTORY = 50;
+
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-relationships-js
 
 export function getRelationshipList() {
   const project = getActiveProject();
@@ -35,7 +44,7 @@ export function getRelationshipLabel(rel) {
   return getRelationshipType(rel?.typeId)?.label || '';
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-relationships-js-73-76
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-relationships-js
 export function getRelationshipTypeUsageCount(typeId) {
   if (!typeId) return 0;
   return getRelationshipList().filter((r) => r.typeId === typeId).length;
@@ -52,7 +61,7 @@ function findOrCreateRelationshipType(label) {
   return type;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-relationships-js-93-96
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-relationships-js
 function cleanupOrphanedRelationshipType(typeId) {
   if (!typeId) return;
   const project = getActiveProject();
@@ -60,7 +69,7 @@ function cleanupOrphanedRelationshipType(typeId) {
   if (!stillUsed) delete project.relationshipTypes[typeId];
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-relationships-js-104-110
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-relationships-js
 export function createRelationship({ fromId, toId, label = '' }) {
   const project = getActiveProject();
   const type = findOrCreateRelationshipType(label);
@@ -74,7 +83,7 @@ export function createRelationship({ fromId, toId, label = '' }) {
     startDate: '', // story-time freeform label, same spirit as timeline's storyDate
     endDate: '',
     notes: '',
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-relationships-js-124-131
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-relationships-js
     history: [],
     createdAt: now(),
     updatedAt: now(),
@@ -91,7 +100,7 @@ export function updateRelationship(relId, patch) {
   save();
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-relationships-js-148-171
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-relationships-js
 
 export function getRelationshipHistory(relId) {
   const rel = getRelationship(relId);
@@ -114,6 +123,11 @@ export function addRelationshipHistoryEntry(relId, { label, status = '', strengt
   if (!rel) return null;
   const entry = { id: uid('relhist'), label: trimmed, status, strength, timelineEventId, note, createdAt: now() };
   rel.history = [...(rel.history || []), entry];
+  // Roadmap #9 — enforce the cap at the write path: the point is bounding
+  // what every save serializes, not what a reader paginates.
+  if (rel.history.length > MAX_RELATIONSHIP_HISTORY) {
+    rel.history = rel.history.slice(-MAX_RELATIONSHIP_HISTORY);
+  }
   rel.updatedAt = now();
   save();
   return entry;
@@ -137,7 +151,7 @@ export function deleteRelationshipHistoryEntry(relId, entryId) {
   save();
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-relationships-js-217-220
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-relationships-js
 export function renameRelationshipType(typeId, newLabel) {
   const type = getRelationshipType(typeId);
   const trimmed = (newLabel || '').trim();
@@ -147,7 +161,7 @@ export function renameRelationshipType(typeId, newLabel) {
   save();
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-relationships-js-230-234
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-relationships-js
 export function detachRelationshipToLabel(relId, newLabel) {
   const rel = getRelationship(relId);
   if (!rel) return;

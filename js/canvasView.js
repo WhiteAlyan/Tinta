@@ -1,4 +1,4 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jscanvasview-js-1-36
+// Historical context: see docs/CODEBASE_NOTES.md#jscanvasview-js
 
 import * as Store from './store.js';
 import * as ImageStore from './imagestore.js';
@@ -19,7 +19,7 @@ const CANVAS_NODE_R = 26;
 let canvasLinkMode = false;
 let canvasLinkFromId = null;
 let canvasNodeHandles = [];
-// Historical context: see docs/CODEBASE_NOTES.md#jscanvasview-js-57-61
+// Historical context: see docs/CODEBASE_NOTES.md#jscanvasview-js
 let canvasHiddenTypes = new Set();
 let canvasStatusFilter = '';
 // v0.2.9 — Canvas two-track entity model. canvasHiddenEntityIds is a
@@ -29,18 +29,18 @@ let canvasStatusFilter = '';
 // else. The ✕ on Canvas = "hide from this view" (reversible, Notes
 // untouched). Real deletion only happens from Notes.
 let canvasHiddenEntityIds = new Set();
-// Historical context: see docs/CODEBASE_NOTES.md#jscanvasview-js-64-73
+// Historical context: see docs/CODEBASE_NOTES.md#jscanvasview-js
 let canvasLoadedPresetId = '';
 
-// Historical context: see docs/CODEBASE_NOTES.md#jscanvasview-js-76-84
+// Historical context: see docs/CODEBASE_NOTES.md#jscanvasview-js
 export function entityTypeLabelPlural(key) {
   const type = Store.getEntityType(key);
   if (!type) return 'Others';
-// Historical context: see docs/CODEBASE_NOTES.md#jscanvasview-js-88-92
+// Historical context: see docs/CODEBASE_NOTES.md#jscanvasview-js
   const builtinPlurals = { character: 'Characters', location: 'Locations', item: 'Items', concept: 'Concepts' };
   return builtinPlurals[key] || `${type.label}s`;
 }
-// Historical context: see docs/CODEBASE_NOTES.md#jscanvasview-js-96-99
+// Historical context: see docs/CODEBASE_NOTES.md#jscanvasview-js
 export function entityDotClass(typeKey) {
   const type = Store.getEntityType(typeKey);
   return type && !type.builtin ? 'canvas-dot-custom' : `canvas-dot-${typeKey}`;
@@ -54,7 +54,7 @@ export function entityColorStyleAttr(typeKey) {
   return type && !type.builtin && type.color ? ` style="--type-color:${escapeAttr(type.color)}"` : '';
 }
 
-export function renderCanvasView(project) {
+export function renderCanvasView(_project) {
   const panel = document.querySelector('.view-panel[data-view="canvas"]');
   const entities = Store.getEntityList();
 
@@ -106,7 +106,7 @@ export function renderCanvasView(project) {
     renderCanvasView(Store.getActiveProject());
   });
 
-// Historical context: see docs/CODEBASE_NOTES.md#jscanvasview-js-164-169
+// Historical context: see docs/CODEBASE_NOTES.md#jscanvasview-js
   const presetSelect = q('canvas-preset-select');
   const presetDeleteBtn = q('canvas-preset-delete-btn');
   presetSelect?.addEventListener('change', () => {
@@ -119,7 +119,7 @@ export function renderCanvasView(project) {
     if (!applied) return;
     canvasHiddenTypes = new Set(applied.hiddenTypes);
     canvasStatusFilter = applied.statusFilter || '';
-// Historical context: see docs/CODEBASE_NOTES.md#jscanvasview-js-182-187
+// Historical context: see docs/CODEBASE_NOTES.md#jscanvasview-js
     canvasLoadedPresetId = presetSelect.value;
     renderCanvasView(Store.getActiveProject());
   });
@@ -128,7 +128,7 @@ export function renderCanvasView(project) {
     if (!(await ModalShell.confirmDialog({ title: 'Delete this preset?', message: 'Delete this saved graph view? This only removes the preset, not any entities or relationships.', confirmLabel: 'Delete', danger: true }))) return;
     Store.deleteGraphPreset(canvasLoadedPresetId);
     canvasLoadedPresetId = ''; // gone — dropdown returns to "Load preset…", delete button re-disables
-// Historical context: see docs/CODEBASE_NOTES.md#jscanvasview-js-123-126
+// Historical context: see docs/CODEBASE_NOTES.md#jscanvasview-js
     requestAnimationFrame(() => renderCanvasView(Store.getActiveProject()));
   });
   q('canvas-preset-save-btn').addEventListener('click', async () => {
@@ -164,7 +164,7 @@ export function renderCanvasView(project) {
     renderCanvasView(Store.getActiveProject());
   });
 
-// Historical context: see docs/CODEBASE_NOTES.md#jscanvasview-js-222-229
+// Historical context: see docs/CODEBASE_NOTES.md#jscanvasview-js
   q('canvas-add-entity-btn')?.addEventListener('click', async () => {
     const name = await ModalShell.promptDialog({
       title: 'Add entity to canvas',
@@ -292,7 +292,7 @@ export function renderCanvasView(project) {
     requestRender();
   }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jscanvasview-js-351-354
+// Historical context: see docs/CODEBASE_NOTES.md#jscanvasview-js
   async function handleLinkClick(entityId) {
     if (!canvasLinkFromId) {
       canvasLinkFromId = entityId;
@@ -306,7 +306,7 @@ export function renderCanvasView(project) {
     }
     const fromName = Store.getEntity(canvasLinkFromId)?.name || '?';
     const toName = Store.getEntity(entityId)?.name || '?';
-// Historical context: see docs/CODEBASE_NOTES.md#jscanvasview-js-368-371
+// Historical context: see docs/CODEBASE_NOTES.md#jscanvasview-js
     const label = await ModalShell.promptDialog({
       title: 'Relationship label',
       message: `${fromName} → ${toName}`,
@@ -316,9 +316,9 @@ export function renderCanvasView(project) {
     if (label !== null) {
       Store.createRelationship({ fromId: canvasLinkFromId, toId: entityId, label });
     }
-// Historical context: see docs/CODEBASE_NOTES.md#jscanvasview-js-381-387
+// Historical context: see docs/CODEBASE_NOTES.md#jscanvasview-js
     canvasLinkFromId = null;
-// Historical context: see docs/CODEBASE_NOTES.md#jscanvasview-js-389-397
+// Historical context: see docs/CODEBASE_NOTES.md#jscanvasview-js
     requestAnimationFrame(() => renderCanvasView(Store.getActiveProject()));
   }
 
@@ -340,7 +340,7 @@ export function renderCanvasView(project) {
       if (nodeType && !nodeType.builtin && nodeType.color) circle.style.setProperty('--type-color', nodeType.color);
       g.appendChild(circle);
 
-// Historical context: see docs/CODEBASE_NOTES.md#jscanvasview-js-419-422
+// Historical context: see docs/CODEBASE_NOTES.md#jscanvasview-js
       const portraitId = Store.getEntityPortraitId(entity);
       if (portraitId) {
         const clipId = `canvas-clip-${entity.id}`;
@@ -369,7 +369,7 @@ export function renderCanvasView(project) {
       label.textContent = entity.name;
       g.appendChild(label);
 
-// Historical context: see docs/CODEBASE_NOTES.md#jscanvasview-js-451-457
+// Historical context: see docs/CODEBASE_NOTES.md#jscanvasview-js
       const delBtn = document.createElementNS(svgNS, 'g');
       delBtn.setAttribute('class', 'canvas-node-delete');
       delBtn.setAttribute('transform', `translate(${CANVAS_NODE_R - 2}, ${-CANVAS_NODE_R + 2})`);
@@ -402,7 +402,7 @@ export function renderCanvasView(project) {
         canvasHiddenEntityIds.add(entity.id);
         requestAnimationFrame(() => renderCanvasView(Store.getActiveProject()));
       });
-// Historical context: see docs/CODEBASE_NOTES.md#jscanvasview-js-484-488
+// Historical context: see docs/CODEBASE_NOTES.md#jscanvasview-js
       delBtn.addEventListener('pointerdown', (e) => {
         e.stopPropagation();
       });
@@ -418,7 +418,7 @@ export function renderCanvasView(project) {
           posById[entity.id] = { x, y };
           drawEdges();
         },
-// Historical context: see docs/CODEBASE_NOTES.md#jscanvasview-js-504-508
+// Historical context: see docs/CODEBASE_NOTES.md#jscanvasview-js
         onDragEnd: (x, y) => {
           Store.setEntityPosition(entity.id, x, y);
           Store.flushPendingPositionSave?.();
@@ -438,11 +438,11 @@ function canvasHintText() {
   return canvasLinkFromId ? 'Click a second entity to link…' : 'Click an entity to start a link…';
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jscanvasview-js-528-533
+// Historical context: see docs/CODEBASE_NOTES.md#jscanvasview-js
 async function resolveCanvasPortraitImage(imageEl, imageId) {
   try {
     const url = await ImageStore.getObjectUrl(imageId);
-// Historical context: see docs/CODEBASE_NOTES.md#jscanvasview-js-537-541
+// Historical context: see docs/CODEBASE_NOTES.md#jscanvasview-js
     if (url) trackEntityPortraitUrl(url);
     if (!imageEl.isConnected) return; // canvas re-rendered before this resolved
     if (url) {
@@ -455,7 +455,7 @@ async function resolveCanvasPortraitImage(imageEl, imageId) {
   }
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jscanvasview-js-554-559
+// Historical context: see docs/CODEBASE_NOTES.md#jscanvasview-js
 function openRelationshipEditModal(rel, onDone) {
   const from = Store.getEntity(rel.fromId);
   const to = Store.getEntity(rel.toId);
@@ -466,7 +466,7 @@ function openRelationshipEditModal(rel, onDone) {
   const root = ModalShell.openModal({
     title: `${escapeHtml(from?.name || '?')} ↔ ${escapeHtml(to?.name || '?')}`,
     className: 'relationship-modal',
-    body: `
+    body: raw(`
         <label class="grammar-field-label">Label
           <input type="text" id="rel-label" value="${escapeAttr(currentLabel)}" placeholder="e.g. Rivals, Mentor, Siblings" />
         </label>
@@ -499,13 +499,13 @@ function openRelationshipEditModal(rel, onDone) {
                   ${history
                     .map((h) => {
                       const linkedEvent = h.timelineEventId ? Store.getTimelineEvent(h.timelineEventId) : null;
-                      return `<li class="relationship-history-item" data-entry="${h.id}">
+                      return `<li class="relationship-history-item" data-entry="${escapeAttr(h.id)}">
                         <div class="relationship-history-item-head">
                           <strong>${escapeHtml(h.label)}</strong>
                           ${linkedEvent ? `<span class="relationship-history-when">${escapeHtml(linkedEvent.title)}${linkedEvent.storyDate ? ` · ${escapeHtml(linkedEvent.storyDate)}` : ''}</span>` : h.timelineEventId ? '<span class="relationship-history-when relationship-history-dangling">linked event deleted</span>' : ''}
                           <button class="relationship-history-delete-btn" title="Remove this entry">✕</button>
                         </div>
-                        ${h.status || h.strength ? `<div class="relationship-history-meta">${[h.status, h.strength].filter(Boolean).join(' · ')}</div>` : ''}
+                        ${h.status || h.strength ? `<div class="relationship-history-meta">${escapeHtml([h.status, h.strength].filter(Boolean).join(' · '))}</div>` : ''}
                         ${h.note ? `<div class="relationship-history-note">${escapeHtml(h.note)}</div>` : ''}
                       </li>`;
                     })
@@ -527,7 +527,7 @@ function openRelationshipEditModal(rel, onDone) {
           <button id="rel-delete" class="relationship-delete-btn">Delete relationship</button>
           <button id="rel-save">Save</button>
         </div>
-    `,
+    `),
   });
 
   q('rel-delete').addEventListener('click', async () => {
@@ -545,7 +545,7 @@ function openRelationshipEditModal(rel, onDone) {
       timelineEventId: q('rel-history-event').value || null,
       note: q('rel-history-note').value.trim(),
     });
-// Historical context: see docs/CODEBASE_NOTES.md#jscanvasview-js-649-652
+// Historical context: see docs/CODEBASE_NOTES.md#jscanvasview-js
     openRelationshipEditModal(Store.getRelationship(rel.id), onDone);
   });
 
@@ -570,7 +570,7 @@ function openRelationshipEditModal(rel, onDone) {
       if (usageCount <= 1) {
         Store.renameRelationshipType(rel.typeId, trimmedLabel);
       } else {
-// Historical context: see docs/CODEBASE_NOTES.md#jscanvasview-js-677-681
+// Historical context: see docs/CODEBASE_NOTES.md#jscanvasview-js
         const propagate = await ModalShell.confirmDialog({
           title: 'Rename everywhere?',
           message: `"${currentLabel}" is also used by ${usageCount - 1} other relationship${usageCount - 1 === 1 ? '' : 's'}. Rename all of them to "${trimmedLabel}" too, or just this one? The rest keep "${currentLabel}".`,
@@ -596,7 +596,7 @@ function openRelationshipEditModal(rel, onDone) {
   });
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jscanvasview-js-707-711
+// Historical context: see docs/CODEBASE_NOTES.md#jscanvasview-js
 export function cancelCanvasLinkMode() {
   if (!canvasLinkMode) return;
   canvasLinkMode = false;
@@ -604,7 +604,7 @@ export function cancelCanvasLinkMode() {
   if (activeView === 'canvas') requestRender();
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jscanvasview-js-719-722
+// Historical context: see docs/CODEBASE_NOTES.md#jscanvasview-js
 export function resetCanvasViewState() {
   canvasLinkMode = false;
   canvasLinkFromId = null;

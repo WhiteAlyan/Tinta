@@ -1,4 +1,4 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-generators-js-1-25
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-generators-js
 
 import * as Generator from './generator.js';
 import { now } from './store-core.js';
@@ -17,7 +17,7 @@ import {
   updateRuleSystem,
 } from './store-systems.js';
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-generators-js-44-67
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-generators-js
 export function generateEntityNames({ mode = 'classic', type = null, count = 8, pattern = null, seed = null, rng = null } = {}) {
   const usedSeed = seed !== null && seed !== undefined ? seed : Generator.randomSeed();
   const actualRng = rng || Generator.createRng(usedSeed);
@@ -59,7 +59,7 @@ function classicBatch(count, exclude, rng = Math.random) {
   return names;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-generators-js-109-114
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-generators-js
 const SEED_WORD_STOPWORDS = new Set([
   'the', 'and', 'for', 'are', 'with', 'that', 'this', 'from', 'have', 'has',
   'not', 'but', 'was', 'were', 'will', 'can', 'its', 'his', 'her', 'their',
@@ -78,14 +78,14 @@ export function extractSeedWordsFromEntity(entityId) {
   return [...new Set(tokens)];
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-generators-js-133-136
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-generators-js
 export function getLanguageEntities() {
   const languageTypeKeys = new Set(getEntityTypes().filter((t) => /language/i.test(t.label)).map((t) => t.key));
   if (!languageTypeKeys.size) return [];
   return getEntityList().filter((e) => languageTypeKeys.has(e.type));
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-generators-js-143-162
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-generators-js
 export function draftWorldbuildingEntity({ typeKey, languageEntityId = null, seed = null } = {}) {
   const type = getEntityType(typeKey);
   if (!type) return null;
@@ -112,10 +112,10 @@ export function draftWorldbuildingEntity({ typeKey, languageEntityId = null, see
   return { typeKey, typeLabel: type.label, name: names[0] || 'Unnamed', customFields, fields: type.fields || [], nameSource, seed: usedSeed };
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-generators-js-189-193
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-generators-js
 const GENERATOR_VERSION = 1;
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-generators-js-196-205
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-generators-js
 function buildGenerationRecord(generatorName, inputs, seed = null) {
   return {
     generatorName,
@@ -140,7 +140,7 @@ export function commitWorldbuildingDraft({ typeKey, name, customFields, seed = n
   return getEntity(entity.id);
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-generators-js-230-249
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-generators-js
 export function generateStarterSystem({ name = '', domain = '', tierCount = 3, perTier = 2, seed = null } = {}) {
   const usedSeed = seed !== null && seed !== undefined ? seed : Generator.randomSeed();
   const rng = Generator.createRng(usedSeed);

@@ -1,15 +1,15 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jslibrary-js-1-5
+// Historical context: see docs/CODEBASE_NOTES.md#jslibrary-js
 import * as ImageStore from './imagestore.js';
 import * as ModalShell from './modal.js';
 import * as Store from './store.js';
 import { setActiveChapterId, setActiveView } from './context.js';
-import { bindOutsideClick, escapeAttr, escapeHtml, html, q, toBridge } from './dom-utils.js';
+import { bindOutsideClick, escapeAttr, escapeHtml, html, q, raw, toBridge } from './dom-utils.js';
 import { openImageLibrary } from './imageLibrary.js';
-import { confirmDialog, onModalCloseCleanup, openModal, promptDialog } from './modal.js';
+import { onModalCloseCleanup } from './modal.js';
 import { firstOpenChapterId, switchToProjectFromLibrary, teardownLiveStateForProjectSwitch } from './projectSwitch.js';
 
 
-// Historical context: see docs/CODEBASE_NOTES.md#jslibrary-js-16-19
+// Historical context: see docs/CODEBASE_NOTES.md#jslibrary-js
 export function registerLibraryCleanup() {
   onModalCloseCleanup((wasOpen) => {
     libraryCoverUrls.forEach((url) => URL.revokeObjectURL(url));
@@ -24,7 +24,7 @@ export function registerLibraryCleanup() {
 // revoke-in-closeModal() reasoning as imageLibraryUrls/bookModeUrls above:
 // one cleanup site instead of one per way the Library can be dismissed.
 export let libraryCoverUrls = [];
-// Historical context: see docs/CODEBASE_NOTES.md#jslibrary-js-34-41
+// Historical context: see docs/CODEBASE_NOTES.md#jslibrary-js
 export let libraryFilters = { storyType: new Set(), genre: new Set(), language: new Set() };
 
 export const LIBRARY_FILTER_FIELDS = [
@@ -37,7 +37,7 @@ export function hasActiveLibraryFilters() {
   return LIBRARY_FILTER_FIELDS.some((f) => libraryFilters[f.key].size > 0);
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jslibrary-js-54-58
+// Historical context: see docs/CODEBASE_NOTES.md#jslibrary-js
 export function matchesLibraryFilters(project) {
   return LIBRARY_FILTER_FIELDS.every((f) => {
     const active = libraryFilters[f.key];
@@ -78,7 +78,7 @@ export function openLibrary() {
   const root = ModalShell.openModal({
     title: 'Library',
     className: 'library-drawer',
-    body: `
+    body: raw(`
         ${libraryFilterBarHtml()}
         <div class="library-grid" id="library-grid">
           ${
@@ -91,9 +91,9 @@ export function openLibrary() {
             <span>New novel</span>
           </button>
         </div>
-    `,
+    `),
   });
-// Historical context: see docs/CODEBASE_NOTES.md#jslibrary-js-114-118
+// Historical context: see docs/CODEBASE_NOTES.md#jslibrary-js
   root.querySelector('.modal-backdrop').classList.add('library-backdrop');
 
   resolveLibraryCovers(projects);
@@ -127,7 +127,7 @@ export function wireLibraryFilterBar() {
   }
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jslibrary-js-152-157
+// Historical context: see docs/CODEBASE_NOTES.md#jslibrary-js
 export function libraryCardTagsHtml(project) {
   const parts = [project.storyType, project.genre, project.language]
     .map((v) => (v || '').trim())
@@ -145,7 +145,7 @@ export function libraryCardHtml(project, isActive, canDelete) {
     if (counts[c.status] !== undefined) counts[c.status] += 1;
   });
   const lastEdited = project.updatedAt ? new Date(project.updatedAt).toLocaleDateString() : '';
-// Historical context: see docs/CODEBASE_NOTES.md#jslibrary-js-175-183
+// Historical context: see docs/CODEBASE_NOTES.md#jslibrary-js
   const startedSource = project.startedAt || project.createdAt?.slice(0, 10) || null;
   const startedLabel = startedSource ? formatDateOnly(startedSource) : '';
 
@@ -222,7 +222,7 @@ export function wireLibraryGrid() {
 
   // ── card body click → full switch into that novel's workspace ──────────
   grid.querySelectorAll('.library-card').forEach((card) => {
-    card.addEventListener('click', (e) => {
+    card.addEventListener('click', () => {
       // The ⋯ button and its popover handle their own clicks (stopPropagation
       // below) — this only fires for clicks on the card itself.
       const projectId = card.dataset.project;
@@ -244,7 +244,7 @@ export function wireLibraryGrid() {
       menu.classList.toggle('hidden', !wasHidden);
     });
   });
-// Historical context: see docs/CODEBASE_NOTES.md#jslibrary-js-282-293
+// Historical context: see docs/CODEBASE_NOTES.md#jslibrary-js
   bindOutsideClick(closeLibraryMenusOnOutsideClick);
   grid.querySelectorAll('.library-menu-item').forEach((item) => {
     item.addEventListener('click', async (e) => {
@@ -280,7 +280,7 @@ export function wireLibraryGrid() {
         if (project.id === Store.getActiveProject().id) {
           Store.updateProjectMeta({ title });
         } else {
-// Historical context: see docs/CODEBASE_NOTES.md#jslibrary-js-329-332
+// Historical context: see docs/CODEBASE_NOTES.md#jslibrary-js
           const currentId = Store.getActiveProject().id;
           Store.switchProject(projectId);
           Store.updateProjectMeta({ title });
@@ -298,7 +298,7 @@ export function wireLibraryGrid() {
       if (action === 'delete') {
         if (!(await ModalShell.confirmDialog({ title: 'Delete this project?', message: `Delete "${project.title}"? This can't be undone: everything in it (chapters, notes, canvas, sketches, timeline, images) goes with it.`, confirmLabel: 'Delete project', danger: true }))) return;
         const wasActive = projectId === Store.getActiveProject().id;
-// Historical context: see docs/CODEBASE_NOTES.md#jslibrary-js-350-353
+// Historical context: see docs/CODEBASE_NOTES.md#jslibrary-js
         const imageIds = Store.getProjectImageIds(project);
         if (project.coverImageId) imageIds.push(project.coverImageId);
         Store.deleteProject(projectId);
@@ -325,7 +325,7 @@ export function closeLibraryMenusOnOutsideClick(e) {
   document.querySelectorAll('.library-card-menu').forEach((m) => m.classList.add('hidden'));
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jslibrary-js-380-389
+// Historical context: see docs/CODEBASE_NOTES.md#jslibrary-js
 export function openLibraryDetails(project) {
   const typeOptions = Store.getDistinctProjectValues('storyType');
   const genreOptions = Store.getDistinctProjectValues('genre');
@@ -334,11 +334,11 @@ export function openLibraryDetails(project) {
   const datalist = (id, values) =>
     values.length ? `<datalist id="${id}">${values.map((v) => `<option value="${escapeAttr(v)}"></option>`).join('')}</datalist>` : '';
 
-// Historical context: see docs/CODEBASE_NOTES.md#jslibrary-js-398-402
+// Historical context: see docs/CODEBASE_NOTES.md#jslibrary-js
   ModalShell.openModal({
     title: `Details · ${escapeHtml(project.title)}`,
     className: 'library-details-modal',
-    body: `
+    body: raw(`
         <label class="grammar-field-label">Story type
           <input type="text" id="details-storytype" list="details-storytype-list" value="${escapeAttr(project.storyType)}" placeholder="Fiction, Fanfic, Nonfiction, Poetry…" />
         </label>
@@ -361,7 +361,7 @@ export function openLibraryDetails(project) {
         <div class="grammar-settings-actions">
           <button id="details-save">Save</button>
         </div>
-    `,
+    `),
     onClose: () => openLibrary(),
   });
 
@@ -373,7 +373,7 @@ export function openLibraryDetails(project) {
       startedAt: q('details-started').value || null,
       blurb: q('details-blurb').value,
     };
-// Historical context: see docs/CODEBASE_NOTES.md#jslibrary-js-441-444
+// Historical context: see docs/CODEBASE_NOTES.md#jslibrary-js
     if (project.id === Store.getActiveProject().id) {
       Store.updateProjectMeta(patch);
     } else {
@@ -382,12 +382,12 @@ export function openLibraryDetails(project) {
       Store.updateProjectMeta(patch);
       Store.switchProject(currentId);
     }
-// Historical context: see docs/CODEBASE_NOTES.md#jslibrary-js-453-459
+// Historical context: see docs/CODEBASE_NOTES.md#jslibrary-js
     ModalShell.teardown();
   });
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jslibrary-js-464-474
+// Historical context: see docs/CODEBASE_NOTES.md#jslibrary-js
 export function withProjectContext(project, fn) {
   const currentId = Store.getActiveProject().id;
   const needsSwitch = project.id !== currentId;
@@ -449,7 +449,9 @@ export function openSeriesManager(project) {
 
   ModalShell.openModal({
     title: `Series · ${escapeHtml(project.title)}`,
-    body,
+    // Roadmap #6 — openModal escapes plain strings now; this pre-built
+    // (self-escaped) markup must declare itself as trusted.
+    body: raw(body),
   });
 
   if (!series) {
@@ -487,7 +489,7 @@ export function openSeriesManager(project) {
   }
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jslibrary-js-574-593
+// Historical context: see docs/CODEBASE_NOTES.md#jslibrary-js
 
 export function formatDateOnly(ymd) {
   const [y, m, d] = ymd.split('-').map(Number);

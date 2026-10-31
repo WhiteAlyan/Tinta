@@ -13,8 +13,19 @@
 // eslint.config.js (flat config). Using flat config from the start
 // avoids a migration later. The smoketest/*.mjs files are included so
 // the lint pass also covers test code.
+//
+// Roadmap #10 (external review): this config used to hand-maintain a
+// ~40-name browser-globals list, and the codebase outgrew it —
+// `performance`, `TextEncoder`/`TextDecoder`, `getComputedStyle`,
+// `fetch`, and friends tripped 53 `no-undef` errors, drowning the one
+// REAL undefined-name bug (`renameSeries()`'s missing import) among
+// them. The hand list is gone: `globals.browser` (763 names) +
+// `globals.node` for the Node-side smoketests. The globals package is
+// already in node_modules as a transitive dep of eslint itself, so this
+// adds no new install weight; it is pinned in devDependencies below.
 import js from '@eslint/js';
 import importPlugin from 'eslint-plugin-import';
+import globals from 'globals';
 
 export default [
   js.configs.recommended,
@@ -24,47 +35,10 @@ export default [
       ecmaVersion: 2022,
       sourceType: 'module',
       globals: {
-        // Browser globals used throughout the codebase
-        window: 'readonly',
-        document: 'readonly',
-        console: 'readonly',
-        localStorage: 'readonly',
-        indexedDB: 'readonly',
-        URL: 'readonly',
-        Blob: 'readonly',
-        File: 'readonly',
-        FileReader: 'readonly',
-        requestAnimationFrame: 'readonly',
-        cancelAnimationFrame: 'readonly',
-        setTimeout: 'readonly',
-        clearTimeout: 'readonly',
-        setInterval: 'readonly',
-        clearInterval: 'readonly',
-        speechSynthesis: 'readonly',
-        SpeechSynthesisUtterance: 'readonly',
-        AudioContext: 'readonly',
-        webkitAudioContext: 'readonly',
-        FontFace: 'readonly',
-        crypto: 'readonly',
-        navigator: 'readonly',
-        location: 'readonly',
-        history: 'readonly',
-        HTMLElement: 'readonly',
-        SVGElement: 'readonly',
-        CustomEvent: 'readonly',
-        Event: 'readonly',
-        MouseEvent: 'readonly',
-        KeyboardEvent: 'readonly',
-        FileReader: 'readonly',
-        FormData: 'readonly',
-        // Node globals (for the smoketest .mjs files)
-        process: 'readonly',
+        ...globals.browser,
+        ...globals.node,
+        // The smoketest harness deliberately extends globalThis.
         globalThis: 'writable',
-        module: 'readonly',
-        require: 'readonly',
-        __dirname: 'readonly',
-        __filename: 'readonly',
-        Buffer: 'readonly',
       },
     },
     plugins: {

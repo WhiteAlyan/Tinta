@@ -3,10 +3,10 @@
 import * as ImageStore from './imagestore.js';
 import * as ModalShell from './modal.js';
 import * as Store from './store.js';
-import { q } from './dom-utils.js';
+import { q, raw } from './dom-utils.js';
 import { downloadBinaryFile, downloadTextFile, safeFilename } from './file-utils.js';
 import { docxFilename, epubFilename, exportDocx, exportEpub } from './manuscriptExport.js';
-import { closeModal, openModal } from './modal.js';
+import { closeModal } from './modal.js';
 import { showStorageWarning } from './toast.js';
 
 export function openExportMenu(chapterId) {
@@ -16,7 +16,7 @@ export function openExportMenu(chapterId) {
   ModalShell.openModal({
     title: 'Export',
     className: 'export-modal',
-    body: `
+    body: raw(`
         <div class="backup-section">
           <h3>Markdown</h3>
           <p class="backup-note">Prose-only, no formatting beyond the text itself. Good for a plain-text backup or pasting elsewhere.</p>
@@ -35,7 +35,7 @@ export function openExportMenu(chapterId) {
             <button id="export-project-epub">Whole project (.epub)</button>
           </div>
         </div>
-    `,
+    `),
   });
 
   q('export-chapter-md').addEventListener('click', () => {
@@ -90,5 +90,5 @@ export function openExportMenu(chapterId) {
   });
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsexportmenu-js-93-97
+// Historical context: see docs/CODEBASE_NOTES.md#jsexportmenu-js
 

@@ -1,8 +1,8 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jsstatsview-js-1-16
+// Historical context: see docs/CODEBASE_NOTES.md#jsstatsview-js
 import * as Store from './store.js';
 import { html, toBridge } from './dom-utils.js';
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstatsview-js-20-26
+// Historical context: see docs/CODEBASE_NOTES.md#jsstatsview-js
 function formatWriteTime(ms) {
   if (!ms || ms <= 0) return 'never';
   const totalMinutes = Math.round(ms / 60000);
@@ -146,7 +146,7 @@ export function renderStatsView(project) {
     </div>
   `);
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstatsview-js-170-176
+// Historical context: see docs/CODEBASE_NOTES.md#jsstatsview-js
   panel.querySelectorAll('.stats-target-input').forEach((input) => {
     input.addEventListener('change', () => {
       const value = Math.max(0, parseInt(input.value, 10) || 0);

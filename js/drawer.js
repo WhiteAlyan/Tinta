@@ -1,4 +1,4 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js-1-21
+// Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js
 //
 // P2-10 documentation — drawer.js and modal.js implement parallel
 // open/close logic for two different overlay concepts. See the
@@ -14,13 +14,13 @@
 
 import * as Store from './store.js';
 import * as ImageStore from './imagestore.js';
-// Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js-25-31
+// Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js
 import { html, raw, toBridge, q, escapeHtml, escapeAttr, safeExternalUrl, bindOutsideClick, capitalize } from './dom-utils.js';
 import { STATUS_LABEL } from './vocabulary.js';
 import { requestRender } from './renderBus.js';
 import { setActiveView, setActiveChapterId } from './context.js';
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js-37-42
+// Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js
 let drawerUrls = [];
 function releaseDrawerUrls() {
   drawerUrls.forEach((url) => URL.revokeObjectURL(url));
@@ -34,7 +34,7 @@ export function closeDrawer() {
   if (!root) return;
   root.classList.remove('open');
   clearTimeout(closeTimer);
-// Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js-56-59
+// Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js
   closeTimer = setTimeout(() => {
     if (!root.classList.contains('open')) root.innerHTML = '';
   }, 250);
@@ -46,17 +46,17 @@ function openDrawerShell(bodyHtml) {
   if (!root) return null;
   clearTimeout(closeTimer);
   releaseDrawerUrls();
-// Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js-71-75
+// Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js
   root.innerHTML = toBridge(html`
     <div class="drawer-panel">
       <button id="drawer-close" class="drawer-close" title="Close">✕</button>
       ${bodyHtml}
     </div>
   `);
-// Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js-82-85
+// Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js
   requestAnimationFrame(() => requestAnimationFrame(() => root.classList.add('open')));
   q('drawer-close').addEventListener('click', closeDrawer);
-// Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js-88-98
+// Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js
   bindOutsideClick(handleOutsideClick, { capture: true });
   return root;
 }
@@ -105,7 +105,7 @@ export function openEntityDrawer(entityId) {
               const otherId = r.fromId === entity.id ? r.toId : r.fromId;
               const other = Store.getEntity(otherId);
               const label = Store.getRelationshipLabel(r) || 'related to';
-// Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js-147-151
+// Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js
               return html`<li class="drawer-list-item drawer-relationship" data-entity-id="${otherId}"><span class="drawer-relationship-text">${label} <strong>${other?.name || 'Unknown'}</strong></span><button type="button" class="drawer-relationship-peek" data-rel-peek="${r.id}">details</button></li>`;
             })}</ul>`
           : html`<p class="empty-note">No relationships recorded yet.</p>`
@@ -188,7 +188,7 @@ export function openEntityDrawer(entityId) {
     closeDrawer();
     setActiveView('notes');
     requestRender();
-// Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js-234-238
+// Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js
     q(`.notes-entity-item[data-entity-id="${entity.id}"]`)?.click();
   });
 }
@@ -387,7 +387,7 @@ export function openSceneInspector(chapterId, sceneId) {
   });
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js-437-440
+// Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js
 function renderSceneRelationships(chapterId, sceneId) {
   const listEl = q('scene-rel-list');
   const targetSelect = q('scene-rel-target');
@@ -429,7 +429,7 @@ function renderSceneRelationships(chapterId, sceneId) {
   );
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js-482-485
+// Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js
 function renderSceneAnnotations(sceneId) {
   const list = q('scene-anno-list');
   if (!list) return;
@@ -461,7 +461,7 @@ function renderSceneAnnotations(sceneId) {
   });
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js-517-523
+// Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js
 function renderSceneStoryQuestions(sceneId) {
   const introducedList = q('scene-sq-introduced-list');
   const payoffList = q('scene-sq-payoff-list');
@@ -496,7 +496,7 @@ function renderSceneStoryQuestions(sceneId) {
     });
   });
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js-558-562
+// Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js
   const linkable = Store.getStoryQuestionList().filter((qq) => qq.payoffSceneId !== sceneId);
   linkSelect.innerHTML = toBridge(
     linkable.length
@@ -505,7 +505,7 @@ function renderSceneStoryQuestions(sceneId) {
   );
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js-571-600
+// Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js
 
 // Renders one label/value row in a drawer's meta block.
 //
@@ -531,7 +531,7 @@ function metaRow(label, value) {
 }
 
 function renderClickableMentions(text = '') {
-// Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js-620-625
+// Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js
   const escaped = escapeHtml(text);
   const withMentions = escaped.replace(Store.MENTION_RE, (whole, name) => {
     const trimmed = name.trim();
@@ -543,7 +543,7 @@ function renderClickableMentions(text = '') {
   return raw(withMentions);
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js-637-640
+// Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js
 function resolveEntityByName(name) {
   return Store.findEntityByName(name);
 }
@@ -566,7 +566,7 @@ export function openReferenceDrawer(referenceId) {
   })();
 
   const tags = (ref.tags || []).filter(Boolean);
-// Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js-663-670
+// Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js
   const safeUrl = safeExternalUrl(ref.url);
   const urlAsLink = ref.url
     ? (safeUrl
@@ -630,7 +630,7 @@ export function openReferenceDrawer(referenceId) {
     closeDrawer();
     setActiveView('references');
     requestRender();
-// Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js-734-738
+// Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js
     const row = document.querySelector(`.view-panel[data-view="references"] [data-reference-id="${ref.id}"]`);
     if (row) row.click();
   });
@@ -712,7 +712,7 @@ export function openRuleNodeDrawer(systemId, nodeId) {
 
   q('drawer-open-full').addEventListener('click', () => {
     closeDrawer();
-// Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js-820-824
+// Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js
     setActiveView('systems');
     requestRender();
     const row = document.querySelector(`.view-panel[data-view="systems"] [data-open-system="${systemId}"]`);
@@ -822,7 +822,7 @@ export function openTimelineEventDrawer(eventId) {
   `);
   if (!root) return;
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js-934-937
+// Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js
   root.querySelectorAll('.drawer-mention').forEach((btn) => {
     btn.addEventListener('click', () => {
       const entity = resolveEntityByName(btn.dataset.entityName);
@@ -830,7 +830,7 @@ export function openTimelineEventDrawer(eventId) {
     });
   });
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js-945-948
+// Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js
   root.querySelectorAll('.drawer-mention-row.is-resolved').forEach((li) => {
     li.addEventListener('click', () => {
       const entity = resolveEntityByName(li.dataset.entityName);
@@ -862,7 +862,7 @@ export function openTimelineEventDrawer(eventId) {
   });
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js-980-987
+// Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js
 export function openAnnotationDrawer(annotationId) {
   const annotation = Store.getAnnotation(annotationId);
   if (!annotation) return;
@@ -925,7 +925,7 @@ export function openAnnotationDrawer(annotationId) {
   });
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js-1050-1058
+// Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js
 export function openRelationshipDrawer(relationshipId) {
   const rel = Store.getRelationship(relationshipId);
   if (!rel) return;
@@ -981,7 +981,7 @@ export function openRelationshipDrawer(relationshipId) {
   });
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js-1114-1127
+// Historical context: see docs/CODEBASE_NOTES.md#jsdrawer-js
 
 export function openContextDrawer(kind, payload = {}) {
   switch (kind) {

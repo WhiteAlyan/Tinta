@@ -1,4 +1,4 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jswriteview-js-1-36
+// Historical context: see docs/CODEBASE_NOTES.md#jswriteview-js
 
 import * as Store from './store.js';
 import { html, raw, toBridge, q, bindOutsideClick } from './dom-utils.js';
@@ -15,7 +15,7 @@ import { flashAndScrollTo } from './dom-utils.js';
 import { activeChapterId, setActiveView, setActiveChapterId } from './context.js';
 import { els } from './els.js';
 import { currentEditorHandle, setCurrentEditorHandle } from './context.js';
-import { STATUS_LABEL, STATUS_ORDER, vocabularyLabel, vocabularyOrder } from './vocabulary.js';
+import { vocabularyLabel, vocabularyOrder } from './vocabulary.js';
 import { showToast, showGoalCelebration } from './toast.js';
 import { openEntityDrawer } from './drawer.js';
 import { openWordCheckModal, openThesaurusModal } from './wordCheckModal.js';
@@ -23,10 +23,10 @@ import { openGrammarModal } from './grammarModal.js';
 import { openReadAloudModal } from './readAloud.js';
 import { openAnnotationsModal } from './annotationsModal.js';
 
-// Historical context: see docs/CODEBASE_NOTES.md#jswriteview-js-61-79
+// Historical context: see docs/CODEBASE_NOTES.md#jswriteview-js
 let lastRenderedChapterId = null;
 
-// Historical context: see docs/CODEBASE_NOTES.md#jswriteview-js-82-89
+// Historical context: see docs/CODEBASE_NOTES.md#jswriteview-js
 function closeToolbarPopovers() {
   q('details-popover')?.classList.add('hidden');
   q('more-menu')?.classList.add('hidden');
@@ -37,9 +37,9 @@ export function renderWriteView(project) {
   const panel = document.querySelector('.view-panel[data-view="write"]');
   const chapter = project.chapters.find((c) => c.id === activeChapterId);
 
-// Historical context: see docs/CODEBASE_NOTES.md#jswriteview-js-100-105
+// Historical context: see docs/CODEBASE_NOTES.md#jswriteview-js
   const motion = Store.getMotionSettings();
-// Historical context: see docs/CODEBASE_NOTES.md#jswriteview-js-107-112
+// Historical context: see docs/CODEBASE_NOTES.md#jswriteview-js
   const chapterActuallyChanged = chapter && chapter.id !== lastRenderedChapterId;
   const isChapterSwitch = motion.chapterTransitions && chapterActuallyChanged;
   lastRenderedChapterId = chapter ? chapter.id : null;
@@ -60,7 +60,7 @@ export function renderWriteView(project) {
     return;
   }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jswriteview-js-133-141
+// Historical context: see docs/CODEBASE_NOTES.md#jswriteview-js
   const chapterDocType = Store.getChapterTypeForChapter(chapter);
   const chapterNumber = Store.getContentChapterNumber(chapter);
   const chapterNumberLabel =
@@ -175,7 +175,7 @@ export function renderWriteView(project) {
 
   const textarea = q('chapter-editor');
   setActiveTextareaEl(textarea);
-// Historical context: see docs/CODEBASE_NOTES.md#jswriteview-js-255-260
+// Historical context: see docs/CODEBASE_NOTES.md#jswriteview-js
   setCurrentEditorHandle(attachEditor({
     textarea,
     chapterId: chapter.id,
@@ -207,7 +207,7 @@ export function renderWriteView(project) {
     renderSidebar(Store.getActiveProject());
   });
 
-// Historical context: see docs/CODEBASE_NOTES.md#jswriteview-js-286-292
+// Historical context: see docs/CODEBASE_NOTES.md#jswriteview-js
   const footerFocusBtn = q('focus-toggle-footer');
   updateFocusButtons();
   footerFocusBtn.addEventListener('click', () => {
@@ -215,7 +215,7 @@ export function renderWriteView(project) {
     updateFocusButtons();
   });
 
-// Historical context: see docs/CODEBASE_NOTES.md#jswriteview-js-300-303
+// Historical context: see docs/CODEBASE_NOTES.md#jswriteview-js
   q('format-bold-btn').addEventListener('click', () => {
     applyFormatToggle(textarea, Format.toggleBold(textarea.value, textarea.selectionStart, textarea.selectionEnd));
   });
@@ -237,7 +237,7 @@ export function renderWriteView(project) {
       q('format-color-menu').classList.add('hidden');
     });
   });
-// Historical context: see docs/CODEBASE_NOTES.md#jswriteview-js-320-325
+// Historical context: see docs/CODEBASE_NOTES.md#jswriteview-js
   q('save-quote-btn').addEventListener('click', () => {
     const selected = textarea.value.slice(textarea.selectionStart, textarea.selectionEnd).trim();
     if (!selected) {
@@ -270,7 +270,7 @@ export function renderWriteView(project) {
     renderSidebar(Store.getActiveProject());
   });
 
-// Historical context: see docs/CODEBASE_NOTES.md#jswriteview-js-358-366
+// Historical context: see docs/CODEBASE_NOTES.md#jswriteview-js
   const detailsPopover = q('details-popover');
   const moreMenu = q('more-menu');
   const bookmarksPopover = q('bookmarks-popover');
@@ -288,7 +288,7 @@ export function renderWriteView(project) {
     closeToolbarPopovers();
     moreMenu.classList.toggle('hidden', !willOpen);
   });
-// Historical context: see docs/CODEBASE_NOTES.md#jswriteview-js-384-390
+// Historical context: see docs/CODEBASE_NOTES.md#jswriteview-js
   bindOutsideClick(closeToolbarPopoversOnOutsideClick);
 
   // Session 22 — import. The hidden file input does the actual file-picking;
@@ -362,12 +362,12 @@ export function renderWriteView(project) {
   q('annotations-btn').addEventListener('click', () => { closeToolbarPopovers(); openAnnotationsModal(chapter); });
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jswriteview-js-464-468
+// Historical context: see docs/CODEBASE_NOTES.md#jswriteview-js
 function closeToolbarPopoversOnOutsideClick(e) {
   if (!e.target.closest('.wt-popover-group')) closeToolbarPopovers();
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jswriteview-js-473-482
+// Historical context: see docs/CODEBASE_NOTES.md#jswriteview-js
 function parseImportedFile(filename, raw) {
   const baseName = filename.replace(/\.[^.]+$/, '').trim() || 'Imported Chapter';
   const isMd = filename.toLowerCase().endsWith('.md');
@@ -393,12 +393,12 @@ function parseImportedFile(filename, raw) {
   return { title: baseName, content: raw.trimEnd() };
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jswriteview-js-508-515
+// Historical context: see docs/CODEBASE_NOTES.md#jswriteview-js
 
-// Historical context: see docs/CODEBASE_NOTES.md#jswriteview-js-517-520
+// Historical context: see docs/CODEBASE_NOTES.md#jswriteview-js
 
 
-// Historical context: see docs/CODEBASE_NOTES.md#jswriteview-js-389-396
+// Historical context: see docs/CODEBASE_NOTES.md#jswriteview-js
 export function resetWriteViewState() {
   lastRenderedChapterId = null;
   setActiveTextareaEl(null);

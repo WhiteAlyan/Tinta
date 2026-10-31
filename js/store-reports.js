@@ -1,4 +1,4 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-reports-js-1-24
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-reports-js
 
 import { getActiveProject, now } from './store-core.js';
 import { wordCount } from './format.js';
@@ -19,7 +19,7 @@ import {
 } from './store-craft.js';
 import { getRuleSystemList, getSystemNodeList } from './store-systems.js';
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-reports-js-45-51
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-reports-js
 function computeBlockedIntervals(sortedStatusEvents, timelineEventsById) {
   const intervals = [];
   let openStart = null;
@@ -40,7 +40,7 @@ function computeBlockedIntervals(sortedStatusEvents, timelineEventsById) {
   return intervals;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-reports-js-72-92
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-reports-js
 export function getContinuityReport() {
   const project = getActiveProject();
   const timelineEventsById = project.timelineEvents || {};
@@ -103,7 +103,7 @@ export function getContinuityReport() {
   return issues;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-reports-js-155-158
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-reports-js
 
 export function getProjectHealthReport() {
   const project = getActiveProject();
@@ -123,7 +123,7 @@ export function getProjectHealthReport() {
     extractMentions(text || '').forEach((m) => allMentionNames.add(m.name.trim().toLowerCase()));
   });
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-reports-js-178-182
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-reports-js
   const orphanedEntities = entities.filter((e) => {
     const mentioned = allMentionNames.has(e.name.trim().toLowerCase()) ||
       (e.aliases || []).some((a) => allMentionNames.has(a.trim().toLowerCase()));
@@ -132,7 +132,7 @@ export function getProjectHealthReport() {
     return !mentioned && !hasRelationships && !hasChildren;
   });
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-reports-js-191-194
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-reports-js
   const knownNames = new Set();
   entities.forEach((e) => {
     knownNames.add(e.name.trim().toLowerCase());
@@ -162,7 +162,7 @@ export function getProjectHealthReport() {
     scanDangling(event.description, { eventId: event.id, eventTitle: event.title, field: 'description' });
   });
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-reports-js-224-228
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-reports-js
   const scenesWithoutChapter = [];
 
   // Timeline events pointing at a chapterId that no longer exists (the
@@ -187,14 +187,14 @@ export function getProjectHealthReport() {
   // Session 24 — three more checks, same "the report just grows another
   // field" shape as everything above.
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-reports-js-253-256
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-reports-js
   const unusedRuleSystems = getRuleSystemList().filter((sys) => getSystemNodeList(sys.id).length === 0);
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-reports-js-259-264
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-reports-js
   const referencesByKey = new Map();
   getReferenceList().forEach((ref) => {
     const titleKey = ref.title.trim().toLowerCase();
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-reports-js-268-274
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-reports-js
     if (!titleKey || titleKey === 'untitled reference') return;
     const key = `${ref.refType}::${titleKey}`;
     if (!referencesByKey.has(key)) referencesByKey.set(key, []);
@@ -202,7 +202,7 @@ export function getProjectHealthReport() {
   });
   const duplicateReferences = [...referencesByKey.values()].filter((group) => group.length > 1).flat();
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-reports-js-282-289
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-reports-js
   const mapIds = new Set(Object.keys(project.maps || {}));
   const entityIds = new Set(entities.map((e) => e.id));
   const deadLinks = [];
@@ -244,7 +244,7 @@ export function getProjectHealthReport() {
   };
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-reports-js-331-374
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-reports-js
 // P2-4 fix — there are three "active chapter" resolvers in the codebase
 // with overlapping but distinct semantics. This one is for the Resume
 // view (the writer's "where was I?" dashboard): recent → lastOpenedAt →
@@ -268,7 +268,7 @@ export function getProjectHealthReport() {
 // future contributors reading app.js:139-145 wondering which to call.
 // If you find yourself adding a fourth, consider unifying instead.
 export function getLastActiveChapter(project) {
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-reports-js-376-391
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-reports-js
   const recentId = (project.recentChapterIds || [])[0];
   if (recentId) {
     const c = project.chapters.find((ch) => ch.id === recentId && ch.lastOpenedAt && !ch.trashedAt);
@@ -295,7 +295,7 @@ export function getResumeSummary() {
   // rather than staying inlined here).
   const lastChapter = getLastActiveChapter(project);
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-reports-js-418-422
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-reports-js
   const allAnnotations = getAnnotationList();
   const openAnnotations = allAnnotations
     .filter((a) => !a.resolved)
@@ -345,7 +345,7 @@ export function getResumeSummary() {
       updatedAt: d.updatedAt,
     }));
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-reports-js-472-477
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-reports-js
   const healthReport = getProjectHealthReport();
   const healthWarnings = {
     orphanEntities: healthReport.orphanedEntities.map((e) => ({ id: e.id, name: e.name, kind: 'entity' })),
@@ -368,7 +368,7 @@ export function getResumeSummary() {
   };
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-reports-js-500-510
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-reports-js
 export function getCompletionChecklist() {
   const project = getActiveProject();
   const health = getProjectHealthReport();
@@ -489,10 +489,10 @@ export function getChapterWordCounts() {
     .map((c) => ({ chapterId: c.id, title: c.title, words: wordCount(c.content) }));
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-reports-js-631-634
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-reports-js
 export function getDialogueRatio(chapterId = null) {
   const project = getActiveProject();
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-reports-js-637-640
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-reports-js
   const chapters = chapterId ? project.chapters.filter((c) => c.id === chapterId) : project.chapters.filter((c) => !c.trashedAt);
   let dialogueWords = 0;
   let totalWords = 0;
@@ -511,15 +511,13 @@ export function getDialogueRatio(chapterId = null) {
   };
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-reports-js-659-664
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-reports-js
 export function getChangesSince(sinceIso) {
   const project = getActiveProject();
   const since = new Date(sinceIso).getTime();
   const isAfter = (iso) => iso && new Date(iso).getTime() > since;
 
   const chaptersChanged = project.chapters.filter((c) => isAfter(c.updatedAt));
-  let wordsNow = 0;
-  chaptersChanged.forEach((c) => { wordsNow += wordCount(c.content); });
 
   const entitiesAdded = Object.values(project.entities || {}).filter((e) => isAfter(e.createdAt));
   const entitiesChanged = Object.values(project.entities || {}).filter(

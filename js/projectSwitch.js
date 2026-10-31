@@ -1,6 +1,6 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jsprojectswitch-js-1-4
+// Historical context: see docs/CODEBASE_NOTES.md#jsprojectswitch-js
 import * as Store from './store.js';
-import { setActiveChapterId, setActiveView, setActiveEntityId, setActiveSystemId, setActiveMapId, setActiveReferenceId, setActiveSketchId } from './context.js';
+import { setActiveChapterId, setActiveView } from './context.js';
 import { closeDrawer } from './drawer.js';
 import { getFocusLevel, setFocusLevel, updateFocusButtons } from './editor.js';
 import { els } from './els.js';
@@ -21,19 +21,19 @@ export function teardownLiveStateForProjectSwitch() {
     setFocusLevel(els.shell, 'off');
     updateFocusButtons();
   }
-// Historical context: see docs/CODEBASE_NOTES.md#jsprojectswitch-js-27-34
+// Historical context: see docs/CODEBASE_NOTES.md#jsprojectswitch-js
   resetAllViews();
-// Historical context: see docs/CODEBASE_NOTES.md#jsprojectswitch-js-36-40
+// Historical context: see docs/CODEBASE_NOTES.md#jsprojectswitch-js
   resetEntityTagFilters();
   resetReferenceTagFilters();
-// Historical context: see docs/CODEBASE_NOTES.md#jsprojectswitch-js-43-47
+// Historical context: see docs/CODEBASE_NOTES.md#jsprojectswitch-js
   Store.clearUndoHistory();
 }
 
 export function switchToProjectFromLibrary(projectId) {
   teardownLiveStateForProjectSwitch();
   Store.switchProject(projectId);
-// Historical context: see docs/CODEBASE_NOTES.md#jsprojectswitch-js-54-57
+// Historical context: see docs/CODEBASE_NOTES.md#jsprojectswitch-js
   const next = Store.getActiveProject();
   setActiveChapterId(firstOpenChapterId(next));
   setActiveView('write');

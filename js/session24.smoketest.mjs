@@ -278,7 +278,7 @@ section('searchProject — References, Annotations, Rule systems (+ nodes), Maps
 
 // ── 6. Lore-health checks ────────────────────────────────────────────────
 section('getProjectHealthReport — unused rule systems');
-const emptySystem = Store.createRuleSystem({ name: 'Empty System' });
+Store.createRuleSystem({ name: 'Empty System' });
 const populatedSystem = Store.createRuleSystem({ name: 'Populated System' });
 Store.createSystemNode({ systemId: populatedSystem.id, name: 'Some Ability' });
 {

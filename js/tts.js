@@ -1,7 +1,6 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jstts-js-1-10
+// Historical context: see docs/CODEBASE_NOTES.md#jstts-js
 
 let cachedVoices = null;
-let currentUtterance = null;
 
 export function isSupported() {
   // P1-6 (companion) — guard `window` itself, not just
@@ -39,7 +38,7 @@ export function getVoices() {
   });
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jstts-js-41-44
+// Historical context: see docs/CODEBASE_NOTES.md#jstts-js
 export function speak(text, { voiceURI = '', rate = 1, onEnd, onStart } = {}) {
   if (!isSupported()) return false;
   stop();
@@ -52,14 +51,11 @@ export function speak(text, { voiceURI = '', rate = 1, onEnd, onStart } = {}) {
   }
   utterance.onstart = () => onStart?.();
   utterance.onend = () => {
-    currentUtterance = null;
     onEnd?.();
   };
   utterance.onerror = () => {
-    currentUtterance = null;
     onEnd?.();
   };
-  currentUtterance = utterance;
   synth.speak(utterance);
   return true;
 }
@@ -74,7 +70,6 @@ export function resume() {
 
 export function stop() {
   if (isSupported()) window.speechSynthesis.cancel();
-  currentUtterance = null;
 }
 
 export function isSpeaking() {

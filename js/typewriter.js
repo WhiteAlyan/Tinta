@@ -1,4 +1,4 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jstypewriter-js-1-12
+// Historical context: see docs/CODEBASE_NOTES.md#jstypewriter-js
 
 export const STYLES = [
   { id: 'classic', label: 'Classic' },
@@ -31,7 +31,7 @@ function noiseBurst(audioCtx, duration) {
   return source;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jstypewriter-js-45-48
+// Historical context: see docs/CODEBASE_NOTES.md#jstypewriter-js
 export function playClick(volume = 0.5, style = 'classic') {
   const audioCtx = ensureContext();
   if (!audioCtx) return;

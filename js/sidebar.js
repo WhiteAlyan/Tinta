@@ -1,4 +1,4 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jssidebar-js-1-4
+// Historical context: see docs/CODEBASE_NOTES.md#jssidebar-js
 import * as ModalShell from './modal.js';
 import * as Store from './store.js';
 import { activeChapterId, setActiveChapterId, setActiveView } from './context.js';
@@ -8,7 +8,7 @@ import { els } from './els.js';
 import { requestRender } from './renderBus.js';
 import { STATUS_LABEL } from './vocabulary.js';
 
-// Historical context: see docs/CODEBASE_NOTES.md#jssidebar-js-15-25
+// Historical context: see docs/CODEBASE_NOTES.md#jssidebar-js
 export const collapsedActs = new Set();
 export const expandedChapterScenes = new Set();
 
@@ -20,7 +20,7 @@ export function renderSidebar(project) {
     .filter((c) => !c.trashedAt && !c.archived)
     .sort((a, b) => a.order - b.order);
 
-// Historical context: see docs/CODEBASE_NOTES.md#jssidebar-js-37-41
+// Historical context: see docs/CODEBASE_NOTES.md#jssidebar-js
   const arcs = [...new Set(chapters.map((c) => c.arc).filter(Boolean))].sort();
   const prevArc = els.arcFilterSelect?.value || '';
   els.arcFilterBar.style.display = arcs.length > 0 ? '' : 'none';
@@ -57,7 +57,7 @@ export function renderSidebar(project) {
     els.chapterList.appendChild(divider);
   }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jssidebar-js-55-66
+// Historical context: see docs/CODEBASE_NOTES.md#jssidebar-js
   const useActGroups = !activeArc && arcs.length > 0;
   const visibleChapters = pinnedFirst(chapters.filter((c) => !activeArc || c.arc === activeArc));
 
@@ -66,7 +66,7 @@ export function renderSidebar(project) {
     return;
   }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jssidebar-js-75-78
+// Historical context: see docs/CODEBASE_NOTES.md#jssidebar-js
   const groups = [];
   visibleChapters.forEach((chapter) => {
     const arc = chapter.arc || '';
@@ -102,7 +102,7 @@ export function buildActGroupItem(group) {
   return li;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jssidebar-js-114-118
+// Historical context: see docs/CODEBASE_NOTES.md#jssidebar-js
 export function buildChapterListItem(chapter) {
   const li = document.createElement('li');
   li.className = 'sb-chapter' + (chapter.id === activeChapterId ? ' active' : '');
@@ -122,7 +122,7 @@ export function buildChapterListItem(chapter) {
   wc.className = 'sb-chapter-wc';
   wc.textContent = Store.wordCount(chapter.content);
 
-// Historical context: see docs/CODEBASE_NOTES.md#jssidebar-js-138-144
+// Historical context: see docs/CODEBASE_NOTES.md#jssidebar-js
   const favBtn = document.createElement('button');
   favBtn.className = 'sb-chapter-favorite' + (chapter.favorite ? ' active' : '');
   favBtn.title = chapter.favorite ? 'Remove from favorites' : 'Add to favorites';
@@ -143,7 +143,7 @@ export function buildChapterListItem(chapter) {
     requestRender();
   });
 
-// Historical context: see docs/CODEBASE_NOTES.md#jssidebar-js-165-170
+// Historical context: see docs/CODEBASE_NOTES.md#jssidebar-js
   const del = document.createElement('button');
   del.className = 'sb-chapter-delete';
   del.title = 'Move to trash';
@@ -164,7 +164,7 @@ export function buildChapterListItem(chapter) {
 
   row.append(dot, label, wc, favBtn, pinBtn, del);
 
-// Historical context: see docs/CODEBASE_NOTES.md#jssidebar-js-191-195
+// Historical context: see docs/CODEBASE_NOTES.md#jssidebar-js
   if (chapter.arc && !useActGroupsHint()) {
     const pill = document.createElement('span');
     pill.className = 'arc-pill';
@@ -206,7 +206,7 @@ export function buildChapterListItem(chapter) {
         sceneLi.className = 'sb-scene';
         sceneLi.textContent = scene.title;
         sceneLi.addEventListener('click', (e) => {
-// Historical context: see docs/CODEBASE_NOTES.md#jssidebar-js-237-240
+// Historical context: see docs/CODEBASE_NOTES.md#jssidebar-js
           e.stopPropagation();
           setActiveChapterId(chapter.id);
           setActiveView('write');
@@ -222,12 +222,12 @@ export function buildChapterListItem(chapter) {
   return li;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jssidebar-js-256-261
+// Historical context: see docs/CODEBASE_NOTES.md#jssidebar-js
 export function pinnedFirst(list) {
   return [...list].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jssidebar-js-266-271
+// Historical context: see docs/CODEBASE_NOTES.md#jssidebar-js
 export function useActGroupsHint() {
   return !!(els.arcFilterBar && els.arcFilterBar.style.display !== 'none' && !els.arcFilterSelect.value);
 }

@@ -1,4 +1,4 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jssettingsmodal-js-1-4
+// Historical context: see docs/CODEBASE_NOTES.md#jssettingsmodal-js
 import * as Ambience from './ambience.js';
 import * as AssetStore from './assetstore.js';
 import * as Commands from './commands.js';
@@ -9,7 +9,7 @@ import * as Typewriter from './typewriter.js';
 import { TINTA_CREATOR, TINTA_PHASE, TINTA_VERSION } from './appMeta.js';
 import { openBackupModal } from './backup.js';
 import { activeView, navHandle, setActiveView } from './context.js';
-import { escapeAttr, escapeHtml, q } from './dom-utils.js';
+import { escapeAttr, escapeHtml, q, raw } from './dom-utils.js';
 import { closeModal } from './modal.js';
 import { DENSITY_FALLBACK_VIEW, isViewVisibleAtDensity } from './nav.js';
 import { requestRender } from './renderBus.js';
@@ -29,7 +29,7 @@ export function openSettingsModal() {
   const customFont = Store.getCustomFont();
   const typewriterSettings = Store.getTypewriterSettings();
   const typewriterSupported = Typewriter.isSupported();
-// Historical context: see docs/CODEBASE_NOTES.md#jssettingsmodal-js-34-37
+// Historical context: see docs/CODEBASE_NOTES.md#jssettingsmodal-js
   const navPaintedStyle = navHandle && typeof navHandle.paintedStyle === 'function'
     ? navHandle.paintedStyle()
     : null;
@@ -48,11 +48,11 @@ export function openSettingsModal() {
     { value: 5000, label: 'Relaxed (5s)' },
   ];
 
-// Historical context: see docs/CODEBASE_NOTES.md#jssettingsmodal-js-55-68
+// Historical context: see docs/CODEBASE_NOTES.md#jssettingsmodal-js
   const root = ModalShell.openModal({
     title: 'Settings',
     className: 'settings-modal',
-    body: `
+    body: raw(`
         <!-- Session pass — jump-links, the middle option between the
              existing single-scroll modal and a full nav-rail redesign
              (deliberately not built — see docs/ROADMAP.md). Anchors to
@@ -107,7 +107,7 @@ export function openSettingsModal() {
             <span>Recognition stopwords</span>
             <input type="text" id="settings-stopword-input" class="settings-input" placeholder="e.g. Will, May, Jack" style="flex: 1; max-width: 240px; padding: 6px 10px; border: 1px solid var(--rule); border-radius: 6px; font-family: inherit; color: var(--ink); background: var(--paper);" />
           </div>
-          <p class="settings-note">Words that match entity names but shouldn't trigger recognition. Comma-separated. Case-insensitive. Current: ${(Store.getMentionStopwords() || []).join(', ') || 'none'}</p>
+          <p class="settings-note">Words that match entity names but shouldn't trigger recognition. Comma-separated. Case-insensitive. Current: ${escapeHtml((Store.getMentionStopwords() || []).join(', ')) || 'none'}</p>
         </section>
 
         <section class="settings-section" id="settings-sec-appearance">
@@ -317,7 +317,7 @@ export function openSettingsModal() {
           <p class="settings-note">Tinta began as the tool one story needed. Every feature here started as a wish my own writing software couldn't grant.</p>
           <p class="settings-note"><em>May it hold your world as carefully as it has held mine.</em></p>
         </section>
-    `,
+    `),
   });
 
   q('modal-close').addEventListener('click', closeModal);
@@ -325,7 +325,7 @@ export function openSettingsModal() {
     if (e.target.classList.contains('modal-backdrop')) closeModal();
   });
 
-// Historical context: see docs/CODEBASE_NOTES.md#jssettingsmodal-js-305-309
+// Historical context: see docs/CODEBASE_NOTES.md#jssettingsmodal-js
   const panelEl = root.querySelector('.settings-modal');
   const jumplinks = [...root.querySelectorAll('.settings-jumplink')];
   jumplinks.forEach((btn) => {
@@ -336,7 +336,7 @@ export function openSettingsModal() {
     });
   });
   const sectionEls = jumplinks.map((btn) => q(btn.dataset.jump)).filter(Boolean);
-// Historical context: see docs/CODEBASE_NOTES.md#jssettingsmodal-js-320-328
+// Historical context: see docs/CODEBASE_NOTES.md#jssettingsmodal-js
   const settingsHeaderH = panelEl.querySelector('.modal-header')?.offsetHeight || 0;
   const syncActiveJumplink = () => {
     const spy = panelEl.scrollTop + settingsHeaderH + 20;
@@ -463,14 +463,14 @@ export function openSettingsModal() {
     });
   }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jssettingsmodal-js-395-402
+// Historical context: see docs/CODEBASE_NOTES.md#jssettingsmodal-js
   if (customFont.fileName) {
     AssetStore.getBlob(AssetStore.KEYS.CUSTOM_FONT)
       .then((blob) => { if (!blob) q('custom-font-missing-note').style.display = ''; })
       .catch(() => {});
   }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jssettingsmodal-js-409-412
+// Historical context: see docs/CODEBASE_NOTES.md#jssettingsmodal-js
   root.querySelectorAll('[data-nav-style]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const next = btn.dataset.navStyle;
@@ -486,7 +486,7 @@ export function openSettingsModal() {
     });
   });
 
-// Historical context: see docs/CODEBASE_NOTES.md#jssettingsmodal-js-423-426
+// Historical context: see docs/CODEBASE_NOTES.md#jssettingsmodal-js
   root.querySelectorAll('[data-motion-speed]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const next = btn.dataset.motionSpeed;
@@ -501,7 +501,7 @@ export function openSettingsModal() {
   });
 
   if (ambienceSupported) {
-// Historical context: see docs/CODEBASE_NOTES.md#jssettingsmodal-js-441-444
+// Historical context: see docs/CODEBASE_NOTES.md#jssettingsmodal-js
     root.querySelectorAll('.ambience-track-btn[data-track]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const trackId = btn.dataset.track;
@@ -521,7 +521,7 @@ export function openSettingsModal() {
       Store.setAmbienceSettings({ volume });
     });
 
-// Historical context: see docs/CODEBASE_NOTES.md#jssettingsmodal-js-464-468
+// Historical context: see docs/CODEBASE_NOTES.md#jssettingsmodal-js
     q('ambience-custom-track-btn').addEventListener('click', async () => {
       const settings = Store.getAmbienceSettings();
       if (settings.customTrackSource !== 'file' || !settings.customTrackName) {
@@ -586,7 +586,7 @@ export function openSettingsModal() {
     }
   }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jssettingsmodal-js-533-537
+// Historical context: see docs/CODEBASE_NOTES.md#jssettingsmodal-js
   root.querySelectorAll('[data-bg-mode]').forEach((btn) => {
     btn.addEventListener('click', async () => {
       Store.setBackgroundSettings({ mode: btn.dataset.bgMode });
@@ -671,4 +671,4 @@ export function openSettingsModal() {
   q('settings-backup-btn').addEventListener('click', openBackupModal);
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jssettingsmodal-js-615-626
+// Historical context: see docs/CODEBASE_NOTES.md#jssettingsmodal-js

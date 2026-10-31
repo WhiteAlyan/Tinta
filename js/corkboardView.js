@@ -1,4 +1,4 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jscorkboardview-js-1-28
+// Historical context: see docs/CODEBASE_NOTES.md#jscorkboardview-js
 import * as Store from './store.js';
 import { els } from './els.js';
 import { html, toBridge } from './dom-utils.js';
@@ -86,7 +86,7 @@ function getDragAfterElement(container, y) {
   ).element;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jscorkboardview-js-116-120
+// Historical context: see docs/CODEBASE_NOTES.md#jscorkboardview-js
 function wireCorkboardDropZone(cardsEl) {
   cardsEl.addEventListener('dragover', (e) => {
     const dragging = document.querySelector('.scene-card.dragging');

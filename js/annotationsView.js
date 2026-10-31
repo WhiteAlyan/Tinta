@@ -7,7 +7,7 @@ import { html, q, raw, toBridge } from './dom-utils.js';
 import { openSceneInspector } from './drawer.js';
 import { requestRender } from './renderBus.js';
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsannotationsview-js-10-14
+// Historical context: see docs/CODEBASE_NOTES.md#jsannotationsview-js
 export let annotationsDashTypeFilter = '';
 export let annotationsDashStatusFilter = 'open'; // 'open' | 'resolved' | 'all'
 
@@ -30,7 +30,7 @@ export function renderAnnotationsView(project) {
     ? statusFiltered.filter((a) => a.type === annotationsDashTypeFilter)
     : statusFiltered;
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsannotationsview-js-37-42
+// Historical context: see docs/CODEBASE_NOTES.md#jsannotationsview-js
   const grouped = [...project.chapters]
     .sort((a, b) => a.order - b.order)
     .map((chapter) => ({ chapter, items: filtered.filter((a) => a.chapterId === chapter.id) }))
@@ -115,7 +115,7 @@ export function renderAnnotationsView(project) {
     });
   });
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsannotationsview-js-127-132
+// Historical context: see docs/CODEBASE_NOTES.md#jsannotationsview-js
   panel.querySelectorAll('[data-jump-chapter]').forEach((btn) => {
     // Scene-tag buttons also carry data-jump-chapter (as the parent
     // chapter) alongside data-jump-scene — handled by the more specific
@@ -140,9 +140,9 @@ export function renderAnnotationsView(project) {
   });
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsannotationsview-js-157-162
+// Historical context: see docs/CODEBASE_NOTES.md#jsannotationsview-js
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsannotationsview-js-164-177
+// Historical context: see docs/CODEBASE_NOTES.md#jsannotationsview-js
 
 
 // v0.2.9 — Phase 7b: reset annotations filters on project switch.

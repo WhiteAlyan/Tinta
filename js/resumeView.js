@@ -7,14 +7,14 @@ import { html, q, toBridge } from './dom-utils.js';
 import { openAnnotationDrawer } from './drawer.js';
 import { requestRender } from './renderBus.js';
 
-export function renderResumeView(project) {
+export function renderResumeView(_project) {
   const panel = document.querySelector('.view-panel[data-view="resume"]');
   const summary = Store.getResumeSummary();
   const lastOpenedLabel = summary.lastOpenedAt
     ? new Date(summary.lastOpenedAt).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
     : 'first time opening this project';
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsresumeview-js-17-21
+// Historical context: see docs/CODEBASE_NOTES.md#jsresumeview-js
 
   const lastChapterCard = summary.lastChapter
     ? html`
@@ -90,7 +90,7 @@ export function renderResumeView(project) {
     </div>
   `);
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsresumeview-js-97-111
+// Historical context: see docs/CODEBASE_NOTES.md#jsresumeview-js
   panel.removeEventListener('click', handleResumePanelClick);
   panel.addEventListener('click', handleResumePanelClick);
 }
@@ -118,7 +118,7 @@ export function handleResumePanelClick(e) {
         }
       });
     } else if (action === 'open-annotation') {
-// Historical context: see docs/CODEBASE_NOTES.md#jsresumeview-js-139-142
+// Historical context: see docs/CODEBASE_NOTES.md#jsresumeview-js
       openAnnotationDrawer(target.dataset.annotationId);
     } else if (action === 'open-question') {
       setActiveView('questions');
@@ -132,5 +132,5 @@ export function handleResumePanelClick(e) {
     }
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsresumeview-js-156-161
+// Historical context: see docs/CODEBASE_NOTES.md#jsresumeview-js
 

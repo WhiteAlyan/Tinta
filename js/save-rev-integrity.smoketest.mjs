@@ -101,8 +101,8 @@ ok('a higher incoming rev fires onCrossTabConflict', conflictFired);
 ok('isCrossTabStale returns true after a higher incoming rev', Store.isCrossTabStale());
 
 // A LOWER incoming rev should not fire conflict (and should not throw)
-let secondConflict = false;
-Store.onCrossTabConflict(() => { secondConflict = true; });
+
+
 const fakeLowerRev = JSON.stringify({ ...Store.getActiveDb(), rev: 0 });
 // Reset stale flag first so we can detect a fresh conflict
 // (in real life the writer would reload; here we just verify the

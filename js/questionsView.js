@@ -3,16 +3,12 @@
 import * as Store from './store.js';
 import { html, q, raw, toBridge } from './dom-utils.js';
 
-export function renderQuestionsView(project) {
+export function renderQuestionsView(_project) {
   const panel = document.querySelector('.view-panel[data-view="questions"]');
   const questions = Store.getStoryQuestionList();
   const allScenes = Store.getAllScenesFlat();
   const sceneOptions = (selected) =>
     toBridge(html`<option value="">None</option>${allScenes.map((s) => html`<option value="${s.id}" ${selected === s.id ? 'selected' : ''}>${s.chapterTitle} → ${s.title}</option>`)}`);
-  const sceneLabel = (sid) => {
-    const s = allScenes.find((sc) => sc.id === sid);
-    return s ? `${s.chapterTitle} → ${s.title}` : null;
-  };
 
   const unresolved = questions.filter((q) => !q.resolved);
   const resolved = questions.filter((q) => q.resolved);
@@ -90,4 +86,4 @@ export function renderQuestionsView(project) {
   });
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsquestionsview-js-93-104
+// Historical context: see docs/CODEBASE_NOTES.md#jsquestionsview-js

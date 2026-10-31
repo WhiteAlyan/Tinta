@@ -1,26 +1,26 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jsimagelibrary-js-1-4
+// Historical context: see docs/CODEBASE_NOTES.md#jsimagelibrary-js
 import * as Format from './format.js';
 import * as ImageStore from './imagestore.js';
 import * as ModalShell from './modal.js';
 import * as Store from './store.js';
 import { activeTextareaEl } from './context.js';
-import { html, q, toBridge } from './dom-utils.js';
+import { html, q, raw, toBridge } from './dom-utils.js';
 import { applyFormatToggle } from './editor.js';
-import { closeModal, confirmDialog, openModal } from './modal.js';
+import { closeModal } from './modal.js';
 import { showStorageWarning } from './toast.js';
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsimagelibrary-js-15-20
+// Historical context: see docs/CODEBASE_NOTES.md#jsimagelibrary-js
 export let imageLibraryUrls = [];
-// Historical context: see docs/CODEBASE_NOTES.md#jsimagelibrary-js-22-28
+// Historical context: see docs/CODEBASE_NOTES.md#jsimagelibrary-js
 export let imageLibraryMode = 'insert';
 export let imageLibraryOnSelect = null;
-// Historical context: see docs/CODEBASE_NOTES.md#jsimagelibrary-js-31-34
+// Historical context: see docs/CODEBASE_NOTES.md#jsimagelibrary-js
 export let imageLibraryCurrentImageId = null;
 // Cozy pass — set alongside mode === 'entity': which entity the library is
 // currently adding gallery images to. Only meaningful in that mode.
 export let imageLibraryEntityId = null;
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsimagelibrary-js-40-45
+// Historical context: see docs/CODEBASE_NOTES.md#jsimagelibrary-js
 
 export const MAX_IMAGE_BYTES = 15 * 1024 * 1024; // generous but not unlimited — IndexedDB doesn't have localStorage's tight quota, but "accept anything" is still asking for trouble.
 export const MAX_COVER_IMAGE_BYTES = 50 * 1024 * 1024; // covers are a single hero image per project (not dozens like inline art), so a bigger ceiling is safe.
@@ -35,11 +35,11 @@ export function openImageLibrary(opts = {}) {
   imageLibraryEntityId = entityId;
   imageLibraryCurrentImageId = currentImageId;
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsimagelibrary-js-60-71
+// Historical context: see docs/CODEBASE_NOTES.md#jsimagelibrary-js
   ModalShell.openModal({
     title: title || (mode === 'cover' ? 'Set Cover Image' : mode === 'map' ? 'Set Map Background' : 'Image Library'),
     className: 'image-library-modal',
-    body: `
+    body: raw(`
       <label id="image-upload-drop" class="image-upload-drop" for="image-upload-input">
         <span>⇧ Click to upload, or drag images here</span>
         <input type="file" id="image-upload-input" accept="image/*" multiple hidden />
@@ -47,7 +47,7 @@ export function openImageLibrary(opts = {}) {
       <div id="image-library-grid" class="image-library-grid">
         <p class="empty-note">Loading…</p>
       </div>
-    `,
+    `),
     onClose: () => {
       imageLibraryUrls.forEach((url) => URL.revokeObjectURL(url));
       imageLibraryUrls = [];
@@ -152,7 +152,7 @@ export function renderImageLibraryGrid() {
     const thumbWrap = grid.querySelector(`.image-card[data-image="${img.id}"] .image-thumb-wrap`);
     try {
       const url = await ImageStore.getObjectUrl(img.id);
-// Historical context: see docs/CODEBASE_NOTES.md#jsimagelibrary-js-188-193
+// Historical context: see docs/CODEBASE_NOTES.md#jsimagelibrary-js
       if (url) imageLibraryUrls.push(url);
       if (!thumbWrap) return; // grid was re-rendered before this resolved
       if (url) {
@@ -175,13 +175,13 @@ export function renderImageLibraryGrid() {
     if (isCoverMode) {
       card.querySelector('.image-cover-btn').addEventListener('click', () => {
         Store.setCoverImage(id);
-// Historical context: see docs/CODEBASE_NOTES.md#jsimagelibrary-js-216-219
+// Historical context: see docs/CODEBASE_NOTES.md#jsimagelibrary-js
         const onSelect = imageLibraryOnSelect;
         closeModal();
         if (onSelect) onSelect(id);
       });
     } else if (isEntityMode) {
-// Historical context: see docs/CODEBASE_NOTES.md#jsimagelibrary-js-225-230
+// Historical context: see docs/CODEBASE_NOTES.md#jsimagelibrary-js
       card.querySelector('.image-entity-add-btn').addEventListener('click', () => {
         Store.addEntityImage(imageLibraryEntityId, id);
         renderImageLibraryGrid();
@@ -239,4 +239,4 @@ export function renderImageLibraryGrid() {
   });
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsimagelibrary-js-270-284
+// Historical context: see docs/CODEBASE_NOTES.md#jsimagelibrary-js

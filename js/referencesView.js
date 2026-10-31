@@ -1,4 +1,4 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jsreferencesview-js-1-22
+// Historical context: see docs/CODEBASE_NOTES.md#jsreferencesview-js
 
 import * as Store from './store.js';
 import { html, raw, toBridge, q } from './dom-utils.js';
@@ -9,12 +9,12 @@ import { resolveEntityAvatar } from './portraits.js';
 import { tagFilterBarHtml, wireTagFilterBar, filterByTagSet } from './tagFilter.js';
 import { EmptyState } from './emptyState.js';
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsreferencesview-js-33-37
+// Historical context: see docs/CODEBASE_NOTES.md#jsreferencesview-js
 let referenceTagFilters = new Set();
 
 // 0.2.6 Pass 1 — setActiveReferenceId moved to context.js (import below).
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsreferencesview-js-42-46
+// Historical context: see docs/CODEBASE_NOTES.md#jsreferencesview-js
 export function resetReferenceTagFilters() {
   referenceTagFilters = new Set();
   // Clear the active reference id — same reasoning as notesView's reset:
@@ -23,7 +23,7 @@ export function resetReferenceTagFilters() {
   setActiveReferenceId(null);
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsreferencesview-js-55-58
+// Historical context: see docs/CODEBASE_NOTES.md#jsreferencesview-js
 import { registerViewReset } from './viewLifecycle.js';
 registerViewReset('references', resetReferenceTagFilters);
 
@@ -63,7 +63,7 @@ export function renderReferencesView(project) {
   filteredRefs.forEach((ref) => {
     const item = document.createElement('button');
     item.className = 'notes-entity-item' + (ref.id === activeReferenceId ? ' active' : '');
-// Historical context: see docs/CODEBASE_NOTES.md#jsreferencesview-js-98-104
+// Historical context: see docs/CODEBASE_NOTES.md#jsreferencesview-js
     item.dataset.referenceId = ref.id;
     item.innerHTML = toBridge(html`<span class="reference-type-tag">${ref.refType}</span> ${ref.title}`);
     item.addEventListener('click', () => {
@@ -154,7 +154,7 @@ function renderReferenceMain(project) {
 
   q('reference-title').addEventListener('input', (e) => {
     Store.updateReference(ref.id, { title: e.target.value });
-// Historical context: see docs/CODEBASE_NOTES.md#jsreferencesview-js-195-198
+// Historical context: see docs/CODEBASE_NOTES.md#jsreferencesview-js
     const item = document.querySelector('.sketch-list-col .notes-entity-item.active');
     if (item) item.innerHTML = toBridge(html`<span class="reference-type-tag">${ref.refType}</span> ${e.target.value}`);
   });

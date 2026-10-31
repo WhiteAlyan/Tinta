@@ -58,7 +58,7 @@ globalThis.localStorage.clear();
 {
   Store.createProject('Multi-Chapter');
   const ch1 = Store.createChapter('Chapter One');
-  const ch2 = Store.createChapter('Chapter Two');
+  Store.createChapter('Chapter Two');
   const ch3 = Store.createChapter('Chapter Three');
 
   // Open ch1 first, then ch3 — ch3 should be the "last chapter"
@@ -147,8 +147,8 @@ globalThis.localStorage.clear();
   const ch2 = Store.createChapter('Chapter Two');
   const scene1 = Store.createScene(ch1.id, { title: 'Scene 1A' });
 
-  const openAnno = Store.createAnnotation({ chapterId: ch1.id, type: 'todo', note: 'Fix this later' });
-  const openSceneAnno = Store.createAnnotation({ chapterId: ch1.id, sceneId: scene1.id, type: 'continuity', note: 'Scene-level check' });
+  Store.createAnnotation({ chapterId: ch1.id, type: 'todo', note: 'Fix this later' });
+  Store.createAnnotation({ chapterId: ch1.id, sceneId: scene1.id, type: 'continuity', note: 'Scene-level check' });
   const resolvedAnno = Store.createAnnotation({ chapterId: ch2.id, type: 'check', note: 'Already verified' });
   Store.updateAnnotation(resolvedAnno.id, { resolved: true });
 
@@ -174,8 +174,8 @@ globalThis.localStorage.clear();
   const ch1 = Store.createChapter('Chapter One');
   const scene1 = Store.createScene(ch1.id, { title: 'Scene 1A' });
 
-  const openQ = Store.createStoryQuestion({ question: 'Who killed the king?' });
-  const openQWithPayoff = Store.createStoryQuestion({ question: 'Where is the dagger hidden?', introducedSceneId: scene1.id, payoffSceneId: scene1.id });
+  Store.createStoryQuestion({ question: 'Who killed the king?' });
+  Store.createStoryQuestion({ question: 'Where is the dagger hidden?', introducedSceneId: scene1.id, payoffSceneId: scene1.id });
   const resolvedQ = Store.createStoryQuestion({ question: 'Why did Mira lie?' });
   Store.updateStoryQuestion(resolvedQ.id, { resolved: true });
 
@@ -206,12 +206,12 @@ globalThis.localStorage.clear();
   Store.save();
 
   // A decision from 5 days before the anchor — should be in the last-7-days window
-  const recentDecision = Store.createDecision({ decision: 'Pick the blue door', reason: 'It glows' });
+  Store.createDecision({ decision: 'Pick the blue door', reason: 'It glows' });
   db.projects[db.activeProjectId].decisionLog[0].createdAt = '2025-06-10T12:00:00Z';
   Store.save();
 
   // A decision from 30 days before the anchor — outside the 7-day window
-  const oldDecision = Store.createDecision({ decision: 'Old choice', reason: '' });
+  Store.createDecision({ decision: 'Old choice', reason: '' });
   db.projects[db.activeProjectId].decisionLog[1].createdAt = '2025-05-15T12:00:00Z';
   Store.save();
 

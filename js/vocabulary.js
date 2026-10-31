@@ -1,4 +1,4 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jsvocabulary-js-1-17
+// Historical context: see docs/CODEBASE_NOTES.md#jsvocabulary-js
 
 // Chapter revision status → display label. Same map, new home; the
 // write sidebar's status dots and the drawer's labels both read it.
@@ -8,7 +8,7 @@ export const STATUS_LABEL = { draft: 'Draft', revised: 'Revised', final: 'Final'
 // the status picker cycles and the sidebar legend lists.
 export const STATUS_ORDER = ['draft', 'revised', 'final'];
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsvocabulary-js-27-43
+// Historical context: see docs/CODEBASE_NOTES.md#jsvocabulary-js
 
 import * as Store from './store.js';
 import {
@@ -29,7 +29,7 @@ function humanize(value) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsvocabulary-js-64-68
+// Historical context: see docs/CODEBASE_NOTES.md#jsvocabulary-js
 const DOMAINS = {
   chapterStatus: {
     entries: STATUS_ORDER,
@@ -82,13 +82,13 @@ function domainEntry(domain) {
   return d;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsvocabulary-js-121-124
+// Historical context: see docs/CODEBASE_NOTES.md#jsvocabulary-js
 export function vocabularyValues(domain) {
   const d = domainEntry(domain);
   return [...(d.labeled ? d.entries.map((t) => t.key) : d.entries)];
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsvocabulary-js-130-135
+// Historical context: see docs/CODEBASE_NOTES.md#jsvocabulary-js
 export function vocabularyLabel(domain, value) {
   const d = domainEntry(domain);
   if (d.labels && d.labels[value]) return d.labels[value];
@@ -105,12 +105,12 @@ export function vocabularyOrder(domain) {
   return vocabularyValues(domain);
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsvocabulary-js-152-156
+// Historical context: see docs/CODEBASE_NOTES.md#jsvocabulary-js
 export function vocabularyIsValid(domain, value) {
   return domainEntry(domain).entries.includes(value);
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsvocabulary-js-161-165
+// Historical context: see docs/CODEBASE_NOTES.md#jsvocabulary-js
 export function vocabularyIsTerminal(domain, value) {
   const d = domainEntry(domain);
   return Array.isArray(d.terminal) && d.terminal.includes(value);
@@ -121,7 +121,7 @@ export function vocabularyDomains() {
   return Object.keys(DOMAINS).map((k) => ({ key: k, note: DOMAINS[k].note }));
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsvocabulary-js-176-189
+// Historical context: see docs/CODEBASE_NOTES.md#jsvocabulary-js
 
 // Escape for HTML text/attribute interpolation — local copy so this
 // module stays import-light (dom-utils re-exports the same logic, but a

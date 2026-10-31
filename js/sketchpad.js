@@ -1,4 +1,4 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jssketchpad-js-1-8
+// Historical context: see docs/CODEBASE_NOTES.md#jssketchpad-js
 
 const LOGICAL_SIZE = 1000;
 
@@ -13,7 +13,7 @@ function clamp(v) {
   return Math.max(0, Math.min(LOGICAL_SIZE, v));
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jssketchpad-js-23-29
+// Historical context: see docs/CODEBASE_NOTES.md#jssketchpad-js
 export function attachDrawing(canvasEl, { getColor, getWidth, onStrokeStart, onStrokeMove, onStrokeComplete }) {
   let drawing = false;
   let points = [];
@@ -116,7 +116,7 @@ function drawGrid(ctx, canvasEl, style, color = 'rgba(0,0,0,0.12)') {
   ctx.restore();
 }
 
-function drawHexGrid(ctx, canvasEl, color) {
+function drawHexGrid(ctx, canvasEl, _color) {
   const r = canvasEl.width / 24; // hex radius, ~24 across the canvas width
   const hexW = Math.sqrt(3) * r;
   const hexH = 2 * r;

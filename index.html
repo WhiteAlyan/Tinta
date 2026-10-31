@@ -5,6 +5,23 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Tinta</title>
 <meta name="theme-color" content="#F7F5F0" />
+<!-- Roadmap #6 — Content-Security-Policy for the app shell. The writer's
+     prose lives here; this makes the browser, not just the escaping bridge,
+     the second line of defense against anything that slips past it:
+       script-src 'self'   — no inline scripts (SW registration is
+                             js/sw-register.js), no eval, no injected tags
+       style-src 'unsafe-inline' — the app styles via style= attributes
+                             and inline color choices by design
+       img-src data: blob: — user images arrive as data URLs / object URLs
+       connect-src https: + localhost — the opt-in grammar check posts the
+                             chapter to a user-configured endpoint; anything
+                             https is allowed, plus a local LanguageTool
+                             (http://localhost:8081 et al). Plain-http LAN
+                             endpoints need adding here on purpose.
+       media-src blob:     — custom ambience tracks load via object URLs
+       object-src 'none'; base-uri 'none'; form-action 'none' — nothing in
+                             the app needs plugins, base hijacks, or forms -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' https: http://localhost:* http://127.0.0.1:*; media-src 'self' blob:; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'" />
 <link rel="manifest" href="manifest.json" />
 
 <!-- Canvas-and-trio pass — fonts are self-hosted now (css/fonts.css +
@@ -97,12 +114,8 @@
 <div id="drawer-root"></div>
 
 <script type="module" src="js/app.js"></script>
-<script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js').catch(() => {});
-    });
-  }
-</script>
+<!-- Roadmap #6 — moved out of an inline <script> so CSP script-src 'self'
+     holds; see js/sw-register.js. -->
+<script src="js/sw-register.js"></script>
 </body>
 </html>

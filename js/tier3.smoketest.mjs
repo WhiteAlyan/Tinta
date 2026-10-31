@@ -165,9 +165,9 @@ section('Continuity report — blocked-interval reopening ("resurrection")');
   Store.updateChapterContent(chAfter.id, '[[Elena]] laughed again, alive and free.');
 
   const eSeal = Store.createTimelineEvent({ title: 'Elena sealed away', chapterId: null });
-  const eDuring = Store.createTimelineEvent({ title: 'Something stirs', chapterId: chDuring.id });
+  Store.createTimelineEvent({ title: 'Something stirs', chapterId: chDuring.id });
   const eFree = Store.createTimelineEvent({ title: 'Elena freed', chapterId: null });
-  const eAfter = Store.createTimelineEvent({ title: 'Elena returns', chapterId: chAfter.id });
+  Store.createTimelineEvent({ title: 'Elena returns', chapterId: chAfter.id });
 
   Store.addEntityStatusEvent(elena.id, { label: 'Sealed away', timelineEventId: eSeal.id, blocksAppearance: true });
   Store.addEntityStatusEvent(elena.id, { label: 'Freed', timelineEventId: eFree.id, blocksAppearance: false });
@@ -189,7 +189,7 @@ section('Continuity report — multiple entities, one with no status events');
   const ch = Store.createChapter('Later chapter');
   Store.updateChapterContent(ch.id, '[[Elena]] and [[Bram]] stood together.');
   const eDeath = Store.createTimelineEvent({ title: 'Elena dies', chapterId: null });
-  const eLater = Store.createTimelineEvent({ title: 'Later scene', chapterId: ch.id });
+  Store.createTimelineEvent({ title: 'Later scene', chapterId: ch.id });
   Store.addEntityStatusEvent(elena.id, { label: 'Deceased', timelineEventId: eDeath.id, blocksAppearance: true });
 
   const report = Store.getContinuityReport();
@@ -304,7 +304,7 @@ section('Migration — importing a pre-Tier-3 backup backfills statusEvents/styl
 // ═══════════════════════════════════════════════════════════════════════
 {
   Store.createProject('Pre-Tier-3 Migration Test');
-  const project = Store.getActiveProject();
+  Store.getActiveProject();
   const survivor = Store.createEntity({ type: 'character', name: 'Survivor' });
   Store.createEntity({ type: 'character', name: 'Another Entity' });
 

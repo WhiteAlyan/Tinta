@@ -1,6 +1,6 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jsrulesystem-js-1-15
+// Historical context: see docs/CODEBASE_NOTES.md#jsrulesystem-js
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsrulesystem-js-17-28
+// Historical context: see docs/CODEBASE_NOTES.md#jsrulesystem-js
 export function wouldCreateCycle(nodes, nodeId, candidateRequirementIds) {
   const byId = new Map(nodes.map((n) => [n.id, n]));
   const visited = new Set();
@@ -17,7 +17,7 @@ export function wouldCreateCycle(nodes, nodeId, candidateRequirementIds) {
   return (candidateRequirementIds || []).some((reqId) => reachesTarget(reqId));
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsrulesystem-js-45-54
+// Historical context: see docs/CODEBASE_NOTES.md#jsrulesystem-js
 export function orderByPrerequisite(nodes) {
   const byId = new Map(nodes.map((n) => [n.id, n]));
   const placed = new Set();

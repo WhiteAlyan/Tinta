@@ -1,8 +1,8 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jssearchview-js-1-31
+// Historical context: see docs/CODEBASE_NOTES.md#jssearchview-js
 
 import * as Store from './store.js';
 import * as SearchEngine from './search.js';
-import { html, raw, toBridge, q, escapeHtml } from './dom-utils.js';
+import { html, raw, toBridge, q, escapeHtml, escapeAttr } from './dom-utils.js';
 import { showStorageWarning } from './toast.js';
 import { requestRender } from './renderBus.js';
 import { flashAndScrollTo } from './dom-utils.js';
@@ -11,29 +11,29 @@ import { openEntityDrawer, openSceneInspector, openTimelineEventDrawer, openRefe
 import { confirmDialog } from './modal.js';
 import { setActiveMapId, setActiveSystemId } from './context.js';
 
-// Historical context: see docs/CODEBASE_NOTES.md#jssearchview-js-44-48
+// Historical context: see docs/CODEBASE_NOTES.md#jssearchview-js
 let searchQuery = '';
 let searchCaseSensitive = false;
 let searchReplacement = '';
-// Historical context: see docs/CODEBASE_NOTES.md#jssearchview-js-52-56
+// Historical context: see docs/CODEBASE_NOTES.md#jssearchview-js
 let searchUseRegex = false;
 let searchHiddenCategories = new Set();
-// Historical context: see docs/CODEBASE_NOTES.md#jssearchview-js-59-68
+// Historical context: see docs/CODEBASE_NOTES.md#jssearchview-js
 let searchQueryCaretPos = null;
 
-// Historical context: see docs/CODEBASE_NOTES.md#jssearchview-js-71-74
+// Historical context: see docs/CODEBASE_NOTES.md#jssearchview-js
 export function applySavedSearch(s) {
   searchQuery = s.query;
   searchCaseSensitive = s.caseSensitive;
   searchUseRegex = s.useRegex;
 }
 
-export function renderSearchView(project) {
+export function renderSearchView(_project) {
   const panel = document.querySelector('.view-panel[data-view="search"]');
   const trimmedQuery = searchQuery.trim();
   const results = trimmedQuery ? Store.searchProject(searchQuery, { caseSensitive: searchCaseSensitive, useRegex: searchUseRegex }) : null;
   const total = results ? SearchEngine.countTotalMatches(results) : 0;
-// Historical context: see docs/CODEBASE_NOTES.md#jssearchview-js-86-90
+// Historical context: see docs/CODEBASE_NOTES.md#jssearchview-js
   const totalRows = results ? SearchEngine.countResultRows(results) : 0;
 
   // Quick-wins pass — category filter chips. Only offer a chip for a
@@ -81,23 +81,23 @@ export function renderSearchView(project) {
               ? html`<div class="search-category-chips">${categories.map((c) => html`<button type="button" class="search-category-chip${showCategory(c.key) ? raw(' active') : ''}" data-category="${c.key}">${c.label} <span class="search-section-count">${c.count}</span></button>`)}</div>`
               : ''
           }${
-            showCategory('chapters') ? renderSearchSection('Chapters', results.chapters, (r) => renderSearchRow(r.title, r.matches.length, r.matches[0]?.snippet, `data-jump-chapter="${r.id}"`)) : ''
+            showCategory('chapters') ? renderSearchSection('Chapters', results.chapters, (r) => renderSearchRow(r.title, r.matches.length, r.matches[0]?.snippet, { 'data-jump-chapter': r.id })) : ''
           }${
-            showCategory('entities') ? renderSearchSection('Entities', results.entities, (r) => renderSearchRow(`${r.name} · ${r.type}${r.tagMatches.length ? ` · #${r.tagMatches.join(' #')}` : ''}`, r.nameMatches.length + r.descMatches.length + r.tagMatches.length, r.descMatches[0]?.snippet, `data-jump-entity="${r.id}"`)) : ''
+            showCategory('entities') ? renderSearchSection('Entities', results.entities, (r) => renderSearchRow(`${r.name} · ${r.type}${r.tagMatches.length ? ` · #${r.tagMatches.join(' #')}` : ''}`, r.nameMatches.length + r.descMatches.length + r.tagMatches.length, r.descMatches[0]?.snippet, { 'data-jump-entity': r.id })) : ''
           }${
-            showCategory('scenes') ? renderSearchSection('Scenes', results.scenes, (r) => renderSearchRow(`${r.chapterTitle} → ${r.title}`, r.matchCount, r.snippet, `data-jump-scene-chapter="${r.chapterId}" data-jump-scene="${r.id}"`)) : ''
+            showCategory('scenes') ? renderSearchSection('Scenes', results.scenes, (r) => renderSearchRow(`${r.chapterTitle} → ${r.title}`, r.matchCount, r.snippet, { 'data-jump-scene-chapter': r.chapterId, 'data-jump-scene': r.id })) : ''
           }${
-            showCategory('snippets') ? renderSearchSection('Snippets', results.snippets, (r) => renderSearchRow('Snippet', r.matches.length, r.matches[0]?.snippet, `data-jump-snippet="${r.id}"`)) : ''
+            showCategory('snippets') ? renderSearchSection('Snippets', results.snippets, (r) => renderSearchRow('Snippet', r.matches.length, r.matches[0]?.snippet, { 'data-jump-snippet': r.id })) : ''
           }${
-            showCategory('timelineEvents') ? renderSearchSection('Timeline', results.timelineEvents, (r) => renderSearchRow(r.title, r.titleMatches.length + r.dateMatches.length + r.descMatches.length, (r.descMatches[0] || r.dateMatches[0])?.snippet, `data-jump-event="${r.id}"`)) : ''
+            showCategory('timelineEvents') ? renderSearchSection('Timeline', results.timelineEvents, (r) => renderSearchRow(r.title, r.titleMatches.length + r.dateMatches.length + r.descMatches.length, (r.descMatches[0] || r.dateMatches[0])?.snippet, { 'data-jump-event': r.id })) : ''
           }${
-            showCategory('references') ? renderSearchSection('References', results.references, (r) => renderSearchRow(`${r.title} · ${r.refType}`, r.titleMatches.length + r.contentMatches.length + r.annotationMatches.length + r.urlMatches.length + r.sourceMatches.length, (r.contentMatches[0] || r.annotationMatches[0])?.snippet, `data-jump-reference="${r.id}"`)) : ''
+            showCategory('references') ? renderSearchSection('References', results.references, (r) => renderSearchRow(`${r.title} · ${r.refType}`, r.titleMatches.length + r.contentMatches.length + r.annotationMatches.length + r.urlMatches.length + r.sourceMatches.length, (r.contentMatches[0] || r.annotationMatches[0])?.snippet, { 'data-jump-reference': r.id })) : ''
           }${
-            showCategory('annotations') ? renderSearchSection('Annotations', results.annotations, (r) => renderSearchRow(Store.getAnnotationTypeLabel(r.type), 1, r.note, `data-jump-annotation-chapter="${r.chapterId}"`)) : ''
+            showCategory('annotations') ? renderSearchSection('Annotations', results.annotations, (r) => renderSearchRow(Store.getAnnotationTypeLabel(r.type), 1, r.note, { 'data-jump-annotation-chapter': r.chapterId })) : ''
           }${
-            showCategory('ruleSystems') ? renderSearchSection('Systems', results.ruleSystems, (r) => renderSearchRow(r.name, r.matchCount, r.nodeMatches.length ? `Nodes: ${r.nodeMatches.join(', ')}` : '', `data-jump-system="${r.id}"`)) : ''
+            showCategory('ruleSystems') ? renderSearchSection('Systems', results.ruleSystems, (r) => renderSearchRow(r.name, r.matchCount, r.nodeMatches.length ? `Nodes: ${r.nodeMatches.join(', ')}` : '', { 'data-jump-system': r.id })) : ''
           }${
-            showCategory('maps') ? renderSearchSection('Maps', results.maps, (r) => renderSearchRow(r.name, r.matchCount, r.markerLabels.length ? `Markers: ${r.markerLabels.join(', ')}` : '', `data-jump-map="${r.id}"`)) : ''
+            showCategory('maps') ? renderSearchSection('Maps', results.maps, (r) => renderSearchRow(r.name, r.matchCount, r.markerLabels.length ? `Markers: ${r.markerLabels.join(', ')}` : '', { 'data-jump-map': r.id })) : ''
           }`
     }
 
@@ -109,7 +109,7 @@ export function renderSearchView(project) {
     searchQueryCaretPos = e.target.selectionStart;
     renderSearchView(Store.getActiveProject());
   });
-// Historical context: see docs/CODEBASE_NOTES.md#jssearchview-js-166-172
+// Historical context: see docs/CODEBASE_NOTES.md#jssearchview-js
   const queryInput = q('search-query');
   queryInput.focus();
   const restorePos = searchQueryCaretPos !== null ? Math.min(searchQueryCaretPos, queryInput.value.length) : queryInput.value.length;
@@ -143,7 +143,7 @@ export function renderSearchView(project) {
   });
   panel.querySelectorAll('[data-jump-entity]').forEach((row) => {
     row.addEventListener('click', () => {
-// Historical context: see docs/CODEBASE_NOTES.md#jssearchview-js-206-209
+// Historical context: see docs/CODEBASE_NOTES.md#jssearchview-js
       openEntityDrawer(row.dataset.jumpEntity);
     });
   });
@@ -212,7 +212,7 @@ export function renderSearchView(project) {
       searchReplacement = e.target.value;
     });
     replaceBtn.addEventListener('click', async () => {
-// Historical context: see docs/CODEBASE_NOTES.md#jssearchview-js-278-281
+// Historical context: see docs/CODEBASE_NOTES.md#jssearchview-js
       const previewPlan = SearchEngine.planChapterReplace(Store.getActiveProject(), trimmedQuery, searchReplacement, { caseSensitive: searchCaseSensitive, useRegex: searchUseRegex });
       const chapterMatches = previewPlan.length;
       const matchTotal = previewPlan.reduce((sum, p) => sum + p.count, 0);
@@ -239,10 +239,20 @@ function renderSearchSection(label, rows, renderRow) {
   `;
 }
 
-function renderSearchRow(label, matchCount, snippet, dataAttr) {
-// Historical context: see docs/CODEBASE_NOTES.md#jssearchview-js-309-315
+function renderSearchRow(label, matchCount, snippet, dataAttrs) {
+// Historical context: see docs/CODEBASE_NOTES.md#jssearchview-js
+  // Code review S-2 fix — dataAttrs is now a { attributeName: value } map
+  // instead of a caller-built attribute fragment. The values are store ids
+  // that .tinta import preserves verbatim (only project/image ids are
+  // remapped), so they're attacker-controlled in a malicious package;
+  // escaping them HERE — once, centrally, rather than at each of the nine
+  // call sites — means the next category added to this view can't forget.
+  // The attribute NAMES are the trusted half of the pair.
+  const attrString = Object.entries(dataAttrs || {})
+    .map(([name, value]) => `${name}="${escapeAttr(value)}"`)
+    .join(' ');
   return html`
-    <div class="search-result-row" ${raw(dataAttr)}>
+    <div class="search-result-row" ${raw(attrString)}>
       <div class="search-result-main">
         <strong>${label}</strong>
         <span class="search-result-count">${matchCount} match${matchCount === 1 ? '' : 'es'}</span>
@@ -252,7 +262,7 @@ function renderSearchRow(label, matchCount, snippet, dataAttr) {
   `;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jssearchview-js-327-334
+// Historical context: see docs/CODEBASE_NOTES.md#jssearchview-js
 function renderReplacePanel(trimmedQuery) {
   const previewPlan = SearchEngine.planChapterReplace(Store.getActiveProject(), trimmedQuery, '', { caseSensitive: searchCaseSensitive, useRegex: searchUseRegex });
   const chapterMatchCount = previewPlan.reduce((sum, p) => sum + p.count, 0);
@@ -273,7 +283,7 @@ function renderReplacePanel(trimmedQuery) {
   `;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jssearchview-js-355-361
+// Historical context: see docs/CODEBASE_NOTES.md#jssearchview-js
 function highlightMatches(text, query, caseSensitive) {
   if (!query) return raw(escapeHtml(text));
   const haystack = caseSensitive ? text : text.toLowerCase();

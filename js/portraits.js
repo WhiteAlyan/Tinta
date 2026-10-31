@@ -1,15 +1,15 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jsportraits-js-1-5
+// Historical context: see docs/CODEBASE_NOTES.md#jsportraits-js
 import * as ImageStore from './imagestore.js';
 import { html, toBridge } from './dom-utils.js';
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsportraits-js-9-15
+// Historical context: see docs/CODEBASE_NOTES.md#jsportraits-js
 export let entityPortraitUrls = [];
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsportraits-js-18-24
+// Historical context: see docs/CODEBASE_NOTES.md#jsportraits-js
 export async function resolveEntityAvatar(container, imageId) {
   try {
     const url = await ImageStore.getObjectUrl(imageId);
-// Historical context: see docs/CODEBASE_NOTES.md#jsportraits-js-28-33
+// Historical context: see docs/CODEBASE_NOTES.md#jsportraits-js
     if (url) entityPortraitUrls.push(url);
     if (!container.isConnected) return; // view re-rendered before this resolved
     if (url) {
@@ -22,7 +22,7 @@ export async function resolveEntityAvatar(container, imageId) {
   }
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsportraits-js-46-53
+// Historical context: see docs/CODEBASE_NOTES.md#jsportraits-js
 export function revokeEntityPortraitUrls() {
   entityPortraitUrls.forEach((url) => URL.revokeObjectURL(url));
   entityPortraitUrls = [];

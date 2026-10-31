@@ -6,12 +6,12 @@ import * as ModalShell from './modal.js';
 import * as Palette from './palette.js';
 import * as Store from './store.js';
 import { setActiveChapterId, setActiveEntityId, setActiveView } from './context.js';
-import { html, q, toBridge } from './dom-utils.js';
-import { closeModal, openModal } from './modal.js';
+import { html, q, raw, toBridge } from './dom-utils.js';
+import { closeModal } from './modal.js';
 import { firstOpenChapterId, teardownLiveStateForProjectSwitch } from './projectSwitch.js';
 import { requestRender } from './renderBus.js';
 
-// Historical context: see docs/CODEBASE_NOTES.md#jscommandpalette-js-14-20
+// Historical context: see docs/CODEBASE_NOTES.md#jscommandpalette-js
 
 export function openCommandPalette() {
   const activeProject = Store.getActiveProject();
@@ -21,12 +21,12 @@ export function openCommandPalette() {
   const root = ModalShell.openModal({
     className: 'palette-modal',
     showHeader: false,
-    body: `
+    body: raw(`
       <input type="text" id="palette-query" class="palette-input" placeholder="Jump to a chapter, entity, or project…" autocomplete="off" />
       <div id="palette-results" class="palette-results"></div>
-    `,
+    `),
   });
-// Historical context: see docs/CODEBASE_NOTES.md#jscommandpalette-js-35-41
+// Historical context: see docs/CODEBASE_NOTES.md#jscommandpalette-js
   root.querySelector('.modal-backdrop').classList.add('palette-backdrop');
 
   const input = q('palette-query');
@@ -36,7 +36,7 @@ export function openCommandPalette() {
   // projects don't change while the palette is up, so there's no reason to
   // re-fetch from Store on every character typed.
   const index = [
-// Historical context: see docs/CODEBASE_NOTES.md#jscommandpalette-js-51-54
+// Historical context: see docs/CODEBASE_NOTES.md#jscommandpalette-js
     ...activeProject.chapters.filter((c) => !c.trashedAt).map((c) => ({
       kind: 'chapter',
       label: c.title,
@@ -61,7 +61,7 @@ export function openCommandPalette() {
       sublabel: p.id === activeProject.id ? 'Current project' : 'Project',
       action: () => {
         if (p.id !== activeProject.id) {
-// Historical context: see docs/CODEBASE_NOTES.md#jscommandpalette-js-79-84
+// Historical context: see docs/CODEBASE_NOTES.md#jscommandpalette-js
           teardownLiveStateForProjectSwitch();
           Store.switchProject(p.id);
           const next = Store.getActiveProject();
@@ -79,7 +79,7 @@ export function openCommandPalette() {
   function renderResults() {
     const trimmed = input.value.trim();
     if (!trimmed) {
-// Historical context: see docs/CODEBASE_NOTES.md#jscommandpalette-js-102-105
+// Historical context: see docs/CODEBASE_NOTES.md#jscommandpalette-js
       const recent = Store.getRecentActivity();
       currentResults = recent.length
         ? recent.map((r) => ({
@@ -87,7 +87,7 @@ export function openCommandPalette() {
             label: r.chapterTitle,
             sublabel: r.projectTitle,
             action: () => {
-// Historical context: see docs/CODEBASE_NOTES.md#jscommandpalette-js-113-118
+// Historical context: see docs/CODEBASE_NOTES.md#jscommandpalette-js
               if (r.projectId !== activeProject.id) teardownLiveStateForProjectSwitch();
               Store.switchProject(r.projectId);
               setActiveChapterId(r.chapterId);
@@ -156,7 +156,7 @@ export function openCommandPalette() {
     // keydown listener, which already calls closeModal().
   });
 
-// Historical context: see docs/CODEBASE_NOTES.md#jscommandpalette-js-187-191
+// Historical context: see docs/CODEBASE_NOTES.md#jscommandpalette-js
 
   renderResults();
   input.focus();

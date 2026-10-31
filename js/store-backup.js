@@ -1,18 +1,22 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-backup-js-1-24
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-backup-js
 
-import { isCrossTabStale, load, replaceDb, save } from './store-core.js';
+// Roadmap #7 — clearUndoHistory joined the import: a full-backup restore
+// replaces the entire db, so undo entries recorded before the restore point
+// at records that no longer exist (or worse, undo a restore into a mixture
+// of two documents). Same treatment recoveryToast's restore got.
+import { clearUndoHistory, isCrossTabStale, load, replaceDb, save } from './store-core.js';
 
 export function exportManifest() {
   return JSON.stringify(load(), null, 2);
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-backup-js-32-36
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-backup-js
 
 export function exportFullBackup() {
   return JSON.stringify(load(), null, 2);
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-backup-js-42-45
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-backup-js
 export function importFullBackup(jsonText) {
   let parsed;
   try {
@@ -28,16 +32,16 @@ export function importFullBackup(jsonText) {
     // the file rather than rejecting an otherwise-valid backup over this.
     parsed.activeProjectId = Object.keys(parsed.projects)[0];
   }
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-backup-js-61-66
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-backup-js
   if (isCrossTabStale()) {
     throw new Error('This tab is paused because another tab just saved. Reload this tab, then try the restore again.');
   }
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-backup-js-70-76
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-backup-js
   const previousDb = load();
   const restored = replaceDb(parsed);
   const ok = save();
   if (!ok) {
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-backup-js-81-85
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-backup-js
     replaceDb(previousDb);
     // P2-1 fix — the old "storage may be full" message was misleading
     // when the actual failure was a cross-tab-stale race. The
@@ -52,5 +56,13 @@ export function importFullBackup(jsonText) {
     }
     throw new Error('The backup was read, but saving it locally failed (storage may be full). Your current project was not changed.');
   }
+  // Roadmap #7 — the restore landed. Every undo entry still on the stack
+  // describes a mutation to the PRE-restore db; undoing now would apply an
+  // old-document delta on top of a different document (or silently "undo"
+  // the restore itself). Clearing is the honest state: there is nothing to
+  // undo *into* — the pre-restore world only exists in the backup file.
+  // Only cleared on SUCCESS: the failure path above already rolled the
+  // in-memory db back, so its undo history still matches reality.
+  clearUndoHistory();
   return restored;
 }

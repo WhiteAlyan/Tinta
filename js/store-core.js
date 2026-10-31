@@ -1,16 +1,20 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-1-16
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
 
-import { saveRecoverySnapshot, getRecoverySnapshot, clearRecoverySnapshot } from './recoveryStore.js';
+import { saveRecoverySnapshot, getRecoverySnapshot, clearRecoverySnapshot, saveDowngradeQuarantine } from './recoveryStore.js';
 
 const DB_KEY = 'tinta:db';
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-19-23
+// Roadmap #5 — exported (and re-exported through store.js) so the .tinta
+// manifest builder and the import guards compare against the one source of
+// truth. It was previously module-private while tintaPackage.js read
+// Store.SCHEMA_VERSION, which evaluated to undefined — every exported
+// manifest silently carried no schemaVersion at all.
+export const SCHEMA_VERSION = 5;
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
 export const STORAGE_KEY = DB_KEY;
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-25-29
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
 const LEGACY_DB_KEY = 'scriptorium:db';
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-31-40
-const SCHEMA_VERSION = 5;
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-43-48
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
 export const MAX_RECENT_ACTIVITY = 8;
 
 // ── safe dictionary lookup ─────────────────────────────────────────────
@@ -65,23 +69,23 @@ export function makeProject(title = 'My Novel') {
     title,
     createdAt: now(),
     updatedAt: now(),
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-70-74
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     lastOpenedAt: '',
     wordGoal: 0,
     // Session 21 — local ISO date of the last goal-hit celebration toast,
     // '' if never. See checkGoalCelebration() below for why this is a
     // per-day guard rather than a per-crossing one.
     lastGoalCelebrationDate: '',
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-81-87
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     coverImageId: null,
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-89-98
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     startedAt: null,
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-100-111
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     storyType: '', // e.g. "Fiction", "Fanfic" — free text, not a fixed enum
     genre: '',
     language: '',
     blurb: '', // synopsis/description — prose, not a filter field
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-116-122
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     seriesId: null,
     // v0.2.9 — passive entity recognition. mentionStopwords is a list of
     // words the writer has marked as "not an entity mention even though
@@ -98,21 +102,21 @@ export function makeProject(title = 'My Novel') {
         order: 0,
         status: 'draft', // 'draft' | 'revised' | 'final'
         povCharacter: '',
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-131-135
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
         arc: '',
         targetWordCount: 0,
         writeTimeMs: 0,
         content: '',
         updatedAt: now(),
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-141-145
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
         lastOpenedAt: '',
         scenes: [],
         // Session 6 — manual revision snapshots. See createSnapshot() below.
         snapshots: [],
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-150-153
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
         lastCursorPos: 0,
         lastScrollTop: 0,
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-156-171
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
         lastReadSpread: 0,
         lastAutoCheckpointAt: now(),
       },
@@ -124,19 +128,19 @@ export function makeProject(title = 'My Novel') {
     // collection rather than nested on entities, same reasoning as
     // mentions being decoupled from what they point at.
     relationships: {},
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-183-191
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     relationshipTypes: {},
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-193-200
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     sceneRelationships: {},
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-202-209
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     storyQuestions: {},
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-211-218
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     graphPresets: {},
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-220-225
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     pronunciations: {},
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-227-231
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     customDictionary: [],
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-233-241
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     styleGuide: [],
     // Session 5 — sketchpad/map-maker. Strokes stored as vector point
     // arrays, not raster images, to stay small and JSON-serializable —
@@ -146,28 +150,28 @@ export function makeProject(title = 'My Novel') {
     // deliberately not entities or scenes, just a place to park a
     // stray idea without deciding where it belongs yet.
     snippets: {},
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-251-255
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     timelineEvents: {},
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-257-265
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     calendar: null,
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-267-279
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     maps: {},
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-281-290
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     references: {},
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-292-299
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     annotations: {},
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-301-304
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     bookmarks: {},
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-306-313
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     quotes: {},
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-315-330
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     ruleSystems: {},
     systemNodes: {},
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-333-339
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     dailyWordCounts: {},
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-341-345
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     images: {},
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-347-374
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     entityTypes: [
       {
         key: 'character',
@@ -185,7 +189,7 @@ export function makeProject(title = 'My Novel') {
       { key: 'item', label: 'Item', color: null, builtin: true, fields: [] },
       { key: 'concept', label: 'Concept', color: null, builtin: true, fields: [] },
     ],
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-392-404
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     chapterTypes: [
       { key: 'chapter', label: 'Chapter', role: 'content', builtin: true },
       { key: 'prologue', label: 'Prologue', role: 'content', builtin: true },
@@ -202,14 +206,14 @@ export function makeProject(title = 'My Novel') {
       { key: 'research-note', label: 'Research note', role: 'scratch', builtin: true },
       { key: 'alternate-draft', label: 'Alternate/draft material', role: 'scratch', builtin: true },
     ],
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-421-430
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     folders: [],
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-432-445
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     parts: [],
     collections: [],
     savedSearches: [],
     recentChapterIds: [],
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-450-462
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     documentTemplates: [
       { id: 'tpl-new-chapter', builtin: true, appliesTo: 'chapter', name: 'New Chapter', docType: 'chapter', titleSeed: 'Untitled Chapter', content: '' },
       { id: 'tpl-new-scene', builtin: true, appliesTo: 'scene', name: 'New Scene', titleSeed: 'Untitled Scene', sceneFields: { goal: '', conflict: '', outcome: '', notes: '', location: '' } },
@@ -261,7 +265,7 @@ export function makeProject(title = 'My Novel') {
   };
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-514-527
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
 export function makeSeries(title = 'Untitled Series') {
   return {
     id: uid('series'),
@@ -294,32 +298,32 @@ function emptyDb() {
     activeProjectId: project.id,
     theme: 'paper', // 'paper' | 'void' | 'sepia'
     manuscriptFont: 'literata', // 'literata' | 'hyperlegible' | 'mono' | 'custom'
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-560-569
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     customFont: { family: '', fileName: '' },
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-571-576
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     navStyle: 'grouped', // 'grouped' | 'compact'
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-578-587
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     motion: {
       chapterTransitions: true,
       speed: 'normal', // 'subtle' | 'normal' | 'relaxed'
     },
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-592-597
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     grammar: {
       enabled: false,
       endpointUrl: 'https://api.languagetool.org/v2/check',
       language: 'en-US',
       apiKey: '',
       username: '',
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-604-608
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
       responseFormat: 'languagetool',
     },
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-611-619
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     ambience: {
       track: 'off',
       volume: 0.4,
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-623-628
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
       customTrackName: '',
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-630-635
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
       customTrackSource: 'file', // 'file' | 'url'
       customTrackUrl: '',
     },
@@ -327,19 +331,19 @@ function emptyDb() {
       voiceURI: '',
       rate: 1,
     },
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-643-647
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     typewriter: {
       enabled: false,
       volume: 0.5,
       style: 'classic', // 'classic' | 'soft' | 'mechanical' | 'digital' — all synthesized, see typewriter.js
     },
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-653-660
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     autosaveDelayMs: 1500, // 0 (off) | 600 | 2000 | 5000
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-662-665
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     recentActivity: [],
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-667-677
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     customThesaurus: {},
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-679-688
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     background: {
       mode: 'none', // 'none' | 'gradient' | 'image'
       gradient: { colorA: '#B08D57', colorB: '#F7F5F0', direction: 'to bottom right' },
@@ -363,7 +367,7 @@ function emptyDb() {
   };
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-704-718
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
 function applyLegacyFieldMigrations(db) {
   if (!db.grammar) {
     db.grammar = {
@@ -390,7 +394,7 @@ function applyLegacyFieldMigrations(db) {
   if (!['subtle', 'normal', 'relaxed'].includes(db.motion.speed)) db.motion.speed = 'normal';
   if (!db.recentActivity) db.recentActivity = [];
   if (!db.customThesaurus || typeof db.customThesaurus !== 'object') db.customThesaurus = {};
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-745-749
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
   if (!db.background || typeof db.background !== 'object') {
     db.background = {
       mode: 'none',
@@ -416,14 +420,14 @@ function applyLegacyFieldMigrations(db) {
     // references above: old saves predate these tables entirely.
     if (!project.annotations) project.annotations = {};
     if (!project.bookmarks) project.bookmarks = {};
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-775-781
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     if (!project.ruleSystems) project.ruleSystems = {};
     if (!project.systemNodes) project.systemNodes = {};
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-784-787
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     if (!project.entities) project.entities = {};
     if (!project.relationships) project.relationships = {};
     if (!project.relationshipTypes) project.relationshipTypes = {};
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-791-802
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     Object.values(project.relationships).forEach((rel) => {
       if (rel.typeId !== undefined) return;
       const trimmed = (rel.label || '').trim();
@@ -441,7 +445,7 @@ function applyLegacyFieldMigrations(db) {
     });
     if (!project.sketches) project.sketches = {};
     if (!project.snippets) project.snippets = {};
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-820-823
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     Object.values(project.snippets).forEach((s) => {
       if (typeof s.category !== 'string') s.category = '';
     });
@@ -451,10 +455,10 @@ function applyLegacyFieldMigrations(db) {
     if (typeof project.lastGoalCelebrationDate !== 'string') project.lastGoalCelebrationDate = '';
     if (project.coverImageId === undefined) project.coverImageId = null;
     if (project.startedAt === undefined) project.startedAt = null;
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-833-837
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     if (typeof project.lastOpenedAt !== 'string') project.lastOpenedAt = '';
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-839-842
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-406-411
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     if (!Array.isArray(project.chapters)) project.chapters = [];
     project.chapters.forEach((chapter) => {
       if (typeof chapter.lastOpenedAt !== 'string') chapter.lastOpenedAt = '';
@@ -464,7 +468,7 @@ function applyLegacyFieldMigrations(db) {
     if (typeof project.genre !== 'string') project.genre = '';
     if (typeof project.language !== 'string') project.language = '';
     if (typeof project.blurb !== 'string') project.blurb = '';
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-851-857
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     if (!Array.isArray(project.entityTypes)) {
       project.entityTypes = [
         {
@@ -484,7 +488,7 @@ function applyLegacyFieldMigrations(db) {
         { key: 'concept', label: 'Concept', color: null, builtin: true, fields: [] },
       ];
     }
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-877-883
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     {
       const charType = project.entityTypes.find((t) => t.key === 'character');
       if (charType) {
@@ -528,7 +532,7 @@ function applyLegacyFieldMigrations(db) {
     if (!Array.isArray(project.collections)) project.collections = [];
     if (!Array.isArray(project.savedSearches)) project.savedSearches = [];
     if (!Array.isArray(project.recentChapterIds)) project.recentChapterIds = [];
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-927-931
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     if (!Array.isArray(project.documentTemplates)) {
       project.documentTemplates = [
         { id: 'tpl-new-chapter', builtin: true, appliesTo: 'chapter', name: 'New Chapter', docType: 'chapter', titleSeed: 'Untitled Chapter', content: '' },
@@ -597,14 +601,14 @@ function applyLegacyFieldMigrations(db) {
       if (typeof chapter.lastScrollTop !== 'number') chapter.lastScrollTop = 0;
       // Session 22 — arc label, added to the chapter shape.
       if (typeof chapter.arc !== 'string') chapter.arc = '';
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-1000-1004
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
       if (typeof chapter.targetWordCount !== 'number') chapter.targetWordCount = 0;
       if (typeof chapter.writeTimeMs !== 'number') chapter.writeTimeMs = 0;
       // Document-type foundation pass — every pre-existing chapter is a
       // plain 'chapter' by definition (the concept didn't exist before
       // this pass, so there's nothing to infer from old data).
       if (typeof chapter.docType !== 'string') chapter.docType = 'chapter';
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-1011-1015
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
       if (typeof chapter.folderId === 'undefined') chapter.folderId = null;
       // Containers foundation pass — backfill for any chapter that
       // predates parts existing at all.
@@ -613,7 +617,7 @@ function applyLegacyFieldMigrations(db) {
       if (typeof chapter.pinned !== 'boolean') chapter.pinned = false;
       if (typeof chapter.archived !== 'boolean') chapter.archived = false;
       if (typeof chapter.trashedAt === 'undefined') chapter.trashedAt = null;
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-570-574
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
       if (!Array.isArray(chapter.scenes)) chapter.scenes = [];
       // Contextual drawer/inspector pass — POV/location/time/mood/status on
       // scenes created before these fields existed.
@@ -625,7 +629,7 @@ function applyLegacyFieldMigrations(db) {
         if (typeof scene.status !== 'string') scene.status = 'draft';
       });
     });
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-1034-1040
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     (project.chapters || []).forEach((chapter) => {
       chapter.scenes.forEach((scene) => {
         if (typeof scene.obstacle !== 'string') scene.obstacle = '';
@@ -642,16 +646,16 @@ function applyLegacyFieldMigrations(db) {
       // lastCursorPos/lastScrollTop above but for the paginated reader
       // rather than the editor.
       if (typeof chapter.lastReadSpread !== 'number') chapter.lastReadSpread = 0;
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-1057-1063
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
       if (typeof chapter.lastAutoCheckpointAt !== 'string') chapter.lastAutoCheckpointAt = chapter.updatedAt || now();
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-1065-1072
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
       (chapter.snapshots || []).forEach((snap) => {
         if (typeof snap.auto !== 'boolean') snap.auto = snap.label === 'Auto-checkpoint';
       });
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-1076-1079
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
       capAutoSnapshots(chapter.snapshots || []);
     });
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-1082-1085
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     if (!Array.isArray(project.deletedItemBackups)) project.deletedItemBackups = [];
     if (!Array.isArray(project.decisionLog)) project.decisionLog = [];
     // Session 23 — entity image galleries (portraits/reference art), so
@@ -661,7 +665,7 @@ function applyLegacyFieldMigrations(db) {
       if (!Array.isArray(entity.imageIds)) entity.imageIds = [];
       if (entity.primaryImageId === undefined) entity.primaryImageId = null;
     });
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-1095-1105
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     Object.values(project.entities || {}).forEach((entity) => {
       if (typeof entity.canonStatus !== 'string' || !CANON_STATUSES.includes(entity.canonStatus)) entity.canonStatus = 'canon';
       if (entity.generation === undefined) entity.generation = null;
@@ -670,7 +674,7 @@ function applyLegacyFieldMigrations(db) {
       if (typeof system.canonStatus !== 'string' || !CANON_STATUSES.includes(system.canonStatus)) system.canonStatus = 'canon';
       if (system.generation === undefined) system.generation = null;
     });
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-1114-1118
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     Object.values(project.relationships || {}).forEach((rel) => {
       if (typeof rel.status !== 'string') rel.status = '';
       if (typeof rel.strength !== 'string') rel.strength = '';
@@ -702,7 +706,7 @@ function applyLegacyFieldMigrations(db) {
   return db;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-1150-1178
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
 function migrate_v2_to_v3(db) {
   const backfillAuthoritySource = (record) => {
     if (typeof record.authoritySource !== 'string' || !AUTHORITY_SOURCES.includes(record.authoritySource)) {
@@ -718,7 +722,7 @@ function migrate_v2_to_v3(db) {
   });
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-1194-1201
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
 function migrate_v3_to_v4(db) {
   Object.values(db.projects || {}).forEach((project) => {
     if (!project.quotes) project.quotes = {};
@@ -765,7 +769,7 @@ const VERSIONED_MIGRATIONS = {
 };
 
 function migrate(db) {
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-1214-1224
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
   // P2-6 documentation — two parallel migration systems coexist here,
   // and the convention matters for future contributors:
   //
@@ -811,24 +815,24 @@ function migrate(db) {
 
 let _db = null;
 
-// P2-7 — recovery-snapshot flag. Set to true on first quota failure
-// (so we don't re-save the same snapshot on every retry); reset to
-// false on successful save (so a future quota failure can save a
-// fresh snapshot). Lives at module scope so all writeToLocalStorage
-// calls see the same flag.
-let _recoverySnapshotSaved = false;
-
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-1242-1245
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
 let _loadWarning = null;
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-1248-1252
+// Roadmap #5 — set when load() finds a db written by a NEWER Tinta (version
+// above SCHEMA_VERSION). While set, every save path refuses to touch
+// tinta:db so this build can never clobber data whose schema it can't
+// interpret. Cleared never — a locked session stays locked; the writer was
+// pointed at the newer build.
+let _schemaDowngradeLock = false;
+
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
 const _saveErrorListeners = [];
 
 export function onSaveError(fn) {
   _saveErrorListeners.push(fn);
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-1259-1263
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
 const _saveSuccessListeners = [];
 
 export function onSaveSuccess(fn) {
@@ -865,6 +869,14 @@ export function consumeLoadWarning() {
 
 export function load() {
   if (_db) return _db;
+  // Roadmap #9 — bound the corrupt-backup quarantine BEFORE anything this
+  // boot can add to it. Each `tinta:db:corrupt-backup:<ts>` key holds a
+  // full copy of an unreadable db, and they used to accumulate forever:
+  // every boot that hit an unreadable key added one, nothing ever removed
+  // one, and every one of them spends the same ~5 MB localStorage budget
+  // the live db lives in. The newest two are kept (the recovery path at
+  // most ever needs the most recent quarantine); anything older goes.
+  sweepCorruptBackups();
   let migratedFromLegacyKey = false;
   let raw = null;
 
@@ -891,13 +903,38 @@ export function load() {
       if (!parsed || !parsed.projects || Object.keys(parsed.projects).length === 0) {
         throw new Error('saved data has no projects');
       }
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-1326-1335
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
       if (!parsed.activeProjectId || !parsed.projects[parsed.activeProjectId]) {
         parsed.activeProjectId = Object.keys(parsed.projects)[0];
       }
-      _db = parsed;
+      // Roadmap #5 — downgrade guard. A db whose version is above
+      // SCHEMA_VERSION was written by a newer Tinta and carries schema
+      // semantics this build doesn't know (fields it would drop, migrations
+      // a later upgrade would then wrongly skip because the version tag
+      // already claims them). Every save re-serializes the whole db, so
+      // "load it but don't touch it" isn't a real option — instead:
+      // quarantine the raw bytes, boot on an empty db, and lock all writes
+      // so the newer data is never clobbered. The writer gets a load
+      // warning explaining where their data went.
+      if (typeof parsed.version === 'number' && parsed.version > SCHEMA_VERSION) {
+        _schemaDowngradeLock = true;
+        // Pristine safety copy to IndexedDB (a separate quota universe
+        // from the localStorage key being protected). Fire-and-forget:
+        // the write lock keeps localStorage's copy pristine regardless.
+        saveDowngradeQuarantine(raw).catch(() => {});
+        _db = emptyDb();
+        _loadWarning = {
+          type: 'downgrade',
+          message:
+            `This database was written by a newer version of Tinta (schema v${parsed.version}; this build understands up to v${SCHEMA_VERSION}). ` +
+            'Your data was not modified — a pristine copy was also saved to browser storage, and saving is paused in this build so nothing can overwrite it. ' +
+            'Please continue in the newer version of Tinta, or update this copy first.',
+        };
+      } else {
+        _db = parsed;
+      }
     } catch {
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-1341-1347
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
       try {
         localStorage.setItem(`${DB_KEY}:corrupt-backup:${Date.now()}`, raw);
       } catch {
@@ -917,13 +954,57 @@ export function load() {
 
   _db = migrate(_db);
   ensureCrossTabListener();
-  if (migratedFromLegacyKey) save(); // persist under DB_KEY right away so this path only runs once
+  // Roadmap #5 — never persist under DB_KEY when a downgrade lock is on:
+  // the legacy-key migration path would otherwise write the EMPTY db over
+  // the newer data it just refused to load.
+  if (migratedFromLegacyKey && !_schemaDowngradeLock) {
+    // Roadmap #9 — persist under DB_KEY right away so this path only runs
+    // once, and then actually DELETE the legacy key. Until this write
+    // succeeds, `scriptorium:db` is still the only copy of the writer's
+    // data and must not be touched; afterwards it is a stale duplicate
+    // spending quota for nothing — the exact "legacy key re-saved under
+    // the new name but never deleted" erosion the review flagged. A failed
+    // save leaves the legacy key in place (it may be needed again).
+    if (save()) {
+      try { localStorage.removeItem(LEGACY_DB_KEY); } catch { /* best effort — it will be swept again on the next successful migration-save */ }
+    }
+  }
   return _db;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-1371-1390
+// Roadmap #9 — see the call at the top of load(). Enumerates quarantine
+// keys, keeps the KEEP_CORRUPT_BACKUPS newest by timestamp, removes the
+// rest. Every failure is swallowed by design: a hygiene sweep must never
+// turn a boot into a crash, and losing an OLD quarantine is strictly
+// better than losing the boot.
+const CORRUPT_BACKUP_PREFIX = `${DB_KEY}:corrupt-backup:`;
+const KEEP_CORRUPT_BACKUPS = 2;
+function sweepCorruptBackups() {
+  let length = 0;
+  try {
+    length = localStorage.length;
+  } catch {
+    return; // localStorage unreachable — nothing to sweep
+  }
+  const stamps = [];
+  for (let i = 0; i < length; i++) {
+    try {
+      const key = localStorage.key(i);
+      if (key && key.startsWith(CORRUPT_BACKUP_PREFIX)) {
+        const ts = Number(key.slice(CORRUPT_BACKUP_PREFIX.length));
+        stamps.push({ key, ts: Number.isFinite(ts) ? ts : 0 });
+      }
+    } catch { /* a single unreadable key shouldn't stop the sweep */ }
+  }
+  stamps.sort((a, b) => b.ts - a.ts);
+  for (const stale of stamps.slice(KEEP_CORRUPT_BACKUPS)) {
+    try { localStorage.removeItem(stale.key); } catch { /* best effort */ }
+  }
+}
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-1392-1397
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
+
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
 let _crossTabStale = false;
 const _crossTabListeners = [];
 export function onCrossTabConflict(fn) {
@@ -954,12 +1035,12 @@ function handleStorageEvent(e) {
     const ourRev = _db?.rev || 0;
     if (incomingRev > ourRev) {
       _crossTabStale = true;
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-1428-1436
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
       clearSaveRetry();
       notifyCrossTabConflict({ incomingRev, ourRev });
     }
   } catch {
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-1441-1444
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
   }
 }
 
@@ -976,7 +1057,7 @@ export function _simulateStorageEvent(newValueJson) {
   handleStorageEvent({ key: DB_KEY, newValue: newValueJson });
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-1461-1466
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
 const SAVE_RETRY_DELAYS_MS = [2000, 5000, 15000, 30000]; // last value repeats
 let _saveRetryTimer = null;
 let _saveRetryAttempt = 0;
@@ -1018,7 +1099,7 @@ export function _forceSaveRetryNow() {
   return true;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-1508-1516
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
 const STORAGE_WARNING_THRESHOLD_BYTES = 4 * 1024 * 1024; // ~4MB — ahead of the ~5MB wall
 const STORAGE_WARNING_RESET_RATIO = 0.9; // must drop back below 90% of the threshold to re-arm
 let _sizeWarningShown = false;
@@ -1044,8 +1125,15 @@ function checkStorageHeadroom() {
 
 export function save() {
   if (!_db) return true;
+  // Roadmap #5 — schema-downgrade lock: this session booted on a newer
+  // binary's db; writing would destroy it. Same refusal shape as the
+  // cross-tab-stale guard below.
+  if (_schemaDowngradeLock) {
+    notifySaveError({ type: 'locked', error: null });
+    return false;
+  }
   if (_crossTabStale) {
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-1543-1547
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     notifySaveError({ type: 'stale', error: null });
     return false;
   }
@@ -1053,54 +1141,65 @@ export function save() {
 }
 
 function writeToLocalStorage() {
+  if (_schemaDowngradeLock) {
+// Roadmap #5 — retries are pointless while the lock is on (the payload can
+// never land), so stop the retry machinery the way the storage-event stale
+// path does, and report through the same channel app.js listens on.
+    clearSaveRetry();
+    notifySaveError({ type: 'locked', error: null });
+    return false;
+  }
   if (_crossTabStale) {
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-1556-1564
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     notifySaveError({ type: 'stale', error: null });
     return false;
   }
   try {
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-1569-1578
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     const newRev = (_db.rev || 0) + 1;
     const json = JSON.stringify({ ..._db, rev: newRev });
     localStorage.setItem(DB_KEY, json);
     _db.rev = newRev; // only commit the bump after the write actually landed
     clearSaveRetry();
     checkStorageHeadroom();
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-1585-1589
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     notifySaveSuccess();
     // P2-7 — successful save means any previous recovery snapshot is
-    // now stale (the disk has the latest state). Reset the "already
-    // snapshotted" flag so a future quota failure can save a fresh
-    // one. The clearRecoverySnapshot call is async fire-and-forget;
-    // if it fails the next boot will see the stale snapshot and
-    // silently discard it via the rev comparison in
-    // recoveryToast.maybeShow().
-    _recoverySnapshotSaved = false;
+    // now stale (the disk has the latest state), so drop it. If the
+    // clear fails, the next boot sees the stale snapshot and silently
+    // discards it via the rev comparison in recoveryToast.maybeShow().
     clearRecoverySnapshot().catch(() => {});
     return true;
   } catch (err) {
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-1593-1596
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
     const isQuota = Boolean(err && /quota/i.test(err.name || err.message || ''));
     notifySaveError({ type: isQuota ? 'quota' : 'unknown', error: err });
     scheduleSaveRetry();
-    // P2-7 fix — on first quota failure (not retries), save the
-    // in-memory _db to IndexedDB as a recovery snapshot. IndexedDB
-    // has ~50MB+ quota vs localStorage's ~5MB, so the same payload
-    // that failed to land in localStorage will usually land in
-    // IndexedDB. The snapshot is read by recoveryToast.maybeShow()
-    // on next boot and offered to the writer for restore. The flag
-    // avoids saving the snapshot on every retry (the in-memory _db
-    // doesn't change between retries, so the snapshot would be
-    // identical anyway). The flag is reset on successful save above.
-    if (isQuota && !_recoverySnapshotSaved) {
-      _recoverySnapshotSaved = true;
+    // P2-7, roadmap #3 revision — on a quota failure, snapshot the
+    // in-memory _db to IndexedDB. IndexedDB has ~50MB+ quota vs
+    // localStorage's ~5MB, so the same payload that failed to land in
+    // localStorage will usually land in IndexedDB; recoveryToast.maybeShow()
+    // offers it back on next boot.
+    //
+    // This used to snapshot only the FIRST quota failure (guarded by a
+    // module flag reset on the next successful save). That was built on a
+    // wrong assumption: "the in-memory _db doesn't change between retries".
+    // It does — the writer keeps working while every save fails, and the
+    // retry timer re-saves the same stale payload, so only the first
+    // snapshot ever mattered. Anything typed after the first quota error
+    // existed only in RAM and was lost if the tab closed. Snapshotting on
+    // EVERY quota failure means the IndexedDB copy always tracks the
+    // freshest unsaved state. The cost is one async IndexedDB put per
+    // failed save (rare by definition — saving is broken), and puts on the
+    // same store serialize, so overlapping retries can't corrupt it.
+    if (isQuota) {
       saveRecoverySnapshot(_db).catch(() => {});
     }
     return false;
   }
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-1604-1607
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
 export function estimateDbSizeBytes() {
   if (!_db) return 0;
   return JSON.stringify(_db).length * 2;
@@ -1111,12 +1210,12 @@ export function estimateDbSizeBytes() {
 // changes that landed in IndexedDB but not localStorage.
 export { getRecoverySnapshot, clearRecoverySnapshot };
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-1613-1652
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
 const MAX_UNDO_STACK = 100;
 let _undoStack = [];
 let _redoStack = [];
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-1657-1666
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
 export function cloneWithoutSnapshots(obj) {
   const { snapshots: _omit, ...rest } = obj;
   return JSON.parse(JSON.stringify(rest));
@@ -1140,7 +1239,7 @@ export function canRedo() { return _redoStack.length > 0; }
 export function getUndoLabel() { return _undoStack.length ? _undoStack[_undoStack.length - 1].label : null; }
 export function getRedoLabel() { return _redoStack.length ? _redoStack[_redoStack.length - 1].label : null; }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-1690-1698
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
 function applyMutationEntry(project, targetType, targetId, data) {
   if (targetType === 'chapter') {
     const idx = project.chapters.findIndex((c) => c.id === targetId);
@@ -1162,10 +1261,10 @@ function applyMutationEntry(project, targetType, targetId, data) {
   }
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-1720-1723
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
 export function undo() {
   if (!_undoStack.length) return null;
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-1726-1735
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
   const entry = _undoStack[_undoStack.length - 1];
   const project = load().projects[entry.projectId];
   if (!project) {
@@ -1203,14 +1302,14 @@ export function getActiveProject() {
   return db.projects[db.activeProjectId];
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-1773-1779
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
 export function getActiveDb() {
   return load();
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-1784-1790
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
 export { migrate };
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-1792-1803
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
 const MAX_DELETED_ITEM_BACKUPS = 20;
 
 export function backupBeforeDelete(kind, id, data, label) {
@@ -1242,7 +1341,7 @@ export const AUTHORITY_SOURCES = [
   'Generated proposal',
   'Imported material',
 ];
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-1835-1843
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
 const MAX_AUTO_SNAPSHOTS = 10;
 export function capAutoSnapshots(snapshots, maxAuto = MAX_AUTO_SNAPSHOTS) {
   const autoIndices = snapshots
@@ -1263,10 +1362,10 @@ export function capAutoSnapshots(snapshots, maxAuto = MAX_AUTO_SNAPSHOTS) {
 // manuscript domain and the staying entity code, and domains cannot
 // import each other, so they live here (exported for those importers).
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-1864-1870
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
 export const AUTO_CHECKPOINT_INTERVAL_MS = 20 * 60 * 1000;
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-1873-1895
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
 const MAX_MANUAL_SNAPSHOTS = 25;
 export function capManualSnapshots(snapshots, maxManual = MAX_MANUAL_SNAPSHOTS) {
   const manualIndices = snapshots
@@ -1280,7 +1379,7 @@ export function capManualSnapshots(snapshots, maxManual = MAX_MANUAL_SNAPSHOTS) 
   }
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-1909-1912
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
 export function getSeries(seriesId) {
   const db = load();
   return db.series[seriesId] || null;
@@ -1291,25 +1390,37 @@ export function getSeriesForActiveProject() {
   return getSeries(project.seriesId) || null;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-1923-1926
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
 export function getChapter(chapterId) {
   const project = getActiveProject();
   return project.chapters.find((c) => c.id === chapterId) || null;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-1932-1936
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
 export function slugType(label) {
   const base = (label || 'type').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'type';
   return `${base}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-1942-1945
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
 export function escapeRegExp(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js-1950-1953
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-core-js
 export function replaceDb(parsed) {
+// Roadmap #5 — a full backup written by a NEWER Tinta must not land here:
+// this build would round-trip it under a version tag claiming migrations
+// it never ran, and a later upgrade would then skip those migrations for
+// this data. Refuse BEFORE any state is touched — importFullBackup calls
+// this before mutating anything, so throwing here leaves its rollback
+// path unexercised and the current db intact.
+  if (parsed && typeof parsed.version === 'number' && parsed.version > SCHEMA_VERSION) {
+    throw new Error(
+      `That backup was written by a newer version of Tinta (schema v${parsed.version}; this build understands up to v${SCHEMA_VERSION}). ` +
+      'Nothing was changed — update Tinta and import it there.'
+    );
+  }
   _db = migrate(parsed);
   return _db;
 }

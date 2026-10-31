@@ -125,7 +125,9 @@ Session 33 entry, the "move-out" pass alone extracted 23 modules and cut
 `app.js` from 5,163 lines to 599 (boot, the render loop, undo/redo
 navigation only) behind a single `renderBus.js` repaint seam — zero
 modules import `app.js` for anything but that. `app.js` is 584 lines as
-of this pass. `store.js` — 7,143 lines, queued at the end of Session 33
+of this pass (646 after the 2026 external-review fix batches — the
+cross-tab copy-out banner, the schema-downgrade banners, and their tests).
+`store.js` — 7,143 lines, queued at the end of Session 33
 as "its own facade-preserving split" — is now split into 12
 `store-*.js` modules with `store.js` itself reduced to a 10-export
 barrel. `module-load.smoketest.mjs` currently asserts 86/86 modules,
@@ -144,6 +146,22 @@ scoped as a deliberate, larger undertaking rather than a quick fix when
 first flagged (see "Still open" below), and that scoping still holds;
 it now sits at the top of the v0.3 queue instead of blocking v0.2's
 close-out.
+
+**Version reconciliation (roadmap #8, 2026).** The About panel's
+version/phase triple had drifted three releases behind the code: it read
+0.2.8 "Own the Vault" while the v0.2.9 "app disappears" onboarding
+release and the v0.3 editor-preview pass (Typora-style always-on
+rendering, `{{u:text}}` underline, the image URL cache) were already
+shipped and self-labeled as such across `onboarding.js` / `editor.js` /
+`format.js`. `appMeta.js` now reads **0.3.0 "Fast, Beautiful,
+Trustworthy"** — the phase label is this document's own v0.3 charter,
+quoted above. Separately, this document carried two claims the external
+review proved false (onboarding and `prefers-reduced-motion` "zero code"
+while both ship — corrected in place below) and line-number citations
+that died with the `app.js` split (also corrected in place). The build
+log in `ROADMAP.md` gains the entries it was missing for the v0.3
+editor-preview pass and for the external-review fix batches (roadmap
+items 1–2, 3–7, and 8–11).
 
 ---
 
@@ -236,8 +254,10 @@ canon state (filterable), document type (filterable) — see §2.
 ## Backup / output
 Full JSON backup + image-inclusive backup, Markdown export, **DOCX + EPUB
 manuscript export** — confirmed live and wired: `manuscriptExport.js`
-exports `buildDocx`/`buildEpub`/`exportDocx`/`exportEpub`, imported and
-called directly in `app.js` (lines 3698/3715), 54/54 tests passing.
+exports `buildDocx`/`buildEpub`/`exportDocx`/`exportEpub`, wired through
+`exportMenu.js` (an earlier revision cited `app.js` lines 3698/3715 —
+those line numbers died with the godfile split and the call sites now
+live in the extracted export menu), 54/54 tests passing at the time.
 **Correction: the v0.3 audit doc labeled DOCX/EPUB as still-📋 in its §14 —
 that's wrong as of current source; it shipped in a later pass than when
 that section of the doc was last touched.** Service-worker offline
@@ -404,12 +424,16 @@ two real bugs that test surfaced and fixed.
   it was blocked on is now built (see below), but a saved dynamic filter
   is its own UI/data-layer work, not yet started.
 - **Onboarding experience levels (Simple/Normal/Max) + welcome-back
-  screen** — confirmed zero code. Scoped, not started: experience level
-  would be a pure visibility/defaults layer (which nav tabs show by
-  default), never a capability lock — no data model change needed.
-  Welcome-back screen would reuse `Store.getResumeSummary()` (the Resume
-  view's existing data-gathering) rather than a second parallel system.
-  Quote auto-detection ("was this line worth keeping") is explicitly
+  screen** — CORRECTED (external review, roadmap #8): an earlier revision
+  of this document claimed "confirmed zero code" here, but the code ships
+  both halves — `js/onboarding.js` is the 3-card first-boot flow (writer
+  name → density chips → paper/font pick) from the v0.2.9 "app
+  disappears" release, and `js/welcomeScreen.js` is the boot welcome-back
+  overlay ("Welcome back, [name]" + the 30-day streak heatmap + a quote).
+  Still genuinely scoped, not started: experience levels as a persistent
+  visibility/defaults layer (which nav tabs show by default), never a
+  capability lock — no data model change needed. Quote auto-detection
+  ("was this line worth keeping") is explicitly
   separate, later, and harder than it sounds — manual "save this as a
   quote" (§1, above) shipped first on purpose.
 - **Search/query foundation — shipped.** Field-scoped `field:value` syntax
@@ -816,7 +840,10 @@ preceded by a larger debt-fix pass: state-ownership design + extract
 this session with the new `dom-utils.js`; extract `renderSidebar()` +
 `renderActiveView()` and replace ~half the 30 `render()` call sites —
 debt #3; audit listeners + add AbortController for long-lived ones —
-debt #6; add `prefers-reduced-motion` + focus traps + icon-button
-`aria-label`s — debt #7). Field-scoped search (Query, above), Manuscript
+debt #6; add focus traps + icon-button `aria-label`s — debt #7, minus
+its `prefers-reduced-motion` item: that SHIPPED — reduced-motion blocks
+live in `css/base.css`, `css/modals.css` (×2), and `css/polish.css`, and
+an earlier revision of this document failed to notice. Caught by the
+external review, roadmap #8). Field-scoped search (Query, above), Manuscript
 containers (Containers, above), portable .tinta package (s28), and the
 resume dashboard (this session) were on this list and are now closed.

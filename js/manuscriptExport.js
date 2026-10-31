@@ -1,9 +1,9 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jsmanuscriptexport-js-1-26
+// Historical context: see docs/CODEBASE_NOTES.md#jsmanuscriptexport-js
 
 import { createZip } from './zip.js';
 import { COLOR_NAMES, IMAGE_TOKEN_PATTERN } from './format.js';
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsmanuscriptexport-js-31-48
+// Historical context: see docs/CODEBASE_NOTES.md#jsmanuscriptexport-js
 
 function parseInlineRuns(line) {
   const runs = [];
@@ -31,7 +31,7 @@ function parseInlineRuns(line) {
   return runs.length ? runs : [{ text: '' }];
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsmanuscriptexport-js-76-84
+// Historical context: see docs/CODEBASE_NOTES.md#jsmanuscriptexport-js
 const SCENE_BREAK_LINES = new Set(['***', '* * *', '#', '---', '—', '⁂']);
 
 // Returns an array of paragraph objects: { type: 'text', runs } or
@@ -55,7 +55,7 @@ function safeFilenameLocal(title) {
   return (title || 'untitled').trim().replace(/[^\w\- ]+/g, '').replace(/\s+/g, '-').toLowerCase() || 'untitled';
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsmanuscriptexport-js-108-114
+// Historical context: see docs/CODEBASE_NOTES.md#jsmanuscriptexport-js
 
 function xmlEscape(str = '') {
   return str
@@ -66,7 +66,7 @@ function xmlEscape(str = '') {
     .replace(/'/g, '&apos;');
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsmanuscriptexport-js-125-129
+// Historical context: see docs/CODEBASE_NOTES.md#jsmanuscriptexport-js
 function docxRuns(runs) {
   return runs
     .filter((r) => r.text !== undefined && r.text !== '')
@@ -99,7 +99,7 @@ function docxChapterParagraphs(chapter) {
         return `<w:p>${DOCX_BREAK_PARA}<w:r><w:t>#</w:t></w:r></w:p>`;
       }
       const runXml = docxRuns(p.runs);
-// Historical context: see docs/CODEBASE_NOTES.md#jsmanuscriptexport-js-162-165
+// Historical context: see docs/CODEBASE_NOTES.md#jsmanuscriptexport-js
       if (!runXml) return null;
       return `<w:p>${DOCX_BODY_PARA}${runXml}</w:p>`;
     })
@@ -171,15 +171,15 @@ ${authorLine}
 <w:p><w:pPr><w:sectPr/></w:pPr></w:p>`;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsmanuscriptexport-js-237-248
+// Historical context: see docs/CODEBASE_NOTES.md#jsmanuscriptexport-js
 function isExportableChapter(project, chapter) {
-// Historical context: see docs/CODEBASE_NOTES.md#jsmanuscriptexport-js-250-255
+// Historical context: see docs/CODEBASE_NOTES.md#jsmanuscriptexport-js
   if (chapter.archived || chapter.trashedAt) return false;
   const type = (project.chapterTypes || []).find((t) => t.key === chapter.docType);
   return !type || type.role !== 'scratch';
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsmanuscriptexport-js-261-268
+// Historical context: see docs/CODEBASE_NOTES.md#jsmanuscriptexport-js
 function groupExportChaptersByPart(project, chapters) {
   const parts = [...(project.parts || [])].sort((a, b) => a.order - b.order);
   const partIds = new Set(parts.map((p) => p.id));
@@ -222,7 +222,7 @@ ${body}
   return createZip(entries);
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsmanuscriptexport-js-311-318
+// Historical context: see docs/CODEBASE_NOTES.md#jsmanuscriptexport-js
 
 function epubHtmlEscape(str = '') {
   return str
@@ -243,7 +243,7 @@ function epubRunHtml(run) {
   return html;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsmanuscriptexport-js-339-342
+// Historical context: see docs/CODEBASE_NOTES.md#jsmanuscriptexport-js
 function epubChapterXhtml(chapter, imagesById, partTitle = null) {
   const paras = parseChapterParagraphs(chapter.content)
     .map((p) => {
@@ -387,7 +387,7 @@ ${spineItems.join('\n')}
   return createZip(entries);
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsmanuscriptexport-js-486-492
+// Historical context: see docs/CODEBASE_NOTES.md#jsmanuscriptexport-js
 
 function extToMime(mime) {
   if (mime === 'image/jpeg' || mime === 'image/jpg') return 'jpg';

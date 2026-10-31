@@ -1,14 +1,14 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-world-js-1-29
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-world-js
 
 import { escapeRegExp, getActiveProject, load, now, ownGet, save, uid } from './store-core.js';
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-world-js-33-50
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-world-js
 
 function makeCalendar(overrides = {}) {
   const monthNames = overrides.monthNames && overrides.monthNames.length
     ? overrides.monthNames
     : ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-world-js-56-59
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-world-js
   const rawDays = overrides.daysPerMonth && overrides.daysPerMonth.length ? overrides.daysPerMonth : [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
   const daysPerMonth = monthNames.map((_, i) => (Number.isFinite(rawDays[i]) && rawDays[i] > 0 ? Math.round(rawDays[i]) : 30));
   const weekdayNames = overrides.weekdayNames && overrides.weekdayNames.length
@@ -35,7 +35,7 @@ export function isCalendarActive() {
   return !!(calendar && calendar.enabled);
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-world-js-86-93
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-world-js
 export function enableCalendar(overrides = {}) {
   const project = getActiveProject();
   project.calendar = makeCalendar({ ...(project.calendar || {}), ...overrides });
@@ -44,7 +44,7 @@ export function enableCalendar(overrides = {}) {
   return project.calendar;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-world-js-102-106
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-world-js
 export function disableCalendar() {
   const project = getActiveProject();
   if (!project.calendar) return null;
@@ -67,7 +67,7 @@ function calendarYearLength(calendar) {
   return calendar.daysPerMonth.reduce((sum, d) => sum + d, 0);
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-world-js-129-136
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-world-js
 export function calendarDateToAbsoluteDay(calendar, date) {
   const yearLength = calendarYearLength(calendar);
   let dayOfYear = 0;
@@ -96,7 +96,7 @@ export function daysBetweenCalendarDates(calendar, a, b) {
   return calendarDateToAbsoluteDay(calendar, b) - calendarDateToAbsoluteDay(calendar, a);
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-world-js-165-171
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-world-js
 export function offsetCalendarDate(calendar, date, { years = 0, months = 0, days = 0 } = {}) {
   const monthCount = calendar.monthNames.length;
   const totalMonths = date.month + months;
@@ -128,7 +128,7 @@ export function formatCalendarDate(calendar, date, { includeWeekday = false } = 
   return includeWeekday ? `${getWeekdayName(calendar, date)}, ${base}` : base;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-world-js-203-210
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-world-js
 export function formatTimelineEventDate(event) {
   const calendar = getActiveProject().calendar;
   if (event.calendarDate && calendar && calendar.enabled && isValidCalendarDate(calendar, event.calendarDate)) {
@@ -137,7 +137,7 @@ export function formatTimelineEventDate(event) {
   return event.storyDate || '';
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-world-js-219-227
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-world-js
 export function findCalendarOrderMismatches() {
   const calendar = getActiveProject().calendar;
   if (!calendar || !calendar.enabled) return [];
@@ -153,7 +153,7 @@ export function findCalendarOrderMismatches() {
   return mismatches;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-world-js-243-250
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-world-js
 
 export function getTimelineEventList() {
   const project = getActiveProject();
@@ -172,7 +172,7 @@ export function createTimelineEvent({ title = 'Untitled Event', storyDate = '', 
     id: uid('evt'),
     title,
     storyDate,
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-world-js-269-273
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-world-js
     calendarDate,
     description,
     chapterId, // optional — links the event to the chapter it plays out in
@@ -203,7 +203,7 @@ export function deleteTimelineEvent(eventId) {
   save();
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-world-js-304-309
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-world-js
 
 export function listImages() {
   const project = getActiveProject();
@@ -242,7 +242,7 @@ export function deleteImageMeta(id) {
   save();
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-world-js-348-352
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-world-js
 export function getProjectImageIds(project) {
   return Object.keys(project.images);
 }
@@ -332,7 +332,7 @@ export function reorderTimelineEvent(eventId, direction) {
   save();
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-world-js-369-383
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-world-js
 
 const MAP_TYPES = ['World', 'Regional', 'City', 'Dungeon/Interior'];
 
@@ -379,7 +379,7 @@ export function deleteMap(mapId) {
   const project = getActiveProject();
   if (!project.maps[mapId]) return;
   delete project.maps[mapId];
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-world-js-430-434
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-world-js
   Object.values(project.maps).forEach((map) => {
     map.markers.forEach((marker) => {
       if (marker.linkedMapId === mapId) marker.linkedMapId = null;
@@ -437,7 +437,7 @@ export function deleteMarker(mapId, markerId) {
   save();
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-world-js-492-498
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-world-js
 
 const REFERENCE_TYPES = ['Note', 'URL', 'Quote', 'Book/Source', 'Image', 'Screenshot'];
 
@@ -491,7 +491,7 @@ export function deleteReference(id) {
   const project = getActiveProject();
   if (!project.references[id]) return;
   delete project.references[id];
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-world-js-552-555
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-world-js
   project.updatedAt = now();
   save();
 }
@@ -520,7 +520,7 @@ export function getReferencesForScene(sceneId) {
   return getReferenceList().filter((r) => r.sceneId === sceneId);
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-world-js-584-589
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-world-js
 
 export function getPronunciationList() {
   const project = getActiveProject();
@@ -544,7 +544,7 @@ export function deletePronunciation(word) {
   save();
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-world-js-613-618
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-world-js
 
 export function applyPronunciations(text = '') {
   const project = getActiveProject();
@@ -559,7 +559,7 @@ export function applyPronunciations(text = '') {
   return result;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-world-js-633-637
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-world-js
 
 export function getCustomDictionary() {
   const project = getActiveProject();
@@ -582,7 +582,7 @@ export function removeFromCustomDictionary(word) {
   save();
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-world-js-660-665
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-world-js
 export function isDictionaryIgnored(flaggedText) {
   const project = getActiveProject();
   const target = (flaggedText || '').trim().toLowerCase();

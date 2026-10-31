@@ -1,4 +1,4 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jssprintpanel-js-1-25
+// Historical context: see docs/CODEBASE_NOTES.md#jssprintpanel-js
 
 import * as Store from './store.js';
 import * as Sprint from './sprint.js';
@@ -27,7 +27,7 @@ export function startSprint({ mode, minutes }) {
 function sprintTick() {
   if (sprintState.status !== 'running') return;
 
-// Historical context: see docs/CODEBASE_NOTES.md#jssprintpanel-js-54-58
+// Historical context: see docs/CODEBASE_NOTES.md#jssprintpanel-js
   if (Store.getActiveProject().id !== sprintState.projectId) {
     cancelSprint();
     return;
@@ -47,7 +47,7 @@ function sprintTick() {
     q('sprint-btn').textContent = `⏱ ${Sprint.formatClock(Sprint.elapsedMs(sprintState.startedAt, now))}`;
   }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jssprintpanel-js-78-81
+// Historical context: see docs/CODEBASE_NOTES.md#jssprintpanel-js
   if (q('modal-root').querySelector('.sprint-modal-active')) {
     renderSprintActivePanel(words, now);
   }

@@ -1,4 +1,4 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-1-25
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
 
 import {
   AUTO_CHECKPOINT_INTERVAL_MS,
@@ -29,19 +29,19 @@ export function createChapter(title = 'Untitled Chapter') {
     povCharacter: '',
     arc: '',
     targetWordCount: 0,
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-56-60
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
     writeTimeMs: 0,
     content: '',
     updatedAt: now(),
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-64-67
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
     lastOpenedAt: '',
     scenes: [],
     snapshots: [],
     lastCursorPos: 0,
     lastScrollTop: 0,
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-73-76
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
     docType: 'chapter',
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-78-85
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
     folderId: null,
     // Containers foundation pass — same single-parent shape as folderId,
     // on the separate "manuscript sequence" axis. null means "not in any
@@ -51,7 +51,7 @@ export function createChapter(title = 'Untitled Chapter') {
     pinned: false,
     archived: false,
     trashedAt: null,
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-95-102
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
     lastReadSpread: 0,
     lastAutoCheckpointAt: now(),
   };
@@ -74,12 +74,12 @@ function todayKey() {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-125-134
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
 export function getTotalWordCount(project = getActiveProject()) {
   return project.chapters.filter((ch) => !ch.trashedAt).reduce((sum, ch) => sum + wordCount(ch.content), 0);
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-139-146
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
 function recordWordDelta(project, prevTotal) {
   const delta = getTotalWordCount(project) - prevTotal;
   if (delta > 0) {
@@ -92,7 +92,7 @@ export function getDailyWordCounts() {
   return getActiveProject().dailyWordCounts || {};
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-159-162
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
 export function getCurrentStreak() {
   const counts = getDailyWordCounts();
   const d = new Date();
@@ -107,7 +107,7 @@ export function getCurrentStreak() {
   return streak;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-177-186
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
 export function checkGoalCelebration(project) {
   if (!project.wordGoal || project.wordGoal <= 0) return false;
   const today = todayKey();
@@ -129,9 +129,9 @@ export function updateChapterContent(chapterId, content) {
   if (!chapter) return false;
   const project = getActiveProject();
   const prevTotal = getTotalWordCount(project);
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-201-204
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
   const before = cloneWithoutSnapshots(chapter);
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-206-211
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
   const msSinceCheckpoint = Date.now() - new Date(chapter.lastAutoCheckpointAt || 0).getTime();
   if (chapter.content && msSinceCheckpoint >= AUTO_CHECKPOINT_INTERVAL_MS) {
     createSnapshot(chapterId, 'Auto-checkpoint', true);
@@ -150,7 +150,7 @@ export function updateChapterContent(chapterId, content) {
   return save();
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-230-235
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
 // Same truthful-return contract as updateChapterContent above — cursor and
 // scroll position are far less precious than prose, but a caller that wants
 // to know whether the write landed shouldn't have to guess.
@@ -162,7 +162,7 @@ export function updateChapterPosition(chapterId, { cursorPos, scrollTop } = {}) 
   return save();
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-244-248
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
 export function updateChapterReadPosition(chapterId, spreadIndex) {
   const chapter = getChapter(chapterId);
   if (!chapter || typeof spreadIndex !== 'number') return;
@@ -170,14 +170,14 @@ export function updateChapterReadPosition(chapterId, spreadIndex) {
   save();
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-256-260
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
 export function getRecentActivity() {
   const db = load();
   return (db.recentActivity || [])
     .map((entry) => {
       const project = db.projects[entry.projectId];
       const chapter = project?.chapters.find((c) => c.id === entry.chapterId);
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-267-274
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
       if (!project || !chapter || chapter.trashedAt) return null;
       return {
         projectId: entry.projectId,
@@ -217,7 +217,7 @@ export function updateChapterMeta(chapterId, patch) {
   return save();
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-308-316
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
 export function addChapterWriteTime(chapterId, deltaMs) {
   const chapter = getChapter(chapterId);
   if (!chapter || !deltaMs || deltaMs <= 0) return;
@@ -239,14 +239,14 @@ export function deleteChapter(chapterId) {
     if (ref.chapterId === chapterId) ref.chapterId = null;
     if (ref.sceneId && deletedSceneIds.has(ref.sceneId)) ref.sceneId = null;
   });
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-338-344
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
   Object.keys(project.sceneRelationships || {}).forEach((id) => {
     const rel = project.sceneRelationships[id];
     if (deletedSceneIds.has(rel.fromSceneId) || deletedSceneIds.has(rel.toSceneId)) {
       delete project.sceneRelationships[id];
     }
   });
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-351-354
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
   Object.keys(project.annotations || {}).forEach((id) => {
     if (project.annotations[id].chapterId === chapterId) delete project.annotations[id];
   });
@@ -259,7 +259,7 @@ export function deleteChapter(chapterId) {
   Object.keys(project.quotes || {}).forEach((id) => {
     if (project.quotes[id].chapterId === chapterId) delete project.quotes[id];
   });
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-367-370
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
   project.recentChapterIds = (project.recentChapterIds || []).filter((id) => id !== chapterId);
   (project.collections || []).forEach((c) => {
     c.chapterIds = (c.chapterIds || []).filter((id) => id !== chapterId);
@@ -267,7 +267,7 @@ export function deleteChapter(chapterId) {
   save();
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-378-390
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
 export function trashChapter(chapterId) {
   const chapter = getChapter(chapterId);
   if (!chapter) return false;
@@ -303,12 +303,12 @@ export function getTrashedChapters() {
   return project.chapters.filter((c) => c.trashedAt).sort((a, b) => new Date(b.trashedAt) - new Date(a.trashedAt));
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-426-430
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
 export function permanentlyDeleteChapter(chapterId) {
   deleteChapter(chapterId);
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-435-441
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
 export function archiveChapter(chapterId) {
   const chapter = getChapter(chapterId);
   if (!chapter) return false;
@@ -330,7 +330,7 @@ export function getArchivedChapters() {
   return project.chapters.filter((c) => c.archived && !c.trashedAt).sort((a, b) => a.order - b.order);
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-463-468
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
 export function toggleChapterFavorite(chapterId) {
   const chapter = getChapter(chapterId);
   if (!chapter) return false;
@@ -352,13 +352,13 @@ export function toggleChapterPin(chapterId) {
   return chapter.pinned;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-490-494
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
 const RECENTS_CAP = 10;
 export function recordChapterOpened(chapterId) {
   const project = getActiveProject();
   const withoutThis = (project.recentChapterIds || []).filter((id) => id !== chapterId);
   project.recentChapterIds = [chapterId, ...withoutThis].slice(0, RECENTS_CAP);
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-500-506
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
   const chapter = project.chapters.find((c) => c.id === chapterId);
   if (chapter) chapter.lastOpenedAt = now();
   save();
@@ -371,7 +371,7 @@ export function getRecentChapters() {
     .filter((c) => c && !c.trashedAt);
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-519-525
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
 export function getFolders() {
   const project = getActiveProject();
   return [...(project.folders || [])].sort((a, b) => a.name.localeCompare(b.name));
@@ -398,7 +398,7 @@ export function renameFolder(folderId, name) {
   return true;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-552-556
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
 export function deleteFolder(folderId) {
   const project = getActiveProject();
   project.folders = (project.folders || []).filter((f) => f.id !== folderId);
@@ -421,13 +421,13 @@ export function getChaptersInFolder(folderId) {
   return project.chapters.filter((c) => c.folderId === folderId && !c.trashedAt).sort((a, b) => a.order - b.order);
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-579-590
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
 export function getParts() {
   const project = getActiveProject();
   return [...(project.parts || [])].sort((a, b) => a.order - b.order);
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-596-600
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
 export function groupChaptersByPart(chapters) {
   const parts = getParts();
   const groups = parts.map((part) => ({ part, chapters: chapters.filter((c) => c.partId === part.id) }));
@@ -460,7 +460,7 @@ export function renamePart(partId, title) {
   return true;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-633-637
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
 export function deletePart(partId) {
   const project = getActiveProject();
   project.parts = (project.parts || []).filter((p) => p.id !== partId);
@@ -484,7 +484,7 @@ export function reorderPart(partId, direction) {
   save();
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-661-665
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
 export function assignChapterToPart(chapterId, partId) {
   const chapter = getChapter(chapterId);
   if (!chapter) return false;
@@ -499,7 +499,7 @@ export function getChaptersInPart(partId) {
   return project.chapters.filter((c) => c.partId === partId && !c.trashedAt).sort((a, b) => a.order - b.order);
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-680-693
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
 export function getCollections() {
   const project = getActiveProject();
   return [...(project.collections || [])].sort((a, b) => a.name.localeCompare(b.name));
@@ -557,7 +557,7 @@ export function getChaptersInCollection(collectionId) {
   return collection.chapterIds.map((id) => getChapter(id)).filter((c) => c && !c.trashedAt);
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-751-758
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
 export function getSavedSearches() {
   const project = getActiveProject();
   return [...(project.savedSearches || [])].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -601,7 +601,7 @@ export function createScene(chapterId, scene = {}) {
     goal: scene.goal || '',
     conflict: scene.conflict || '',
     outcome: scene.outcome || '',
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-802-808
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
     pov: scene.pov || '',
     location: scene.location || '',
     time: scene.time || '',
@@ -611,7 +611,7 @@ export function createScene(chapterId, scene = {}) {
     // goal/conflict/outcome trio (those are structured prompts; this is
     // just a place for anything else, including snippet-promotion text).
     notes: scene.notes || '',
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-818-821
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
     obstacle: scene.obstacle || '',
     infoRevealed: scene.infoRevealed || '',
     secretsIntroduced: scene.secretsIntroduced || '',
@@ -638,7 +638,7 @@ export function updateScene(chapterId, sceneId, patch) {
   save();
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-848-852
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
 export function moveScene(sceneId, targetChapterId, targetIndex) {
   const project = getActiveProject();
   let sourceChapter = null;
@@ -678,19 +678,19 @@ export function deleteScene(chapterId, sceneId) {
     const rel = project.sceneRelationships[id];
     if (rel.fromSceneId === sceneId || rel.toSceneId === sceneId) delete project.sceneRelationships[id];
   });
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-892-895
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
   Object.values(project.annotations || {}).forEach((a) => { if (a.sceneId === sceneId) a.sceneId = null; });
   Object.values(project.bookmarks || {}).forEach((b) => { if (b.sceneId === sceneId) b.sceneId = null; });
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-898-901
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
   Object.values(project.quotes || {}).forEach((qt) => { if (qt.sceneId === sceneId) qt.sceneId = null; });
   save();
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-906-911
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
 export const SCENE_INTENSITY_LEVELS = ['low', 'building', 'high', 'peak'];
 export const SCENE_REVISION_STATUSES = ['needs-work', 'drafted', 'revised', 'polished'];
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-915-921
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
 export function getChapterTypes() {
   const project = getActiveProject();
   const builtins = project.chapterTypes.filter((t) => t.builtin);
@@ -702,7 +702,7 @@ export function getChapterType(key) {
   return getActiveProject().chapterTypes.find((t) => t.key === key) || null;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-933-938
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
 export function getChapterTypeForChapter(chapter) {
   return getChapterType(chapter.docType) || getChapterType('chapter');
 }
@@ -716,7 +716,7 @@ export function createChapterType({ label, role = 'content' } = {}) {
   return type;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-952-957
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
 export function updateChapterType(key, patch) {
   const project = getActiveProject();
   const type = project.chapterTypes.find((t) => t.key === key);
@@ -744,7 +744,7 @@ export function deleteChapterType(key) {
   return true;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-985-992
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
 
 export function getDocumentTemplates(appliesTo = null) {
   const project = getActiveProject();
@@ -795,7 +795,7 @@ export function deleteDocumentTemplate(templateId) {
   return true;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-1043-1048
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
 export function createChapterFromTemplate(templateId, titleOverride = '') {
   const template = getDocumentTemplate(templateId);
   if (!template || template.appliesTo !== 'chapter') return null;
@@ -817,12 +817,12 @@ export function createSceneFromTemplate(chapterId, templateId, titleOverride = '
   return createScene(chapterId, { title: (titleOverride || '').trim() || template.titleSeed || 'Untitled Scene', ...fields });
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-1070-1078
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
 export function getContentChapterNumber(chapter) {
   const project = getActiveProject();
   const type = getChapterTypeForChapter(chapter);
   if (type.role !== 'content') return null;
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-1083-1088
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
   if (chapter.archived || chapter.trashedAt) return null;
   const ordered = [...project.chapters].sort((a, b) => a.order - b.order);
   const contentChapters = ordered.filter((c) => getChapterTypeForChapter(c).role === 'content' && !c.archived && !c.trashedAt);
@@ -830,7 +830,7 @@ export function getContentChapterNumber(chapter) {
   return idx === -1 ? null : idx + 1;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-1096-1103
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
 
 export function getSnapshots(chapterId) {
   const chapter = getChapter(chapterId);
@@ -852,7 +852,7 @@ export function createSnapshot(chapterId, label = '', auto = false) {
     wordCount: wordCount(chapter.content),
     createdAt: now(),
     auto, // structured flag, not inferred from the label string — a
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-1125-1128
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
   };
   chapter.snapshots.push(snapshot);
   capAutoSnapshots(chapter.snapshots);
@@ -874,7 +874,7 @@ export function deleteSnapshot(chapterId, snapshotId) {
   save();
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-1150-1153
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
 export function restoreSnapshot(chapterId, snapshotId) {
   const chapter = getChapter(chapterId);
   const snapshot = getSnapshot(chapterId, snapshotId);
@@ -898,7 +898,7 @@ export function exportProjectText(project = getActiveProject()) {
   return chapters.map((c) => `# ${c.title}\n\n${c.content}`).join('\n\n---\n\n');
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-1177-1188
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
 export function importChapterFromText(title, content) {
   const chapter = createChapter(title);
   updateChapterContent(chapter.id, content);
@@ -920,13 +920,13 @@ export function updateChapterArc(chapterId, arc) {
   save();
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-1210-1213
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
 
 export function searchProject(query, options) {
   return Search.searchProject(getActiveProject(), query, options);
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js-1219-1223
+// Historical context: see docs/CODEBASE_NOTES.md#jsstore-manuscript-js
 export function replaceInChapters(query, replacement, options) {
   const project = getActiveProject();
   const plan = Search.planChapterReplace(project, query, replacement, options);

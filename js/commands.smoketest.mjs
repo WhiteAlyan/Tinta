@@ -213,7 +213,7 @@ const rows = getPaletteCommands();
 assert(rows.length === 2, `runnable palette-flagged entries exposed (${rows.length}: Undo + Redo)`);
 assert(rows.every((r) => r.kind === 'command' && r.label && r.sublabel && typeof r.action === 'function'), 'palette rows carry kind/label/sublabel/action');
 {
-  const ctx2 = makeCtx();
+  makeCtx();
   getPaletteCommands().length; // registry rows are bound to the FIRST ctx on purpose? no — see below
 }
 // Rows must run against the bound ctx (attach is the binding point).

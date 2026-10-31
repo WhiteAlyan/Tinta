@@ -1,4 +1,4 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jssketchview-js-1-4
+// Historical context: see docs/CODEBASE_NOTES.md#jssketchview-js
 import * as ImageStore from './imagestore.js';
 import * as ModalShell from './modal.js';
 import * as Sketchpad from './sketchpad.js';
@@ -6,7 +6,6 @@ import * as Store from './store.js';
 import { activeSketchId, setActiveEntityId, setActiveSketchId, setActiveView } from './context.js';
 import { html, q, toBridge } from './dom-utils.js';
 import { openImageLibrary } from './imageLibrary.js';
-import { confirmDialog } from './modal.js';
 import { requestRender } from './renderBus.js';
 import { showStorageWarning, showToast } from './toast.js';
 
@@ -19,12 +18,12 @@ export function detachSketchDrawing() {
     sketchDetachDrawing = null;
   }
 }
-// Historical context: see docs/CODEBASE_NOTES.md#jssketchview-js-25-29
+// Historical context: see docs/CODEBASE_NOTES.md#jssketchview-js
 export const SKETCH_COLORS = ['#B08D57', '#9B6B2F', '#4A7C59', '#8B3A3A', '#3A5A8B', '#FFFFFF', '#191825'];
 
 export let sketchDetachDrawing = null;
 
-// Historical context: see docs/CODEBASE_NOTES.md#jssketchview-js-34-38
+// Historical context: see docs/CODEBASE_NOTES.md#jssketchview-js
 export let sketchColor = null;
 export let sketchWidth = 3;
 
@@ -80,7 +79,7 @@ export function renderSketchView(project) {
   renderSketchMain(project);
 }
 
-export function renderSketchMain(project) {
+export function renderSketchMain(_project) {
   const mainEl = q('sketch-main');
   const sketch = activeSketchId ? Store.getSketch(activeSketchId) : null;
 
@@ -181,7 +180,7 @@ export function renderSketchMain(project) {
 
   q('sketch-color-wheel').addEventListener('input', (e) => {
     sketchColor = e.target.value;
-// Historical context: see docs/CODEBASE_NOTES.md#jssketchview-js-195-198
+// Historical context: see docs/CODEBASE_NOTES.md#jssketchview-js
     document.querySelectorAll('.sketch-color-swatch.active').forEach((b) => b.classList.remove('active'));
   });
 
@@ -217,7 +216,7 @@ export function renderSketchMain(project) {
   });
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jssketchview-js-234-237
+// Historical context: see docs/CODEBASE_NOTES.md#jssketchview-js
 export function renderSketchLinkChips(sketch) {
   const wrap = q('sketch-links-chips');
   if (!wrap) return;
@@ -250,7 +249,7 @@ export function renderSketchLinkChips(sketch) {
   });
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jssketchview-js-270-277
+// Historical context: see docs/CODEBASE_NOTES.md#jssketchview-js
 export function saveSketchAsImage(sketch, canvasEl) {
   canvasEl.toBlob((blob) => {
     if (!blob) {
@@ -275,12 +274,12 @@ export function saveSketchAsImage(sketch, canvasEl) {
 
 // 0.2.6 de-hub pass — capitalize moved to dom-utils.js, imported above.
 
-// Historical context: see docs/CODEBASE_NOTES.md#jssketchview-js-302-305
+// Historical context: see docs/CODEBASE_NOTES.md#jssketchview-js
 
-// Historical context: see docs/CODEBASE_NOTES.md#jssketchview-js-307-315
+// Historical context: see docs/CODEBASE_NOTES.md#jssketchview-js
 
 
-// Historical context: see docs/CODEBASE_NOTES.md#jssketchview-js-283-292
+// Historical context: see docs/CODEBASE_NOTES.md#jssketchview-js
 export function resetSketchViewState() {
   setActiveSketchId(null);
   detachSketchDrawing();

@@ -1,4 +1,4 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jstimelineview-js-1-29
+// Historical context: see docs/CODEBASE_NOTES.md#jstimelineview-js
 import * as Store from './store.js';
 import { html, raw, toBridge, q, escapeHtml, escapeAttr } from './dom-utils.js';
 import { openModal, confirmDialog, closeModal } from './modal.js';
@@ -6,7 +6,7 @@ import { EmptyState } from './emptyState.js';
 import { requestRender } from './renderBus.js';
 import { setActiveView, setActiveChapterId } from './context.js';
 
-// Historical context: see docs/CODEBASE_NOTES.md#jstimelineview-js-37-42
+// Historical context: see docs/CODEBASE_NOTES.md#jstimelineview-js
 
 export function renderTimelineView(project) {
   const panel = document.querySelector('.view-panel[data-view="timeline"]');
@@ -121,7 +121,7 @@ export function renderTimelineView(project) {
       renderTimelineView(Store.getActiveProject());
     });
 
-// Historical context: see docs/CODEBASE_NOTES.md#jstimelineview-js-157-161
+// Historical context: see docs/CODEBASE_NOTES.md#jstimelineview-js
     const setBtn = card.querySelector('.timeline-cal-set-btn');
     if (setBtn) {
       setBtn.addEventListener('click', () => {
@@ -165,7 +165,7 @@ export function renderTimelineView(project) {
   });
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jstimelineview-js-205-210
+// Historical context: see docs/CODEBASE_NOTES.md#jstimelineview-js
 function parseCalendarMonthsInput(text) {
   const lines = (text || '').split('\n').map((l) => l.trim()).filter(Boolean);
   const monthNames = [];
@@ -180,7 +180,7 @@ function parseCalendarMonthsInput(text) {
   return { monthNames, daysPerMonth };
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jstimelineview-js-225-230
+// Historical context: see docs/CODEBASE_NOTES.md#jstimelineview-js
 function openCalendarManager() {
   const calendar = Store.getProjectCalendar();
   const monthsText = calendar
@@ -191,7 +191,7 @@ function openCalendarManager() {
 
   openModal({
     title: 'Custom Calendar',
-    body: `
+    body: raw(`
       <p class="drawer-subtitle">Optional: Timeline events can keep using freeform dates like "Day 3" without this. Setting one up unlocks real date math on events that opt into it: proper chronological ordering, and a heads-up when an event's date runs earlier than the one before it.</p>
       <label class="grammar-field-label">Months (one per line: name, days)
         <textarea id="calendar-months-input" rows="6">${escapeHtml(monthsText)}</textarea>
@@ -210,7 +210,7 @@ function openCalendarManager() {
             : '<button id="calendar-toggle-btn" class="add-scene-btn" style="margin-top:var(--space-3);">Turn calendar back on</button>'
           : ''
       }
-    `,
+    `),
   });
 
   q('calendar-save-btn').addEventListener('click', () => {

@@ -1,4 +1,4 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jsreadaloud-js-1-7
+// Historical context: see docs/CODEBASE_NOTES.md#jsreadaloud-js
 
 import * as Store from './store.js';
 import * as TTS from './tts.js';

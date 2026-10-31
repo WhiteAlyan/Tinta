@@ -1,4 +1,4 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jstheme-js-1-9
+// Historical context: see docs/CODEBASE_NOTES.md#jstheme-js
 
 import * as Store from './store.js';
 import * as AssetStore from './assetstore.js';
@@ -158,7 +158,7 @@ export async function prepareBackgroundImage(file) {
 // URLs" discipline the Library cover-resolving code follows.
 let currentBgObjectUrl = null;
 
-// Historical context: see docs/CODEBASE_NOTES.md#jstheme-js-54-58
+// Historical context: see docs/CODEBASE_NOTES.md#jstheme-js
 export async function applyBackground(settings = Store.getBackgroundSettings()) {
   const body = document.body;
 
@@ -199,7 +199,7 @@ export async function initBackground() {
   await applyBackground();
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jstheme-js-99-104
+// Historical context: see docs/CODEBASE_NOTES.md#jstheme-js
 
 // P2-11 fix — central `applyFont(name)` helper. data-font used to be
 // set in five separate places (app.js:462 every render, theme.js:217
@@ -234,7 +234,7 @@ export async function initCustomFont() {
     blob = null; // blob store unavailable (fresh private session, transient IDB error) — same path as a missing blob
   }
   if (!blob) {
-// Historical context: see docs/CODEBASE_NOTES.md#jstheme-js-116-124
+// Historical context: see docs/CODEBASE_NOTES.md#jstheme-js
     if (Store.getManuscriptFont() === 'custom') {
       Store.setManuscriptFont('literata');
       // P2-11 — route through the central helper instead of inline
@@ -246,7 +246,7 @@ export async function initCustomFont() {
   await registerCustomFont(blob, family);
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jstheme-js-134-140
+// Historical context: see docs/CODEBASE_NOTES.md#jstheme-js
 export async function registerCustomFont(blob, family) {
   const buffer = await blob.arrayBuffer();
   const fontFace = new FontFace(family, buffer);
@@ -255,13 +255,13 @@ export async function registerCustomFont(blob, family) {
   document.documentElement.style.setProperty('--custom-font-family', `"${family}"`);
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jstheme-js-149-154
+// Historical context: see docs/CODEBASE_NOTES.md#jstheme-js
 export function deriveFontFamilyName(fileName) {
-  const base = fileName.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9 \-]/g, '').trim() || 'Custom Font';
+  const base = fileName.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9 -]/g, '').trim() || 'Custom Font';
   return `${base} ${Math.random().toString(36).slice(2, 6)}`;
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jstheme-js-160-164
+// Historical context: see docs/CODEBASE_NOTES.md#jstheme-js
 export const MOTION_SPEED_SCALE = { subtle: 0.6, normal: 1, relaxed: 1.7 };
 export function applyMotionSpeed(speed) {
   document.documentElement.style.setProperty('--motion-chapter-scale', String(MOTION_SPEED_SCALE[speed] ?? 1));

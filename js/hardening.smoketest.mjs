@@ -264,7 +264,7 @@ assertEqual(plainExport.customFont, null, 'no font picked → null customFont fi
 // false is the honest report, not a crash.
 const fontDb = JSON.parse(Store.exportFullBackup());
 fontDb.customFont = { family: 'Restored Font zz99', fileName: 'Restored.ttf' };
-const activeTitleBeforeFont = fontDb.projects[fontDb.activeProjectId].title;
+
 fontDb.projects[fontDb.activeProjectId].title = 'Font Restored Workspace';
 const fontImport = await Backup.importFullBackupWithImages(JSON.stringify({
   tintaBackupVersion: 2,

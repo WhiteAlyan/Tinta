@@ -23,7 +23,7 @@
 // the existing format.js; the new editor-paragraph.smoketest.mjs is a
 // test file, not a runtime file), but the CSS + editor.js changes are
 // significant enough to warrant a cache refresh.
-const CACHE_NAME = 'tinta-shell-v0.3-editor-preview';
+const CACHE_NAME = 'tinta-shell-v0.3.0';
 const SHELL_FILES = [
   './',
   './index.html',
@@ -44,6 +44,7 @@ const SHELL_FILES = [
   './css/media.css',
   './css/polish.css',
   './js/app.js',
+  './js/sw-register.js',
   './js/renderBus.js',
   './js/appMeta.js',
   './js/portraits.js',
@@ -82,6 +83,7 @@ const SHELL_FILES = [
   './js/file-utils.js',
   './js/tintaPackage.js',
   './js/autoBackup.js',
+  './js/autoBackupName.js',
   './js/sprintPanel.js',
   './js/readAloud.js',
   './js/grammarModal.js',

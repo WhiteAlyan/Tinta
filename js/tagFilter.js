@@ -1,7 +1,7 @@
-// Historical context: see docs/CODEBASE_NOTES.md#jstagfilter-js-1-4
+// Historical context: see docs/CODEBASE_NOTES.md#jstagfilter-js
 import { html, q, raw } from './dom-utils.js';
 
-// Historical context: see docs/CODEBASE_NOTES.md#jstagfilter-js-7-34
+// Historical context: see docs/CODEBASE_NOTES.md#jstagfilter-js
 export function tagFilterBarHtml(idPrefix, activeSet, tagOptions, extraStyle = '') {
   if (!tagOptions.length) return '';
   return html`<div class="library-filter-bar" id="${idPrefix}-tag-filter-bar"${extraStyle ? html` style="${raw(extraStyle)}"` : ''}>
@@ -28,7 +28,7 @@ export function wireTagFilterBar(idPrefix, activeSet, onChange) {
   if (clearBtn) clearBtn.addEventListener('click', () => { activeSet.clear(); onChange(); });
 }
 
-// Historical context: see docs/CODEBASE_NOTES.md#jstagfilter-js-61-64
+// Historical context: see docs/CODEBASE_NOTES.md#jstagfilter-js
 export function filterByTagSet(list, activeSet, tagsField = 'tags') {
   if (!activeSet.size) return list;
   return list.filter((item) => [...activeSet].every((t) => (item[tagsField] || []).includes(t)));
